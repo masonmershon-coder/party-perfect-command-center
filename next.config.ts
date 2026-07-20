@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Smaller production bundle for VPS/Docker (node .next/standalone/server.js)
+  output: "standalone",
 };
 
 export default nextConfig;

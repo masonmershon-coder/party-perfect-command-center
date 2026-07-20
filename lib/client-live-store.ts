@@ -20,4 +20,7 @@ export function writeLiveModeEnabled(enabled: boolean) {
   }
 }
 
-export const LIVE_POLL_INTERVAL_MS = 75_000;
+export const LIVE_POLL_INTERVAL_MS = 70_000;
+
+/** Sections that pull full payloads when Live Mode is on */
+export const LIVE_REFRESH_SECTIONS = ["emails", "social", "tasks", "dashboard"] as const;

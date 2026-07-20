@@ -1,5 +1,6 @@
 import { promises as fs } from "fs";
 import path from "path";
+import { getDataDir } from "./data-dir";
 import { compareEmailsByPriority, inferEmailPriority } from "./email-priority";
 import {
   DEFAULT_AGENTS,
@@ -39,7 +40,7 @@ import type {
   TaskStatus,
 } from "./types";
 
-const DATA_DIR = path.join(process.cwd(), "data");
+const DATA_DIR = getDataDir();
 const AGENTS_FILE = path.join(DATA_DIR, "agents.json");
 const TASKS_FILE = path.join(DATA_DIR, "tasks.json");
 const INVENTORY_FILE = path.join(DATA_DIR, "inventory.json");

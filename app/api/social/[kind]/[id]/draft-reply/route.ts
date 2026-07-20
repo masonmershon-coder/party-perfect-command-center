@@ -6,7 +6,7 @@ import type { GrokModel, SocialPlatform } from "@/lib/types";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
-export const maxDuration = 120;
+export const maxDuration = 60;
 
 type RouteContext = {
   params: Promise<{ kind: string; id: string }>;

@@ -82,7 +82,7 @@ export function LiveStatusBar({
         </span>
       </div>
       <span className="text-[10px] uppercase tracking-wider text-[var(--pp-text-muted)]">
-        Auto-refresh · ~75s
+        Auto-refresh · ~70s
       </span>
     </div>
   );

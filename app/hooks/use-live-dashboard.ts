@@ -1,7 +1,10 @@
 "use client";
 
 import { fetchLiveCheck } from "@/lib/client-api";
-import { LIVE_POLL_INTERVAL_MS } from "@/lib/client-live-store";
+import {
+  LIVE_POLL_INTERVAL_MS,
+  LIVE_REFRESH_SECTIONS,
+} from "@/lib/client-live-store";
 import type {
   DashboardStats,
   LiveNotification,
@@ -185,8 +188,9 @@ export function useLiveDashboard({
       );
       setLastCheckedAt(snapshot.checkedAt);
 
-      const shouldRefreshSection =
-        section === "emails" || section === "social" || section === "tasks";
+      const shouldRefreshSection = (
+        LIVE_REFRESH_SECTIONS as readonly string[]
+      ).includes(section);
 
       if (shouldRefreshSection) {
         setIsRefreshing(true);
@@ -198,7 +202,7 @@ export function useLiveDashboard({
         if (section === "social") {
           refreshes.push(refreshSocialRef.current());
         }
-        if (section === "tasks") {
+        if (section === "tasks" || section === "dashboard") {
           refreshes.push(refreshTasksRef.current());
         }
 

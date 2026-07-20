@@ -9,7 +9,7 @@ import { generateWeeklyRecapMessage } from "@/lib/weekly-recap";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
-export const maxDuration = 120;
+export const maxDuration = 60;
 
 const ALLOWED_ACTIONS = new Set(["weekly-recap", "test-sample"]);
 

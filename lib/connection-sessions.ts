@@ -1,5 +1,6 @@
 import { promises as fs } from "fs";
 import path from "path";
+import { getDataDir } from "./data-dir";
 import type { ConnectionType } from "./types";
 
 export interface StoredConnection {
@@ -15,8 +16,7 @@ export interface StoredConnection {
   expiresAt?: string;
 }
 
-const DATA_DIR = path.join(process.cwd(), "data");
-const CONNECTIONS_FILE = path.join(DATA_DIR, "connections.json");
+const CONNECTIONS_FILE = path.join(getDataDir(), "connections.json");
 
 function now() {
   return new Date().toISOString();
@@ -40,7 +40,7 @@ async function readConnections(): Promise<StoredConnection[]> {
 }
 
 async function writeConnections(connections: StoredConnection[]) {
-  await fs.mkdir(DATA_DIR, { recursive: true });
+  await fs.mkdir(getDataDir(), { recursive: true });
   await fs.writeFile(
     CONNECTIONS_FILE,
     `${JSON.stringify(connections, null, 2)}\n`,

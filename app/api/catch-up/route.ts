@@ -7,7 +7,7 @@ import { assertGrokConfigured, grokClient } from "@/lib/grok";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
-export const maxDuration = 120;
+export const maxDuration = 60;
 
 export async function GET() {
   const items = await gatherCatchUpItems();

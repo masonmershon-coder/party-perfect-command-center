@@ -103,8 +103,8 @@ export function getEmailConnectionInfo(): EmailConnectionInfo {
     imapPort: GODADDY_IMAP_PORT,
     configuredAccountCount,
     message: live
-      ? `${configuredAccountCount}/3 GoDaddy mailboxes configured via .env.local. Live IMAP sync can be enabled next.`
-      : "Demo inbox active. Add GoDaddy IMAP passwords to .env.local (one per mailbox) — never in source code.",
+      ? `${configuredAccountCount}/3 GoDaddy mailboxes configured. Mike syncs INBOX over IMAP when the dashboard opens.`
+      : "Demo inbox active. Add GoDaddy IMAP passwords to env (one per mailbox) — never in source code.",
     googleOAuthConfigured: Boolean(process.env.GOOGLE_OAUTH_CLIENT_ID),
     microsoftOAuthConfigured: Boolean(process.env.MICROSOFT_OAUTH_CLIENT_ID),
   };

@@ -1,5 +1,6 @@
 "use client";
 
+import { OwnerPinModal } from "@/app/components/auth/owner-pin-modal";
 import { AgentChatView } from "@/app/components/dashboard/agent-chat-view";
 import { PartyPerfectLogo } from "@/app/components/dashboard/party-perfect-logo";
 import { AgentsSection } from "@/app/components/dashboard/agents-section";
@@ -7,6 +8,7 @@ import { BookkeepingSection } from "@/app/components/dashboard/bookkeeping-secti
 import { DashboardHome } from "@/app/components/dashboard/dashboard-home";
 import { EmailsSection } from "@/app/components/dashboard/emails-section";
 import { MarketingSection } from "@/app/components/dashboard/marketing-section";
+import { HiringSection } from "@/app/components/dashboard/hiring-section";
 import { ReportsSection } from "@/app/components/dashboard/reports-section";
 import { InventorySection } from "@/app/components/dashboard/inventory-section";
 import { CommandCenterHeader } from "@/app/components/dashboard/page-header";
@@ -14,12 +16,14 @@ import { LiveNotifications } from "@/app/components/dashboard/live-notifications
 import { Sidebar } from "@/app/components/dashboard/sidebar";
 import { SocialSection } from "@/app/components/dashboard/social-section";
 import { TasksSection } from "@/app/components/dashboard/tasks-section";
+import { VersionBadge } from "@/app/components/dashboard/version-badge";
 import type { EmailAccount, EmailConnectionInfo } from "@/lib/email-accounts";
 import {
   createBookkeepingEntry,
   createInventoryItem,
   createTask,
   connectAccount,
+  deleteJob,
   disconnectAccount,
   fetchAgentChat,
   fetchAgents,
@@ -29,6 +33,7 @@ import {
   fetchGrokAgent,
   fetchInventory,
   fetchMarketing,
+  fetchJobs,
   fetchReports,
   fetchSocial,
   fetchStats,
@@ -42,6 +47,7 @@ import {
   sendTestSms,
   updateEmail,
   updateSocialItem,
+  sendSocialReply,
   updateTaskStatus,
 } from "@/lib/client-api";
 import {
@@ -50,10 +56,16 @@ import {
 } from "@/lib/client-live-store";
 import {
   canAccessSection,
+  clearStoredUserRole,
   readUserRole,
   writeUserRole,
   type UserRole,
 } from "@/lib/user-roles";
+import {
+  isOwnerSection,
+  isOwnerSessionValid,
+  signOut as clearAuthSession,
+} from "@/lib/auth";
 import { useLiveDashboard } from "@/app/hooks/use-live-dashboard";
 import {
   removeLocalConnectionToken,
@@ -114,9 +126,18 @@ export default function PartyPerfectDashboard() {
   const [socialMessages, setSocialMessages] = useState<SocialDirectMessage[]>(
     [],
   );
+  const [socialSyncError, setSocialSyncError] = useState<string | null>(null);
   const [bookkeeping, setBookkeeping] = useState<BookkeepingEntry[]>([]);
   const [marketing, setMarketing] = useState<MarketingItem[]>([]);
   const [reports, setReports] = useState<SavedReport[]>([]);
+  const [jobApplications, setJobApplications] = useState<
+    import("@/lib/jobs").JobApplication[]
+  >([]);
+  const [jobsTotal, setJobsTotal] = useState(0);
+  const [jobsFlagged, setJobsFlagged] = useState(0);
+  const [jobsStoreMode, setJobsStoreMode] = useState<
+    "redis" | "blob" | "ephemeral" | "local" | null
+  >(null);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
 
@@ -130,7 +151,11 @@ export default function PartyPerfectDashboard() {
     autoDraft: boolean;
   } | null>(null);
   const [liveModeEnabled, setLiveModeEnabled] = useState(true);
-  const [userRole, setUserRole] = useState<UserRole>("owner");
+  const [userRole, setUserRole] = useState<UserRole>("employee");
+  const [ownerUnlocked, setOwnerUnlocked] = useState(false);
+  const [ownerPinOpen, setOwnerPinOpen] = useState(false);
+  const [pendingOwnerSection, setPendingOwnerSection] =
+    useState<NavSection | null>(null);
 
   const activeChatAgentId =
     activeSection === "chat"
@@ -162,6 +187,11 @@ export default function PartyPerfectDashboard() {
     setSocialPosts(payload.posts);
     setSocialComments(payload.comments);
     setSocialMessages(payload.messages);
+    setSocialSyncError(
+      payload.sync && !payload.sync.ok && payload.sync.error
+        ? payload.sync.error
+        : null,
+    );
   }, []);
 
   const refreshMarketing = useCallback(async () => {
@@ -170,6 +200,14 @@ export default function PartyPerfectDashboard() {
 
   const refreshReports = useCallback(async () => {
     setReports(await fetchReports());
+  }, []);
+
+  const refreshJobs = useCallback(async () => {
+    const payload = await fetchJobs();
+    setJobApplications(payload.applications);
+    setJobsTotal(payload.total);
+    setJobsFlagged(payload.flaggedForJosh);
+    setJobsStoreMode(payload.storeMode ?? null);
   }, []);
 
   const refreshTasksOnly = useCallback(async () => {
@@ -201,8 +239,44 @@ export default function PartyPerfectDashboard() {
 
   useEffect(() => {
     setLiveModeEnabled(readLiveModeEnabled());
-    setUserRole(readUserRole());
+
+    async function hydrateAccess() {
+      const unlocked = await isOwnerSessionValid();
+      setOwnerUnlocked(unlocked);
+      const storedRole = readUserRole();
+      if (unlocked && storedRole === "owner") {
+        setUserRole("owner");
+      } else {
+        setUserRole("employee");
+        if (!unlocked) {
+          writeUserRole("employee");
+        }
+      }
+    }
+
+    void hydrateAccess();
   }, []);
+
+  function openOwnerPin(nextSection: NavSection | null = null) {
+    setPendingOwnerSection(nextSection);
+    setOwnerPinOpen(true);
+  }
+
+  function handleOwnerUnlockSuccess() {
+    setOwnerUnlocked(true);
+    setUserRole("owner");
+    writeUserRole("owner");
+    if (pendingOwnerSection) {
+      setActiveSection(pendingOwnerSection);
+      setPendingOwnerSection(null);
+    }
+  }
+
+  function handleSignOut() {
+    clearAuthSession();
+    clearStoredUserRole();
+    window.location.reload();
+  }
 
   useEffect(() => {
     setStatsRef(stats);
@@ -214,12 +288,32 @@ export default function PartyPerfectDashboard() {
   }
 
   function handleUserRoleChange(role: UserRole) {
+    if (role === "owner" && !ownerUnlocked) {
+      openOwnerPin(null);
+      return;
+    }
     setUserRole(role);
     writeUserRole(role);
     if (!canAccessSection(role, activeSection)) {
       setActiveSection("dashboard");
     }
   }
+
+  const handleNavigate = useCallback(
+    (section: NavSection) => {
+      if (isOwnerSection(section) && !ownerUnlocked) {
+        setPendingOwnerSection(section);
+        setOwnerPinOpen(true);
+        return;
+      }
+      if (!canAccessSection(userRole, section)) return;
+      setActiveSection(section);
+      if (section !== "agents") {
+        setSelectedAgentId(null);
+      }
+    },
+    [ownerUnlocked, userRole],
+  );
 
   function openMadisonChat() {
     const madison = agents.find((agent) => agent.slug === "madison-comms");
@@ -294,8 +388,9 @@ export default function PartyPerfectDashboard() {
       refreshEmails(),
       refreshSocial(),
       refreshConnections(),
+      refreshJobs(),
     ]);
-  }, [refreshConnections, refreshEmails, refreshSocial]);
+  }, [refreshConnections, refreshEmails, refreshJobs, refreshSocial]);
 
   const refreshChat = useCallback(async (agentId: string) => {
     const payload = await fetchAgentChat(agentId);
@@ -321,11 +416,10 @@ export default function PartyPerfectDashboard() {
       section === "inventory" ||
       section === "bookkeeping" ||
       section === "marketing" ||
+      section === "hiring" ||
       section === "reports"
     ) {
-      if (canAccessSection(readUserRole(), section as NavSection)) {
-        setActiveSection(section as NavSection);
-      }
+      handleNavigate(section as NavSection);
     }
 
     const connected = searchParams.get("connected");
@@ -336,7 +430,21 @@ export default function PartyPerfectDashboard() {
         label: connected === "facebook" ? "Facebook" : "Instagram",
       }).then(() => refreshSocial());
     }
-  }, [searchParams, handleConnectAccount, refreshSocial]);
+
+    const oauthError = searchParams.get("oauth_error");
+    if (oauthError) {
+      setSocialSyncError(oauthError);
+      void refreshSocial();
+    }
+  }, [searchParams, handleConnectAccount, refreshSocial, handleNavigate]);
+
+  useEffect(() => {
+    if (!ownerUnlocked && isOwnerSection(activeSection)) {
+      setActiveSection("dashboard");
+      setUserRole("employee");
+      writeUserRole("employee");
+    }
+  }, [ownerUnlocked, activeSection]);
 
   useEffect(() => {
     async function bootstrap() {
@@ -565,7 +673,12 @@ export default function PartyPerfectDashboard() {
         ) : null;
       case "agents":
         return (
-          <AgentsSection agents={agents} onSelectAgent={openAgentChat} />
+          <AgentsSection
+            agents={agents}
+            onSelectAgent={openAgentChat}
+            madisonLive={Boolean(socialConnection?.madisonLive)}
+            lastSocialSyncAt={socialConnection?.lastSyncedAt ?? null}
+          />
         );
       case "tasks":
         return (
@@ -594,15 +707,24 @@ export default function PartyPerfectDashboard() {
       case "emails":
         return emailConnection ? (
           <EmailsSection
-            accounts={emailAccounts}
+            accounts={
+              userRole === "owner"
+                ? emailAccounts
+                : emailAccounts.filter((account) => account.id === "company")
+            }
             connection={emailConnection}
-            emails={emails}
+            emails={
+              userRole === "owner"
+                ? emails
+                : emails.filter((email) => email.accountId === "company")
+            }
             connections={connections}
             liveModeEnabled={liveModeEnabled}
             lastCheckedAt={lastCheckedAt}
             isRefreshing={isRefreshing}
             newItemIds={newEmailIds}
             onConnectAccount={async (accountKey, label) => {
+              if (userRole !== "owner" && accountKey !== "company") return;
               await handleConnectAccount({
                 type: "email",
                 accountKey,
@@ -610,6 +732,7 @@ export default function PartyPerfectDashboard() {
               });
             }}
             onDisconnectAccount={async (accountKey) => {
+              if (userRole !== "owner" && accountKey !== "company") return;
               await handleDisconnectAccount({ type: "email", accountKey });
             }}
             onUpdateEmail={async (id, patch) => {
@@ -670,6 +793,20 @@ export default function PartyPerfectDashboard() {
               setStats(nextStats);
             }}
             onDraftReply={streamSocialDraftReply}
+            onSendReply={async (kind, id, message) => {
+              const result = await sendSocialReply(kind, id, message);
+              const [_, nextStats] = await Promise.all([
+                refreshSocial(),
+                fetchStats(),
+              ]);
+              setStats(nextStats);
+              return {
+                sentViaMeta: Boolean(result.sentViaMeta),
+                message: result.message,
+              };
+            }}
+            syncError={socialSyncError}
+            onMetaSetupSaved={refreshSocial}
             focusCommentId={
               catchUpFocus?.type === "social_comment" ? catchUpFocus.id : null
             }
@@ -686,6 +823,20 @@ export default function PartyPerfectDashboard() {
       case "marketing":
         return (
           <MarketingSection marketing={marketing} />
+        );
+      case "hiring":
+        return (
+          <HiringSection
+            applications={jobApplications}
+            total={jobsTotal}
+            flaggedForJosh={jobsFlagged}
+            storeMode={jobsStoreMode ?? undefined}
+            onRefresh={refreshJobs}
+            onDelete={async (id) => {
+              await deleteJob(id);
+              await refreshJobs();
+            }}
+          />
         );
       case "reports":
         return (
@@ -737,9 +888,19 @@ export default function PartyPerfectDashboard() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-[var(--pp-bg)] text-[var(--pp-text)]">
+      <OwnerPinModal
+        open={ownerPinOpen}
+        onClose={() => {
+          setOwnerPinOpen(false);
+          setPendingOwnerSection(null);
+        }}
+        onSuccess={handleOwnerUnlockSuccess}
+      />
       <Sidebar
         activeSection={activeSection}
         userRole={userRole}
+        ownerUnlocked={ownerUnlocked}
+        onRequestOwner={() => openOwnerPin(null)}
         replyCounts={
           stats
             ? {
@@ -754,13 +915,7 @@ export default function PartyPerfectDashboard() {
               }
             : undefined
         }
-        onNavigate={(section) => {
-          if (!canAccessSection(userRole, section)) return;
-          setActiveSection(section);
-          if (section !== "agents") {
-            setSelectedAgentId(null);
-          }
-        }}
+        onNavigate={handleNavigate}
       />
 
       <div className="flex min-w-0 flex-1 flex-col">
@@ -770,7 +925,10 @@ export default function PartyPerfectDashboard() {
           mikeChecking={mikeChecking}
           lastLiveCheckAt={lastCheckedAt}
           userRole={userRole}
+          ownerLocked={!ownerUnlocked}
           onUserRoleChange={handleUserRoleChange}
+          onRequestOwner={() => openOwnerPin(null)}
+          onSignOut={handleSignOut}
         />
         <LiveNotifications
           notifications={notifications}
@@ -789,6 +947,8 @@ export default function PartyPerfectDashboard() {
           </button>
         </div>
       )}
+
+      <VersionBadge />
     </div>
   );
 }

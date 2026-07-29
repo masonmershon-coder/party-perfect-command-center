@@ -73,6 +73,12 @@ export function EmailsSection({
   const [activeAccountId, setActiveAccountId] = useState<EmailAccountId>(
     accounts[0]?.id ?? "company",
   );
+
+  useEffect(() => {
+    if (!accounts.some((account) => account.id === activeAccountId)) {
+      setActiveAccountId(accounts[0]?.id ?? "company");
+    }
+  }, [accounts, activeAccountId]);
   const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>("all");
   const [timePeriod, setTimePeriod] = useState<TimePeriod>(DEFAULT_TIME_PERIOD);
   const [selectedEmailId, setSelectedEmailId] = useState<string | null>(null);

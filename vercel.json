@@ -6,5 +6,11 @@
     "app/api/**/*": {
       "maxDuration": 60
     }
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/social",
+      "schedule": "0 14 * * *"
+    }
+  ]
 }

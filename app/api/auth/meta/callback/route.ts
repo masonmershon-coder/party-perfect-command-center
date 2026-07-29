@@ -1,50 +1,80 @@
 import { connectAccount } from "@/lib/connection-sessions";
-import { getMetaConnectionInfo } from "@/lib/social-accounts";
+import { completeMetaOAuth } from "@/lib/meta-oauth";
+import { formatMetaUserError } from "@/lib/meta-graph";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 /**
- * Meta OAuth callback — exchange code for access token when META_APP_ID is set.
- * See lib/social-accounts.ts for Meta Business Suite setup steps.
+ * Meta OAuth callback — exchanges code for Page + Instagram credentials.
  */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const code = searchParams.get("code");
   const state = searchParams.get("state");
-  const error = searchParams.get("error_description");
+  const error = searchParams.get("error_description") || searchParams.get("error");
+
+  const origin = new URL(request.url).origin;
 
   if (error) {
     return NextResponse.redirect(
-      new URL(`/?section=social&oauth_error=${encodeURIComponent(error)}`, request.url),
+      new URL(
+        `/?section=social&oauth_error=${encodeURIComponent(error)}`,
+        origin,
+      ),
     );
   }
 
   const platform =
     state === "facebook" || state === "instagram" ? state : "facebook";
-  const meta = getMetaConnectionInfo();
 
-  if (!code || !meta.appIdConfigured || !meta.appSecretConfigured) {
-    await connectAccount({
-      type: "social",
-      accountKey: platform,
-      label: platform === "facebook" ? "Facebook" : "Instagram",
-    });
-
+  if (!code) {
     return NextResponse.redirect(
-      new URL(`/?section=social&connected=${platform}`, request.url),
+      new URL(
+        `/?section=social&oauth_error=${encodeURIComponent("Missing OAuth code from Meta.")}`,
+        origin,
+      ),
     );
   }
 
-  // Live token exchange — wire when deploying with META_APP_SECRET server-side
-  await connectAccount({
-    type: "social",
-    accountKey: platform,
-    label: platform === "facebook" ? "Facebook" : "Instagram",
-    oauthAccessToken: "pending-exchange",
-  });
+  try {
+    const result = await completeMetaOAuth({
+      code,
+      requestUrl: request.url,
+    });
 
-  return NextResponse.redirect(
-    new URL(`/?section=social&connected=${platform}`, request.url),
-  );
+    await connectAccount({
+      type: "social",
+      accountKey: "facebook",
+      label: result.pageName || "Facebook",
+    });
+
+    if (result.instagramBusinessAccountId) {
+      await connectAccount({
+        type: "social",
+        accountKey: "instagram",
+        label: result.instagramUsername || "Instagram",
+      });
+    }
+
+    const params = new URLSearchParams({
+      section: "social",
+      connected: platform,
+      meta: "live",
+    });
+    if (result.instagramBusinessAccountId) {
+      params.set("ig", "1");
+    }
+
+    return NextResponse.redirect(new URL(`/?${params.toString()}`, origin));
+  } catch (err) {
+    const message = formatMetaUserError(err);
+    return NextResponse.redirect(
+      new URL(
+        `/?section=social&oauth_error=${encodeURIComponent(message)}`,
+        origin,
+      ),
+    );
+  }
 }

@@ -1,6 +1,8 @@
 "use client";
 
 import { CatchUpPanel } from "@/app/components/dashboard/catch-up-panel";
+import { MetaConnectSetup } from "@/app/components/dashboard/meta-connect-setup";
+import { MetaDurableEnvPanel } from "@/app/components/dashboard/meta-durable-env-panel";
 import { PageHeader, LiveStatusBar } from "@/app/components/dashboard/page-header";
 import { MarkRepliedButton, RepliedBadge } from "@/app/components/dashboard/replied-badge";
 import { ReplyComposer } from "@/app/components/dashboard/reply-composer";
@@ -43,6 +45,8 @@ export function SocialSection({
   onDisconnect,
   onUpdateItem,
   onDraftReply,
+  onSendReply,
+  syncError = null,
   focusCommentId,
   autoDraftReply = false,
   onFocusConsumed,
@@ -52,6 +56,7 @@ export function SocialSection({
   lastCheckedAt = null,
   isRefreshing = false,
   newItemIds = [],
+  onMetaSetupSaved,
 }: {
   accounts: SocialAccount[];
   connection: MetaConnectionInfo;
@@ -77,6 +82,12 @@ export function SocialSection({
     },
     onChunk: (content: string) => void,
   ) => Promise<string>;
+  onSendReply?: (
+    kind: "comments" | "messages",
+    id: string,
+    message: string,
+  ) => Promise<{ sentViaMeta: boolean; message?: string }>;
+  syncError?: string | null;
   focusCommentId?: string | null;
   autoDraftReply?: boolean;
   onFocusConsumed?: () => void;
@@ -86,6 +97,7 @@ export function SocialSection({
   lastCheckedAt?: string | null;
   isRefreshing?: boolean;
   newItemIds?: string[];
+  onMetaSetupSaved?: () => Promise<void>;
 }) {
   const [activeTab, setActiveTab] = useState<SocialTab>("comments");
   const [timePeriod, setTimePeriod] = useState<TimePeriod>(DEFAULT_TIME_PERIOD);
@@ -303,11 +315,28 @@ export function SocialSection({
       {onAskMadison && (
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--pp-accent)]/25 bg-[var(--pp-accent-soft)]/40 px-4 py-3">
           <div>
-            <p className="text-sm font-semibold text-[var(--pp-text)]">
-              Madison · Social & Client Communications
-            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-sm font-semibold text-[var(--pp-text)]">
+                Madison · Social & Client Communications
+              </p>
+              <span
+                className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
+                  connection.madisonLive
+                    ? "bg-emerald-500/15 text-emerald-700"
+                    : "bg-[var(--pp-border)] text-[var(--pp-text-muted)]"
+                }`}
+              >
+                {connection.madisonLive ? "Live FB/IG" : "Demo"}
+              </span>
+            </div>
             <p className="text-xs text-[var(--pp-text-muted)]">
-              Warm, friendly replies for FB/IG and Michelle&apos;s client emails.
+              {connection.madisonLive
+                ? `Warm replies for live Facebook${connection.instagramUsername ? ` + ${connection.instagramUsername}` : " + Instagram"}${
+                    connection.lastSyncedAt
+                      ? ` · last sync ${formatTime(connection.lastSyncedAt)}`
+                      : ""
+                  }`
+                : "Connect Meta below so Madison can run live Facebook + Instagram."}
             </p>
           </div>
           <button
@@ -346,38 +375,40 @@ export function SocialSection({
         </div>
       )}
 
+      <MetaConnectSetup
+        connection={connection}
+        onSaved={onMetaSetupSaved ?? (async () => undefined)}
+      />
+
+      <MetaDurableEnvPanel connection={connection} />
+
       <div className="pp-panel mb-6 rounded-2xl border border-[var(--pp-accent)]/20 bg-[var(--pp-accent-soft)]/40 p-4">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] pp-accent-text">
-          Meta Business Suite · OAuth
+          Meta Graph API · Facebook + Instagram
         </p>
         <p className="mt-1 max-w-3xl text-sm leading-6 text-[var(--pp-text-muted)]">
           {connection.message}
         </p>
-        <p className="mt-2 text-xs leading-5 text-[var(--pp-text-muted)]">
-          Later: link Instagram Business to your Facebook Page in Meta Business
-          Suite, then add{" "}
-          <code className="rounded bg-[var(--pp-accent-muted)] px-1 py-0.5">
-            META_APP_ID
-          </code>{" "}
-          /{" "}
-          <code className="rounded bg-[var(--pp-accent-muted)] px-1 py-0.5">
-            META_APP_SECRET
-          </code>{" "}
-          to{" "}
-          <code className="rounded bg-[var(--pp-accent-muted)] px-1 py-0.5">
-            .env.local
-          </code>
-          . Sessions persist via server storage + browser localStorage.
-        </p>
+        {syncError && (
+          <p className="mt-3 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-600">
+            {syncError}
+          </p>
+        )}
         <div className="mt-3 flex flex-wrap gap-2 text-[10px] font-medium uppercase tracking-wider text-[var(--pp-text-muted)]">
+          <span className="rounded-full border border-[var(--pp-border)] px-2.5 py-1">
+            Mode {connection.mode}
+          </span>
           <span className="rounded-full border border-[var(--pp-border)] px-2.5 py-1">
             App ID {connection.appIdConfigured ? "✓" : "—"}
           </span>
           <span className="rounded-full border border-[var(--pp-border)] px-2.5 py-1">
-            App Secret {connection.appSecretConfigured ? "✓" : "—"}
+            Page token {connection.pageTokenConfigured ? "✓" : "—"}
           </span>
           <span className="rounded-full border border-[var(--pp-border)] px-2.5 py-1">
-            Webhooks {connection.webhookConfigured ? "✓" : "—"}
+            Page ID {connection.pageIdConfigured ? "✓" : "—"}
+          </span>
+          <span className="rounded-full border border-[var(--pp-border)] px-2.5 py-1">
+            Instagram {connection.instagramConfigured ? "✓" : "—"}
           </span>
         </div>
       </div>
@@ -745,7 +776,11 @@ export function SocialSection({
 
               <ReplyComposer
                 channelName={replyChannelName}
-                successMessage={`Reply copied — paste into ${replyChannelName}`}
+                successMessage={
+                  connection.canSync && selectedComment?.source === "meta"
+                    ? `Reply sent on ${replyChannelName}`
+                    : `Reply copied — paste into ${replyChannelName}`
+                }
                 draft={replyDraft}
                 onDraftChange={setReplyDraft}
                 instructions={replyInstructions}
@@ -761,12 +796,30 @@ export function SocialSection({
                     return handleDraftReply("messages", selectedMessage.id);
                   }
                 }}
+                copyBeforeSend={
+                  !(connection.canSync && selectedComment?.source === "meta")
+                }
+                sendButtonLabel={
+                  connection.canSync && selectedComment?.source === "meta"
+                    ? "Send on Meta"
+                    : "Send Reply"
+                }
                 onSendReply={async () => {
                   const id = selectedComment?.id ?? selectedMessage?.id;
                   const kind = selectedComment ? "comments" : "messages";
-                  if (id) {
-                    await onUpdateItem(kind, id, "replied");
+                  if (!id) return;
+
+                  if (
+                    kind === "comments" &&
+                    onSendReply &&
+                    connection.canSync &&
+                    selectedComment?.source === "meta"
+                  ) {
+                    await onSendReply(kind, id, replyDraft.trim());
+                    return;
                   }
+
+                  await onUpdateItem(kind, id, "replied");
                 }}
                 instructionsPlaceholder="Optional Grok instructions (e.g. mention spring promo, invite to DM for quote)"
                 draftPlaceholder="Draft your reply, or let Grok write something on-brand…"

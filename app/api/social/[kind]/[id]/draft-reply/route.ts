@@ -53,7 +53,7 @@ export async function POST(request: Request, context: RouteContext) {
       return NextResponse.json({ error: "Invalid kind." }, { status: 400 });
     }
 
-    const account = getSocialAccount(platform);
+    const account = await getSocialAccount(platform);
     assertGrokConfigured();
 
     const systemPrompt = [

@@ -1,6 +1,12 @@
 import { promises as fs } from "fs";
 import path from "path";
 import { getDataDir } from "./data-dir";
+import {
+  deleteDurableJson,
+  listDurableKeys,
+  readDurableJson,
+  writeDurableJson,
+} from "./durable-json";
 import { compareEmailsByPriority, inferEmailPriority } from "./email-priority";
 import {
   DEFAULT_AGENTS,
@@ -51,22 +57,22 @@ const BOOKKEEPING_FILE = path.join(DATA_DIR, "bookkeeping.json");
 const REPORTS_FILE = path.join(DATA_DIR, "reports.json");
 const CONVERSATIONS_DIR = path.join(DATA_DIR, "conversations");
 
+function storeKeyFor(filePath: string) {
+  const relative = path.relative(DATA_DIR, filePath);
+  return relative.split(path.sep).join("/");
+}
+
 async function ensureDataDir() {
   await fs.mkdir(CONVERSATIONS_DIR, { recursive: true });
 }
 
 async function readJsonFile<T>(filePath: string, fallback: T): Promise<T> {
-  try {
-    const raw = await fs.readFile(filePath, "utf8");
-    return JSON.parse(raw) as T;
-  } catch {
-    return fallback;
-  }
+  return readDurableJson<T>(storeKeyFor(filePath), fallback);
 }
 
 async function writeJsonFile(filePath: string, data: unknown) {
   await ensureDataDir();
-  await fs.writeFile(filePath, `${JSON.stringify(data, null, 2)}\n`, "utf8");
+  await writeDurableJson(storeKeyFor(filePath), data);
 }
 
 function now() {
@@ -144,6 +150,9 @@ function normalizeEmailItem(raw: EmailItem & Record<string, unknown>): EmailItem
             ? timestamp
             : undefined,
       updatedAt: timestamp,
+      messageId:
+        typeof raw.messageId === "string" ? raw.messageId : undefined,
+      source: raw.source === "imap" || raw.source === "demo" ? raw.source : undefined,
     };
   }
 
@@ -438,11 +447,7 @@ export async function deleteAgent(id: string): Promise<boolean> {
     tasks.filter((task) => task.agentId !== id),
   );
 
-  try {
-    await fs.unlink(path.join(CONVERSATIONS_DIR, `${id}.json`));
-  } catch {
-    // ignore
-  }
+  await deleteDurableJson(`conversations/${id}.json`);
 
   return true;
 }
@@ -615,6 +620,80 @@ export async function listEmails(accountId?: EmailItem["accountId"]): Promise<Em
   return filtered.sort(compareEmailsByPriority);
 }
 
+/**
+ * Merge IMAP-fetched emails into storage.
+ * For accounts that synced successfully, drop demo-only rows so live mail is the source of truth.
+ * Preserves local status/repliedAt when the same message already exists.
+ */
+export async function mergeImapEmails(
+  incoming: EmailItem[],
+  syncedAccountIds: EmailItem["accountId"][],
+): Promise<{
+  added: number;
+  highPriorityNew: EmailItem[];
+  addedByAccount: Partial<Record<EmailItem["accountId"], number>>;
+}> {
+  await ensurePartyPerfectSeed();
+  const existing = normalizeEmails(
+    await readJsonFile<EmailItem[]>(EMAILS_FILE, []),
+  );
+
+  const synced = new Set(syncedAccountIds);
+  const kept = existing.filter((email) => {
+    if (!synced.has(email.accountId)) return true;
+    return email.source === "imap" || Boolean(email.messageId);
+  });
+
+  const byKey = new Map<string, EmailItem>();
+  for (const email of kept) {
+    const key = email.messageId
+      ? `${email.accountId}:${email.messageId}`
+      : email.id;
+    byKey.set(key, email);
+  }
+
+  let added = 0;
+  const addedByAccount: Partial<Record<EmailItem["accountId"], number>> = {};
+  const highPriorityNew: EmailItem[] = [];
+
+  for (const email of incoming) {
+    const key = email.messageId
+      ? `${email.accountId}:${email.messageId}`
+      : email.id;
+    const prev = byKey.get(key);
+
+    if (prev) {
+      byKey.set(key, {
+        ...email,
+        id: prev.id,
+        status:
+          prev.status === "replied" || prev.status === "archived"
+            ? prev.status
+            : email.status,
+        repliedAt: prev.repliedAt,
+        priority: prev.priority || email.priority,
+        updatedAt: now(),
+      });
+      continue;
+    }
+
+    added += 1;
+    addedByAccount[email.accountId] =
+      (addedByAccount[email.accountId] ?? 0) + 1;
+    byKey.set(key, email);
+    if (
+      (email.priority === "urgent" || email.priority === "business") &&
+      email.status === "unread"
+    ) {
+      highPriorityNew.push(email);
+    }
+  }
+
+  const merged = Array.from(byKey.values()).sort(compareEmailsByPriority);
+  await writeJsonFile(EMAILS_FILE, merged);
+  return { added, highPriorityNew, addedByAccount };
+}
+
 export async function getEmail(id: string): Promise<EmailItem | null> {
   const emails = await listEmails();
   return emails.find((email) => email.id === id) ?? null;
@@ -651,6 +730,92 @@ export async function getSocialData(): Promise<SocialDataFile> {
 
 async function writeSocialData(data: SocialDataFile) {
   await writeJsonFile(SOCIAL_FILE, data);
+}
+
+/**
+ * Merge Meta Graph posts/comments into storage.
+ * Preserves local replied/archived status when the same external comment already exists.
+ * When live Meta data arrives, demo-sourced rows are dropped.
+ */
+export async function mergeMetaSocialData(input: {
+  posts: SocialPost[];
+  comments: SocialComment[];
+}): Promise<{ addedComments: number; unreadHighPriority: SocialComment[] }> {
+  await ensurePartyPerfectSeed();
+  const existing = await readJsonFile<SocialDataFile>(SOCIAL_FILE, seedSocialData());
+
+  const hasLive = input.posts.length > 0 || input.comments.length > 0;
+  const keptPosts = hasLive
+    ? existing.posts.filter((post) => post.source === "meta" || Boolean(post.externalId))
+    : existing.posts;
+  const keptComments = hasLive
+    ? existing.comments.filter(
+        (comment) => comment.source === "meta" || Boolean(comment.externalId),
+      )
+    : existing.comments;
+
+  const postsByKey = new Map<string, SocialPost>();
+  for (const post of keptPosts) {
+    const key = post.externalId
+      ? `${post.platform}:${post.externalId}`
+      : post.id;
+    postsByKey.set(key, post);
+  }
+  for (const post of input.posts) {
+    const key = post.externalId
+      ? `${post.platform}:${post.externalId}`
+      : post.id;
+    const prev = postsByKey.get(key);
+    postsByKey.set(key, prev ? { ...post, id: prev.id } : post);
+  }
+
+  const commentsByKey = new Map<string, SocialComment>();
+  for (const comment of keptComments) {
+    const key = comment.externalId
+      ? `${comment.platform}:${comment.externalId}`
+      : comment.id;
+    commentsByKey.set(key, comment);
+  }
+
+  let addedComments = 0;
+  const unreadHighPriority: SocialComment[] = [];
+
+  for (const comment of input.comments) {
+    const key = comment.externalId
+      ? `${comment.platform}:${comment.externalId}`
+      : comment.id;
+    const prev = commentsByKey.get(key);
+
+    if (prev) {
+      commentsByKey.set(key, {
+        ...comment,
+        id: prev.id,
+        status:
+          prev.status === "replied" || prev.status === "archived"
+            ? prev.status
+            : prev.status === "read"
+              ? "read"
+              : comment.status,
+        repliedAt: prev.repliedAt,
+      });
+      continue;
+    }
+
+    addedComments += 1;
+    commentsByKey.set(key, comment);
+    if (comment.status === "unread") {
+      unreadHighPriority.push(comment);
+    }
+  }
+
+  const messages = existing.messages;
+  await writeSocialData({
+    posts: Array.from(postsByKey.values()),
+    comments: Array.from(commentsByKey.values()),
+    messages,
+  });
+
+  return { addedComments, unreadHighPriority };
 }
 
 export async function getSocialComment(
@@ -806,26 +971,19 @@ export async function replaceLastAssistantMessage(
 }
 
 export async function listAllConversations(): Promise<Conversation[]> {
-  await ensureDataDir();
-
-  try {
-    const files = await fs.readdir(CONVERSATIONS_DIR);
-    const conversations = await Promise.all(
-      files
-        .filter((file) => file.endsWith(".json"))
-        .map((file) =>
-          readJsonFile<Conversation>(path.join(CONVERSATIONS_DIR, file), {
-            agentId: file.replace(".json", ""),
-            messages: [],
-            updatedAt: now(),
-          }),
-        ),
-    );
-
-    return conversations;
-  } catch {
-    return [];
-  }
+  const keys = await listDurableKeys("conversations/");
+  return Promise.all(
+    keys
+      .filter((key) => key.endsWith(".json"))
+      .map(async (key) => {
+        const agentId = path.basename(key, ".json");
+        return readDurableJson<Conversation>(key, {
+          agentId,
+          messages: [],
+          updatedAt: now(),
+        });
+      }),
+  );
 }
 
 export async function getDashboardStats(): Promise<DashboardStats> {

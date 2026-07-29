@@ -23,6 +23,7 @@ export const navItems: {
   { id: "inventory", label: "Inventory", icon: "▣" },
   { id: "bookkeeping", label: "Bookkeeping", icon: "◈", ownerOnly: true },
   { id: "marketing", label: "Marketing / Ads", icon: "◉", ownerOnly: true },
+  { id: "hiring", label: "Hiring", icon: "✎" },
   { id: "reports", label: "Reports", icon: "▤", ownerOnly: true },
 ];
 

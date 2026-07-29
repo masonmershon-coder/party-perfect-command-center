@@ -1,6 +1,4 @@
-import { promises as fs } from "fs";
-import path from "path";
-import { getDataDir } from "./data-dir";
+import { readDurableJson, writeDurableJson } from "./durable-json";
 import type { ConnectionType } from "./types";
 
 export interface StoredConnection {
@@ -16,7 +14,7 @@ export interface StoredConnection {
   expiresAt?: string;
 }
 
-const CONNECTIONS_FILE = path.join(getDataDir(), "connections.json");
+const CONNECTIONS_KEY = "connections.json";
 
 function now() {
   return new Date().toISOString();
@@ -31,21 +29,12 @@ function createSessionToken() {
 }
 
 async function readConnections(): Promise<StoredConnection[]> {
-  try {
-    const raw = await fs.readFile(CONNECTIONS_FILE, "utf8");
-    return JSON.parse(raw) as StoredConnection[];
-  } catch {
-    return [];
-  }
+  const data = await readDurableJson<StoredConnection[]>(CONNECTIONS_KEY, []);
+  return Array.isArray(data) ? data : [];
 }
 
 async function writeConnections(connections: StoredConnection[]) {
-  await fs.mkdir(getDataDir(), { recursive: true });
-  await fs.writeFile(
-    CONNECTIONS_FILE,
-    `${JSON.stringify(connections, null, 2)}\n`,
-    "utf8",
-  );
+  await writeDurableJson(CONNECTIONS_KEY, connections);
 }
 
 export async function listConnections(

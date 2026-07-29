@@ -23,9 +23,13 @@ const AGENT_CAPABILITIES: Record<string, string[]> = {
 export function AgentsSection({
   agents,
   onSelectAgent,
+  madisonLive = false,
+  lastSocialSyncAt = null,
 }: {
   agents: Agent[];
   onSelectAgent: (agentId: string) => void;
+  madisonLive?: boolean;
+  lastSocialSyncAt?: string | null;
 }) {
   return (
     <div>
@@ -38,6 +42,7 @@ export function AgentsSection({
       <div className="grid gap-6 md:grid-cols-2">
         {agents.map((agent) => {
           const capabilities = AGENT_CAPABILITIES[agent.id] ?? [];
+          const isMadison = agent.id === MADISON_COMMS_AGENT_ID;
 
           return (
             <button
@@ -50,7 +55,20 @@ export function AgentsSection({
                 <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--pp-accent-soft)] text-3xl">
                   {agent.icon}
                 </span>
-                <StatusBadge status={agent.status} />
+                <div className="flex flex-col items-end gap-1">
+                  <StatusBadge status={agent.status} />
+                  {isMadison && (
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
+                        madisonLive
+                          ? "bg-emerald-500/15 text-emerald-700"
+                          : "bg-[var(--pp-border)] text-[var(--pp-text-muted)]"
+                      }`}
+                    >
+                      {madisonLive ? "Live socials" : "Socials demo"}
+                    </span>
+                  )}
+                </div>
               </div>
               <h3 className="mt-5 text-xl font-semibold text-[var(--pp-text)]">
                 {agent.name}
@@ -58,6 +76,15 @@ export function AgentsSection({
               <p className="mt-2 text-sm leading-6 text-[var(--pp-text-muted)]">
                 {agent.description}
               </p>
+              {isMadison && (
+                <p className="mt-2 text-xs text-[var(--pp-text-muted)]">
+                  {madisonLive
+                    ? lastSocialSyncAt
+                      ? `Watching Facebook + Instagram · last sync ${new Date(lastSocialSyncAt).toLocaleString()}`
+                      : "Watching Facebook + Instagram (Live Mode + 10‑min cron)"
+                    : "Connect Meta on Social to put Madison on live FB/IG."}
+                </p>
+              )}
               <ul className="mt-4 space-y-1.5">
                 {capabilities.map((item) => (
                   <li

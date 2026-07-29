@@ -20,7 +20,8 @@ export function writeLiveModeEnabled(enabled: boolean) {
   }
 }
 
-export const LIVE_POLL_INTERVAL_MS = 70_000;
+/** Live Mode poll — kept light now that durable state is Redis-backed. */
+export const LIVE_POLL_INTERVAL_MS = 180_000;
 
 /** Sections that pull full payloads when Live Mode is on */
 export const LIVE_REFRESH_SECTIONS = ["emails", "social", "tasks", "dashboard"] as const;

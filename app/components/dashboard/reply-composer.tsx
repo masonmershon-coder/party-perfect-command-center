@@ -18,6 +18,8 @@ export function ReplyComposer({
   onSendReply,
   instructionsPlaceholder = "Optional instructions for Grok…",
   draftPlaceholder = "Draft your reply here, or let Grok write it for you…",
+  copyBeforeSend = true,
+  sendButtonLabel = "Send Reply",
 }: {
   channelName: string;
   successMessage: string;
@@ -32,18 +34,26 @@ export function ReplyComposer({
   onSendReply?: () => void | Promise<void>;
   instructionsPlaceholder?: string;
   draftPlaceholder?: string;
+  /** When false, skip clipboard copy (used for live Meta API send). */
+  copyBeforeSend?: boolean;
+  sendButtonLabel?: string;
 }) {
   const [sending, setSending] = useState(false);
   const [copied, setCopied] = useState(false);
   const [copyError, setCopyError] = useState<string | null>(null);
+  const [sendError, setSendError] = useState<string | null>(null);
+  const [sent, setSent] = useState(false);
 
   const hasDraft = draft.trim().length > 0;
 
   useEffect(() => {
-    if (!copied) return;
-    const timer = window.setTimeout(() => setCopied(false), 6000);
+    if (!copied && !sent) return;
+    const timer = window.setTimeout(() => {
+      setCopied(false);
+      setSent(false);
+    }, 6000);
     return () => window.clearTimeout(timer);
-  }, [copied]);
+  }, [copied, sent]);
 
   async function copyDraftToClipboard(text: string) {
     if (navigator.clipboard?.writeText) {
@@ -67,15 +77,30 @@ export function ReplyComposer({
 
     setSending(true);
     setCopyError(null);
+    setSendError(null);
 
     try {
-      await copyDraftToClipboard(draft.trim());
+      if (copyBeforeSend) {
+        await copyDraftToClipboard(draft.trim());
+        setCopied(true);
+      }
       await onSendReply?.();
-      setCopied(true);
-    } catch {
-      setCopyError(
-        `Could not copy automatically — select the text and copy manually, then paste into ${channelName}.`,
-      );
+      if (!copyBeforeSend) {
+        setSent(true);
+        onDraftChange("");
+      }
+    } catch (error) {
+      if (copyBeforeSend) {
+        setCopyError(
+          `Could not copy automatically — select the text and copy manually, then paste into ${channelName}.`,
+        );
+      } else {
+        setSendError(
+          error instanceof Error
+            ? error.message
+            : `Failed to send reply to ${channelName}.`,
+        );
+      }
     } finally {
       setSending(false);
     }
@@ -90,21 +115,29 @@ export function ReplyComposer({
         </span>
       </div>
 
-      {copied && (
+      {(copied || sent) && (
         <div
           role="status"
           className="mb-4 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-400"
         >
           <p className="font-semibold">✓ {successMessage}</p>
-          <p className="mt-1 text-xs opacity-90">
-            Switch to {channelName}, paste, and send. API sending coming soon.
-          </p>
+          {copied && (
+            <p className="mt-1 text-xs opacity-90">
+              Switch to {channelName}, paste, and send if needed.
+            </p>
+          )}
         </div>
       )}
 
       {copyError && (
         <p className="mb-4 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-700">
           {copyError}
+        </p>
+      )}
+
+      {sendError && (
+        <p className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-600">
+          {sendError}
         </p>
       )}
 
@@ -152,7 +185,7 @@ export function ReplyComposer({
         onClick={() => void handleSendReply()}
         className="mb-3 flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--pp-accent)] px-6 py-4 text-base font-semibold text-white shadow-md transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-40"
       >
-        {sending ? "Sending…" : "Send Reply"}
+        {sending ? "Sending…" : sendButtonLabel}
       </button>
       <p className="mb-3 text-center text-[10px] text-[var(--pp-text-muted)]">
         Tip: ⌘/Ctrl + Enter to send quickly
@@ -172,7 +205,9 @@ export function ReplyComposer({
           onClick={() => {
             onDraftChange("");
             setCopied(false);
+            setSent(false);
             setCopyError(null);
+            setSendError(null);
           }}
           className="rounded-xl border border-[var(--pp-border)] px-4 py-2.5 text-sm text-[var(--pp-text-muted)] transition hover:border-[var(--pp-accent)]"
         >

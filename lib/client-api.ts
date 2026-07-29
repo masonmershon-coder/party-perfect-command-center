@@ -299,7 +299,78 @@ export async function fetchSocial() {
     posts: SocialPost[];
     comments: SocialComment[];
     messages: SocialDirectMessage[];
+    sync?: {
+      syncedAt: string;
+      mode: "live" | "demo";
+      ok: boolean;
+      postsFetched: number;
+      commentsFetched: number;
+      addedComments: number;
+      facebookOk: boolean;
+      instagramOk: boolean;
+      error?: string;
+      isTokenInvalid?: boolean;
+    } | null;
   }>(await authFetch("/api/social"));
+}
+
+export async function sendSocialReply(
+  kind: "comments" | "messages",
+  id: string,
+  message: string,
+) {
+  return parseJson<{
+    success: boolean;
+    sentViaMeta?: boolean;
+    metaReplyId?: string;
+    message?: string;
+    error?: string;
+    isTokenInvalid?: boolean;
+    item?: SocialComment | SocialDirectMessage;
+  }>(
+    await authFetch(`/api/social/${kind}/${id}/reply`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message }),
+    }),
+  );
+}
+
+export async function fetchMetaSetup() {
+  return parseJson<{
+    live: boolean;
+    status: {
+      hasAppId: boolean;
+      hasAppSecret: boolean;
+      hasPageToken: boolean;
+      hasPageId: boolean;
+      hasInstagram: boolean;
+      pageName: string | null;
+      instagramUsername: string | null;
+      connectedAt: string | null;
+    };
+    oauthUrl: string | null;
+    redirectUri: string;
+    setupSteps: string[];
+  }>(await authFetch("/api/meta/setup"));
+}
+
+export async function saveMetaAppCredentials(input: {
+  appId: string;
+  appSecret: string;
+}) {
+  return parseJson<{
+    success: boolean;
+    message: string;
+    oauthUrl: string | null;
+    redirectUri: string;
+  }>(
+    await authFetch("/api/meta/setup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    }),
+  );
 }
 
 export async function updateSocialItem(
@@ -509,6 +580,25 @@ export async function fetchReports() {
     await fetch("/api/reports"),
   );
   return payload.reports;
+}
+
+export async function fetchJobs() {
+  return parseJson<{
+    total: number;
+    flaggedForJosh: number;
+    storeMode?: "redis" | "blob" | "ephemeral" | "local";
+    applications: import("./jobs").JobApplication[];
+  }>(await fetch("/api/jobs"));
+}
+
+export async function deleteJob(id: string) {
+  return parseJson<{ success: boolean; id: string }>(
+    await fetch("/api/jobs", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    }),
+  );
 }
 
 export async function generateWeeklyRecapReport() {

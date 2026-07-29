@@ -16,6 +16,7 @@ export type NavSection =
   | "bookkeeping"
   | "marketing"
   | "reports"
+  | "hiring"
   | "chat";
 
 export type InventoryStatus = "available" | "reserved" | "maintenance";
@@ -115,6 +116,9 @@ export interface EmailItem {
   priority: EmailPriority;
   repliedAt?: string;
   updatedAt: string;
+  /** IMAP Message-ID when synced from GoDaddy */
+  messageId?: string;
+  source?: "demo" | "imap";
 }
 
 export interface SocialPost {
@@ -126,6 +130,9 @@ export interface SocialPost {
   comments: number;
   reach: number;
   status: "published" | "scheduled";
+  externalId?: string;
+  source?: "demo" | "meta";
+  permalink?: string;
 }
 
 export interface SocialComment {
@@ -138,6 +145,8 @@ export interface SocialComment {
   createdAt: string;
   status: SocialInteractionStatus;
   repliedAt?: string;
+  externalId?: string;
+  source?: "demo" | "meta";
 }
 
 export interface SocialDirectMessage {

@@ -94,14 +94,20 @@ export function CommandCenterHeader({
   mikeChecking,
   lastLiveCheckAt,
   userRole,
+  ownerLocked,
   onUserRoleChange,
+  onRequestOwner,
+  onSignOut,
 }: {
   liveModeEnabled: boolean;
   onLiveModeChange: (enabled: boolean) => void;
   mikeChecking: boolean;
   lastLiveCheckAt: string | null;
   userRole: "owner" | "employee";
+  ownerLocked?: boolean;
   onUserRoleChange: (role: "owner" | "employee") => void;
+  onRequestOwner: () => void;
+  onSignOut: () => void;
 }) {
   return (
     <header className="sticky top-0 z-20 border-b border-[var(--pp-border)] bg-[var(--pp-header-bg)] px-6 py-4 backdrop-blur-xl lg:px-8">
@@ -119,7 +125,12 @@ export function CommandCenterHeader({
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <UserRoleSwitcher role={userRole} onChange={onUserRoleChange} />
+          <UserRoleSwitcher
+            role={userRole}
+            ownerLocked={ownerLocked}
+            onChange={onUserRoleChange}
+            onRequestOwner={onRequestOwner}
+          />
           <LiveMikeStatus
             enabled={liveModeEnabled}
             checking={mikeChecking}
@@ -130,6 +141,13 @@ export function CommandCenterHeader({
             onChange={onLiveModeChange}
           />
           <ThemeToggle />
+          <button
+            type="button"
+            onClick={onSignOut}
+            className="rounded-xl border border-[var(--pp-border)] px-3 py-2 text-xs font-semibold text-[var(--pp-text-muted)] transition hover:border-red-500/30 hover:bg-red-500/5 hover:text-red-600"
+          >
+            Sign out
+          </button>
         </div>
       </div>
     </header>

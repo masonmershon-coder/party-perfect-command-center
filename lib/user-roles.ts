@@ -5,12 +5,13 @@ export const USER_ROLE_STORAGE_KEY = "pp-user-role";
 export const CORE_AGENT_SLUGS = ["mike-operations", "madison-comms"] as const;
 
 export function readUserRole(): UserRole {
-  if (typeof window === "undefined") return "owner";
+  if (typeof window === "undefined") return "employee";
   try {
     const stored = localStorage.getItem(USER_ROLE_STORAGE_KEY);
-    return stored === "employee" ? "employee" : "owner";
+    if (stored === "owner") return "owner";
+    return "employee";
   } catch {
-    return "owner";
+    return "employee";
   }
 }
 
@@ -18,6 +19,15 @@ export function writeUserRole(role: UserRole) {
   if (typeof window === "undefined") return;
   try {
     localStorage.setItem(USER_ROLE_STORAGE_KEY, role);
+  } catch {
+    // ignore
+  }
+}
+
+export function clearStoredUserRole() {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.removeItem(USER_ROLE_STORAGE_KEY);
   } catch {
     // ignore
   }
@@ -38,6 +48,7 @@ export function canAccessSection(
     "emails",
     "social",
     "inventory",
+    "hiring",
   ]);
   if (role === "owner") return true;
   return employeeAllowed.has(section);

@@ -1,0 +1,175 @@
+.jobs-root {
+  --jobs-teal: #00bfa5;
+  --jobs-teal-deep: #009e88;
+  --jobs-teal-soft: rgba(0, 191, 165, 0.14);
+  --jobs-ink: #14303a;
+  --jobs-muted: #5b7380;
+  --jobs-white: #ffffff;
+  --jobs-cream: #f4fffc;
+  --jobs-font-display: "Outfit", ui-sans-serif, system-ui, sans-serif;
+  --jobs-font-body: "Nunito", ui-sans-serif, system-ui, sans-serif;
+  color: var(--jobs-ink);
+  font-family: var(--jobs-font-body);
+  background:
+    radial-gradient(1200px 600px at 10% -10%, rgba(0, 191, 165, 0.18), transparent 55%),
+    radial-gradient(900px 500px at 100% 0%, rgba(0, 212, 187, 0.12), transparent 50%),
+    linear-gradient(180deg, #ffffff 0%, #f7fffc 45%, #ffffff 100%);
+  min-height: 100dvh;
+}
+
+.jobs-root * {
+  box-sizing: border-box;
+}
+
+.jobs-display {
+  font-family: var(--jobs-font-display);
+  letter-spacing: -0.03em;
+}
+
+@keyframes jobs-rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes jobs-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes jobs-shimmer {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes jobs-pop {
+  0% {
+    transform: scale(0.92);
+    opacity: 0;
+  }
+  70% {
+    transform: scale(1.03);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes jobs-confetti {
+  0% {
+    transform: translateY(0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(120px) rotate(220deg);
+    opacity: 0;
+  }
+}
+
+@keyframes jobs-pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgba(0, 191, 165, 0.45);
+  }
+  100% {
+    box-shadow: 0 0 0 18px rgba(0, 191, 165, 0);
+  }
+}
+
+.jobs-rise {
+  animation: jobs-rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.jobs-rise-delay-1 {
+  animation-delay: 0.08s;
+}
+
+.jobs-rise-delay-2 {
+  animation-delay: 0.16s;
+}
+
+.jobs-rise-delay-3 {
+  animation-delay: 0.24s;
+}
+
+.jobs-float {
+  animation: jobs-float 4.5s ease-in-out infinite;
+}
+
+.jobs-cta {
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
+}
+
+.jobs-cta:hover:not(:disabled) {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 14px 34px rgba(0, 158, 136, 0.28);
+}
+
+.jobs-cta:active:not(:disabled) {
+  transform: translateY(0) scale(0.99);
+}
+
+.jobs-role-card {
+  transition:
+    transform 0.22s ease,
+    border-color 0.22s ease,
+    background 0.22s ease,
+    box-shadow 0.22s ease;
+}
+
+.jobs-role-card:hover {
+  transform: translateY(-3px);
+}
+
+.jobs-role-card[data-selected="true"] {
+  animation: jobs-pop 0.35s ease both;
+}
+
+.jobs-progress-fill {
+  transition: width 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.jobs-panel-enter {
+  animation: jobs-rise 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.jobs-success-burst span {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  animation: jobs-confetti 1.1s ease-out forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jobs-rise,
+  .jobs-float,
+  .jobs-role-card[data-selected="true"],
+  .jobs-panel-enter,
+  .jobs-success-burst span {
+    animation: none !important;
+  }
+
+  .jobs-progress-fill,
+  .jobs-cta,
+  .jobs-role-card {
+    transition: none !important;
+  }
+}

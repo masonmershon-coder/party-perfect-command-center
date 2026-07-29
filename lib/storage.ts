@@ -75,6 +75,18 @@ async function writeJsonFile(filePath: string, data: unknown) {
   await writeDurableJson(storeKeyFor(filePath), data);
 }
 
+/** Seed writes must not take down the dashboard if Blob quota/token fails. */
+async function writeJsonFileBestEffort(filePath: string, data: unknown) {
+  try {
+    await writeJsonFile(filePath, data);
+  } catch (error) {
+    console.error(
+      `[storage] best-effort write failed (${storeKeyFor(filePath)}):`,
+      error instanceof Error ? error.message : error,
+    );
+  }
+}
+
 function now() {
   return new Date().toISOString();
 }
@@ -226,10 +238,10 @@ export async function ensurePartyPerfectSeed() {
       createdAt: timestamp,
       updatedAt: timestamp,
     }));
-    await writeJsonFile(AGENTS_FILE, agents);
+    await writeJsonFileBestEffort(AGENTS_FILE, agents);
 
     for (const agent of agents) {
-      await writeJsonFile(path.join(CONVERSATIONS_DIR, `${agent.id}.json`), {
+      await writeJsonFileBestEffort(path.join(CONVERSATIONS_DIR, `${agent.id}.json`), {
         agentId: agent.id,
         messages: [],
         updatedAt: timestamp,
@@ -248,7 +260,7 @@ export async function ensurePartyPerfectSeed() {
           updatedAt: timestamp,
         });
         changed = true;
-        await writeJsonFile(path.join(CONVERSATIONS_DIR, `${seed.id}.json`), {
+        await writeJsonFileBestEffort(path.join(CONVERSATIONS_DIR, `${seed.id}.json`), {
           agentId: seed.id,
           messages: [],
           updatedAt: timestamp,
@@ -257,7 +269,7 @@ export async function ensurePartyPerfectSeed() {
     }
 
     if (changed) {
-      await writeJsonFile(AGENTS_FILE, mergedAgents);
+      await writeJsonFileBestEffort(AGENTS_FILE, mergedAgents);
     }
 
     const coreIds = new Set(DEFAULT_AGENTS.map((agent) => agent.id));
@@ -287,7 +299,7 @@ export async function ensurePartyPerfectSeed() {
     });
 
     if (synced) {
-      await writeJsonFile(AGENTS_FILE, syncedAgents);
+      await writeJsonFileBestEffort(AGENTS_FILE, syncedAgents);
     }
   }
 
@@ -300,7 +312,7 @@ export async function ensurePartyPerfectSeed() {
       createdAt: timestamp,
       updatedAt: timestamp,
     }));
-    await writeJsonFile(TASKS_FILE, tasks);
+    await writeJsonFileBestEffort(TASKS_FILE, tasks);
   }
 
   const existingInventory = await readJsonFile<InventoryItem[]>(
@@ -314,7 +326,7 @@ export async function ensurePartyPerfectSeed() {
       id: createId(),
       updatedAt: timestamp,
     }));
-    await writeJsonFile(INVENTORY_FILE, inventory);
+    await writeJsonFileBestEffort(INVENTORY_FILE, inventory);
   }
 
   const existingMarketing = await readJsonFile<MarketingItem[]>(
@@ -328,7 +340,7 @@ export async function ensurePartyPerfectSeed() {
       id: createId(),
       updatedAt: timestamp,
     }));
-    await writeJsonFile(MARKETING_FILE, marketing);
+    await writeJsonFileBestEffort(MARKETING_FILE, marketing);
   }
 
   const existingEmails = await readJsonFile<EmailItem[]>(EMAILS_FILE, []);
@@ -341,7 +353,7 @@ export async function ensurePartyPerfectSeed() {
       id: createId(),
       updatedAt: timestamp,
     }));
-    await writeJsonFile(EMAILS_FILE, emails);
+    await writeJsonFileBestEffort(EMAILS_FILE, emails);
   }
 
   const existingSocial = await readJsonFile<SocialDataFile | null>(
@@ -349,7 +361,7 @@ export async function ensurePartyPerfectSeed() {
     null,
   );
   if (!existingSocial?.posts?.length) {
-    await writeJsonFile(SOCIAL_FILE, seedSocialData());
+    await writeJsonFileBestEffort(SOCIAL_FILE, seedSocialData());
   }
 
   const existingBookkeeping = await readJsonFile<BookkeepingEntry[]>(
@@ -363,7 +375,7 @@ export async function ensurePartyPerfectSeed() {
       id: createId(),
       updatedAt: timestamp,
     }));
-    await writeJsonFile(BOOKKEEPING_FILE, bookkeeping);
+    await writeJsonFileBestEffort(BOOKKEEPING_FILE, bookkeeping);
   }
 
   const existingReports = await readJsonFile<SavedReport[]>(REPORTS_FILE, []);
@@ -372,7 +384,7 @@ export async function ensurePartyPerfectSeed() {
       ...item,
       id: createId(),
     }));
-    await writeJsonFile(REPORTS_FILE, reports);
+    await writeJsonFileBestEffort(REPORTS_FILE, reports);
   }
 }
 
@@ -690,7 +702,7 @@ export async function mergeImapEmails(
   }
 
   const merged = Array.from(byKey.values()).sort(compareEmailsByPriority);
-  await writeJsonFile(EMAILS_FILE, merged);
+  await writeJsonFileBestEffort(EMAILS_FILE, merged);
   return { added, highPriorityNew, addedByAccount };
 }
 

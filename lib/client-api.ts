@@ -33,12 +33,26 @@ import { connectionHeaders } from "./client-connection-store";
 import type { MetaConnectionInfo, SocialAccount } from "./social-accounts";
 
 async function parseJson<T>(response: Response): Promise<T> {
-  const payload = await response.json();
+  const text = await response.text();
+  let payload: { error?: string } | null = null;
+  if (text.trim()) {
+    try {
+      payload = JSON.parse(text) as { error?: string };
+    } catch {
+      payload = null;
+    }
+  }
 
   if (!response.ok) {
     throw new Error(
-      typeof payload?.error === "string" ? payload.error : "Request failed.",
+      typeof payload?.error === "string"
+        ? payload.error
+        : `Request failed (${response.status}).`,
     );
+  }
+
+  if (payload == null) {
+    throw new Error("Empty response from server.");
   }
 
   return payload as T;
@@ -246,8 +260,14 @@ export async function createMarketingItem(input: CreateMarketingInput) {
   return payload.item;
 }
 
-export async function fetchEmails(accountId?: EmailAccountId) {
-  const query = accountId ? `?accountId=${accountId}` : "";
+export async function fetchEmails(
+  accountId?: EmailAccountId,
+  options?: { sync?: boolean },
+) {
+  const params = new URLSearchParams();
+  if (accountId) params.set("accountId", accountId);
+  if (options?.sync) params.set("sync", "1");
+  const query = params.toString() ? `?${params.toString()}` : "";
   return parseJson<{
     accounts: EmailAccount[];
     connection: EmailConnectionInfo;

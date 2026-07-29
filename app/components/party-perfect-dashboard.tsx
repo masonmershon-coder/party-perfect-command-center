@@ -356,6 +356,21 @@ export default function PartyPerfectDashboard() {
   );
 
   const refreshAll = useCallback(async () => {
+    const settled = await Promise.allSettled([
+      fetchAgents(),
+      fetchGrokAgent(),
+      fetchTasks(),
+      fetchInventory(),
+      fetchBookkeeping(),
+      fetchStats(),
+      fetchMarketing(),
+      fetchReports(),
+      refreshEmails(),
+      refreshSocial(),
+      refreshConnections(),
+      refreshJobs(),
+    ]);
+
     const [
       nextAgents,
       nextGrokAgent,
@@ -365,31 +380,34 @@ export default function PartyPerfectDashboard() {
       nextStats,
       nextMarketing,
       nextReports,
-    ] = await Promise.all([
-      fetchAgents(),
-      fetchGrokAgent(),
-      fetchTasks(),
-      fetchInventory(),
-      fetchBookkeeping(),
-      fetchStats(),
-      fetchMarketing(),
-      fetchReports(),
-    ]);
+    ] = settled;
 
-    setAgents(nextAgents);
-    setGrokAgent(nextGrokAgent);
-    setTasks(nextTasks);
-    setInventory(nextInventory);
-    setBookkeeping(nextBookkeeping);
-    setStats(nextStats);
-    setMarketing(nextMarketing);
-    setReports(nextReports);
-    await Promise.all([
-      refreshEmails(),
-      refreshSocial(),
-      refreshConnections(),
-      refreshJobs(),
-    ]);
+    if (nextAgents.status === "fulfilled") setAgents(nextAgents.value);
+    if (nextGrokAgent.status === "fulfilled") setGrokAgent(nextGrokAgent.value);
+    if (nextTasks.status === "fulfilled") setTasks(nextTasks.value);
+    if (nextInventory.status === "fulfilled") setInventory(nextInventory.value);
+    if (nextBookkeeping.status === "fulfilled") {
+      setBookkeeping(nextBookkeeping.value);
+    }
+    if (nextStats.status === "fulfilled") setStats(nextStats.value);
+    if (nextMarketing.status === "fulfilled") setMarketing(nextMarketing.value);
+    if (nextReports.status === "fulfilled") setReports(nextReports.value);
+
+    const failed = settled.filter((result) => result.status === "rejected");
+    if (failed.length === settled.length) {
+      const first = failed[0] as PromiseRejectedResult;
+      throw first.reason instanceof Error
+        ? first.reason
+        : new Error("Failed to load dashboard.");
+    }
+    if (failed.length > 0) {
+      const first = failed[0] as PromiseRejectedResult;
+      setError(
+        first.reason instanceof Error
+          ? `Some panels failed to load: ${first.reason.message}`
+          : "Some panels failed to load.",
+      );
+    }
   }, [refreshConnections, refreshEmails, refreshJobs, refreshSocial]);
 
   const refreshChat = useCallback(async (agentId: string) => {

@@ -1,4 +1,4 @@
-import { createJobApplication } from "@/lib/job-applications";
+import { createJobApplication, JobApplicationSaveError } from "@/lib/job-applications";
 import {
   JOB_ROLES,
   type JobApplicationInput,
@@ -162,6 +162,15 @@ export async function POST(request: Request) {
       },
     });
   } catch (error) {
+    if (error instanceof JobApplicationSaveError) {
+      return NextResponse.json(
+        {
+          error: error.message,
+          backupEmailed: error.backupEmailed,
+        },
+        { status: 503 },
+      );
+    }
     return NextResponse.json(
       {
         error:

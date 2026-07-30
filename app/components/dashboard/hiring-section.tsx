@@ -133,8 +133,20 @@ export function HiringSection({
 
       {storeMode === "ephemeral" && (
         <p className="mb-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-800">
-          Candidate storage is temporary on this server. Applications will not
-          survive deploys until Blob or Redis is connected.
+          Candidate storage is temporary on this server. Link Upstash Redis in
+          Vercel Storage so applications survive deploys — see docs/JOBS_DNS.md.
+        </p>
+      )}
+      {storeMode === "blob" && (
+        <p className="mb-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-800">
+          Hiring is still on Vercel Blob. Connect Upstash Redis (free) so we
+          never lose applicants — see docs/JOBS_DNS.md.
+        </p>
+      )}
+      {storeMode === "redis" && (
+        <p className="mb-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700">
+          Applications are saved in Redis and emailed to Josh/Rentals on every
+          submit. Same list as PartyPerfectJobs — no manual transfer.
         </p>
       )}
 

@@ -1,3 +1,4 @@
+import { sendApplicationBackupEmail } from "@/lib/application-mail";
 import { assertGrokConfigured, grokClient } from "@/lib/grok";
 import {
   heuristicMikeReview,
@@ -10,13 +11,24 @@ import {
 import {
   jobStoreMode,
   readJobApplicationsStore,
-  writeJobApplicationsStore,
+  removeJobApplication,
+  saveJobApplication,
 } from "./job-store";
 import {
   getAuthorizedManagerPhones,
   getTwilioConfig,
   sendSms,
 } from "./twilio";
+
+export class JobApplicationSaveError extends Error {
+  readonly backupEmailed: boolean;
+
+  constructor(message: string, backupEmailed: boolean) {
+    super(message);
+    this.name = "JobApplicationSaveError";
+    this.backupEmailed = backupEmailed;
+  }
+}
 
 async function mikeScoreWithGrok(
   input: JobApplicationInput,
@@ -97,6 +109,35 @@ async function mikeScoreWithGrok(
   };
 }
 
+async function notifyTopCandidateSms(application: JobApplication) {
+  if (!application.mike.flagForJosh || !getTwilioConfig()) return;
+
+  const roles = application.roles.map(roleLabel).join(", ");
+  const body = [
+    `Mike · Top candidate (${application.mike.score}+)`,
+    `${application.fullName} · score ${application.mike.score}`,
+    `Fit: ${application.mike.primaryFit}`,
+    `Roles: ${roles}`,
+    application.mike.summary,
+    `Phone: ${application.phone}`,
+    `Review: Command Center → Hiring`,
+  ]
+    .filter(Boolean)
+    .join("\n")
+    .slice(0, 1500);
+
+  for (const to of getAuthorizedManagerPhones()) {
+    try {
+      await sendSms({ to, body });
+    } catch (error) {
+      console.error(
+        `[jobs] Failed to SMS ${to} about top candidate:`,
+        error instanceof Error ? error.message : error,
+      );
+    }
+  }
+}
+
 export async function createJobApplication(
   input: JobApplicationInput,
 ): Promise<JobApplication> {
@@ -115,35 +156,35 @@ export async function createJobApplication(
     mike,
   };
 
-  const existing = await readJobApplicationsStore();
-  existing.unshift(application);
-  await writeJobApplicationsStore(existing);
+  let saved = false;
+  try {
+    await saveJobApplication(application);
+    saved = true;
+  } catch (error) {
+    const backup = await sendApplicationBackupEmail(application);
+    throw new JobApplicationSaveError(
+      backup.sent
+        ? "We emailed your application to the hiring team, but our hiring database is temporarily unavailable. Please also call Party Perfect or retry in a few minutes so we do not miss you."
+        : error instanceof Error
+          ? error.message
+          : "Could not save application. Please try again or call Party Perfect.",
+      backup.sent,
+    );
+  }
 
-  if (application.mike.flagForJosh && getTwilioConfig()) {
-    const roles = application.roles.map(roleLabel).join(", ");
-    const body = [
-      `Mike · Top candidate (${application.mike.score}+)`,
-      `${application.fullName} · score ${application.mike.score}`,
-      `Fit: ${application.mike.primaryFit}`,
-      `Roles: ${roles}`,
-      application.mike.summary,
-      `Phone: ${application.phone}`,
-      `Review: Command Center → Hiring`,
-    ]
-      .filter(Boolean)
-      .join("\n")
-      .slice(0, 1500);
+  // Backup email every application (never miss a hire record in inbox)
+  const backup = await sendApplicationBackupEmail(application);
+  if (!backup.sent) {
+    console.warn("[jobs] Durable save OK but backup email skipped:", backup.error);
+  }
 
-    for (const to of getAuthorizedManagerPhones()) {
-      try {
-        await sendSms({ to, body });
-      } catch (error) {
-        console.error(
-          `[jobs] Failed to SMS ${to} about top candidate:`,
-          error instanceof Error ? error.message : error,
-        );
-      }
-    }
+  await notifyTopCandidateSms(application);
+
+  if (!saved) {
+    throw new JobApplicationSaveError(
+      "Could not confirm application save.",
+      backup.sent,
+    );
   }
 
   return application;
@@ -159,11 +200,7 @@ export async function getJobApplication(id: string) {
 }
 
 export async function deleteJobApplication(id: string) {
-  const applications = await readJobApplicationsStore();
-  const next = applications.filter((app) => app.id !== id);
-  if (next.length === applications.length) return false;
-  await writeJobApplicationsStore(next);
-  return true;
+  return removeJobApplication(id);
 }
 
 export function getJobApplicationsStoreMode() {

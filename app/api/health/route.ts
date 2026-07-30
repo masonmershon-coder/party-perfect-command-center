@@ -1,7 +1,8 @@
+import { isApplicationBackupEmailConfigured } from "@/lib/application-mail";
 import { getAppVersionPayload } from "@/lib/app-version";
 import { getTwilioPublicStatus } from "@/lib/twilio";
 import { isVercelRuntime } from "@/lib/data-dir";
-import { durableStoreMode } from "@/lib/durable-json";
+import { durableStoreMode, probeJobsDurableStore } from "@/lib/durable-json";
 import { isMetaLiveConfigured } from "@/lib/meta-graph";
 import { NextResponse } from "next/server";
 
@@ -54,6 +55,7 @@ export async function GET() {
   const twilio = getTwilioPublicStatus();
   const version = getAppVersionPayload();
   const compliance = await fetchTwilioCompliance();
+  const jobsStore = await probeJobsDurableStore();
 
   return NextResponse.json({
     ok: true,
@@ -62,6 +64,10 @@ export async function GET() {
     location: "Tulsa, Oklahoma",
     runtime: isVercelRuntime() ? "vercel" : "node",
     durableStoreMode: durableStoreMode(),
+    jobsStoreOk: jobsStore.ok,
+    jobsStoreMode: jobsStore.mode,
+    jobsStoreError: jobsStore.error ?? null,
+    jobsBackupEmailConfigured: isApplicationBackupEmailConfigured(),
     version: version.version,
     releasedAt: version.releasedAt,
     versionLabel: version.label,

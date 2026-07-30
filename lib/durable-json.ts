@@ -64,6 +64,90 @@ function getRedis(): Redis | null {
   return redisClient;
 }
 
+/** Shared Redis client for append-only stores (jobs, etc.). */
+export function getDurableRedis(): Redis | null {
+  return getRedis();
+}
+
+/**
+ * Probe durable store with a tiny write/read/delete cycle.
+ * Prefer Redis; fall back to Blob put/get when Redis is not configured.
+ */
+export async function probeJobsDurableStore(): Promise<{
+  ok: boolean;
+  mode: DurableStoreMode;
+  error?: string;
+}> {
+  const mode = durableStoreMode();
+  const probeKey = `pp:health:jobs:${Date.now()}`;
+  const payload = { ok: true, at: new Date().toISOString() };
+
+  try {
+    if (isDurableRedisConfigured()) {
+      const redis = getRedis();
+      if (!redis) {
+        return { ok: false, mode, error: "Redis configured but client unavailable." };
+      }
+      await redis.set(probeKey, payload, { ex: 60 });
+      const read = await redis.get(probeKey);
+      await redis.del(probeKey);
+      if (read == null) {
+        return { ok: false, mode, error: "Redis probe read missed." };
+      }
+      return { ok: true, mode };
+    }
+
+    if (isDurableBlobConfigured()) {
+      const text = `${JSON.stringify(payload)}\n`;
+      const pathname = blobPathname(`health-jobs-probe.json`);
+      const { put, get, del } = await import("@vercel/blob");
+      await put(pathname, text, {
+        access: "private",
+        addRandomSuffix: false,
+        allowOverwrite: true,
+        contentType: "application/json",
+        token: blobToken(),
+      });
+      const result = await get(pathname, {
+        access: "private",
+        token: blobToken(),
+        useCache: false,
+      });
+      await del(pathname, { token: blobToken() });
+      if (!result?.stream) {
+        return { ok: false, mode, error: "Blob probe read missed." };
+      }
+      return { ok: true, mode };
+    }
+
+    if (!isVercelRuntime()) {
+      await writeLocalText("health-jobs-probe.json", `${JSON.stringify(payload)}\n`);
+      const local = await readLocalText("health-jobs-probe.json");
+      try {
+        await fs.unlink(localPath("health-jobs-probe.json"));
+      } catch {
+        // ignore
+      }
+      if (!local) {
+        return { ok: false, mode, error: "Local probe read missed." };
+      }
+      return { ok: true, mode };
+    }
+
+    return {
+      ok: false,
+      mode,
+      error: "No Redis or Blob configured on Vercel — applications cannot be saved.",
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      mode,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
 function redisDataKey(key: string) {
   return `${REDIS_PREFIX}${key.replace(/^\/+/, "").replace(/\\/g, "/")}`;
 }

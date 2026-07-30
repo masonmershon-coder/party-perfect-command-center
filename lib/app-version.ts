@@ -1,5 +1,5 @@
 /** Single source of truth for Command Center + Jobs release metadata. */
-export const APP_VERSION = "1.3.0";
+export const APP_VERSION = "1.3.1";
 
 /** ISO date of this release (YYYY-MM-DD). */
 export const APP_RELEASED_AT = "2026-07-30";
@@ -8,10 +8,10 @@ export const APP_RELEASE_LABEL = `v${APP_VERSION} · ${APP_RELEASED_AT}`;
 
 export const APP_RELEASE_NOTES = {
   commandCenter: [
+    "Upstash Redis durable store for POR, emails, Mike chat",
     "Live POR read-only snapshot API (POST /api/por/sync)",
     "Inventory / Bookkeeping / Dashboard prefer POR mirror when present",
-    "Mike agent + SMS status include POR ops numbers",
-    "ENTERPRISE sync agent + Task Scheduler scripts in por-sync-agent/",
+    "Mike chat soft-persists when storage is recovering",
   ],
   jobs: [
     "PartyPerfectJobs apply experience (/jobs)",

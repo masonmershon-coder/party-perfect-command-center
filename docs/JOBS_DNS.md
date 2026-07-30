@@ -4,9 +4,18 @@ Applications on **partyperfectjobs.com** and Hiring on **partyperfectcomand.app*
 
 ## 1. Link Upstash Redis (required — free tier is fine)
 
-1. Open [Vercel Dashboard](https://vercel.com) → project **party-perfect-command-center**.
-2. **Storage** → Create → **Upstash Redis** (accept marketplace terms if asked).
-3. Connect the store to **Production** (and Preview if you want).
+**Urgent:** Production Blob is **suspended** (`jobsStoreOk` reports `Vercel Blob: This store has been suspended.`). Applications cannot be saved until Redis is linked.
+
+1. Open [Upstash on Vercel Marketplace](https://vercel.com/marketplace/upstash) → **Install**.
+2. Or in a local terminal (must be interactive / human):
+
+```bash
+cd ~/grok-dashboard
+npx vercel integration accept-terms upstash
+npx vercel integration add upstash/upstash-kv --plan free -m primaryRegion=iad1 -n party-perfect-jobs -e production
+```
+
+3. Connect the store to project **party-perfect-command-center** → Production.
 4. Confirm env vars exist:
    - `UPSTASH_REDIS_REST_URL`
    - `UPSTASH_REDIS_REST_TOKEN`
@@ -14,14 +23,14 @@ Applications on **partyperfectjobs.com** and Hiring on **partyperfectcomand.app*
 6. Check health: `https://partyperfectcomand.app/api/health`
    - `durableStoreMode` must be `"redis"`
    - `jobsStoreOk` must be `true`
-7. Migrate any old Blob apps once:
+7. Migrate any old Blob apps once (if any survive):
 
 ```bash
 npm run store:migrate
 npm run jobs:migrate
 ```
 
-(Use `--env-file=.env.local` or pull env from Vercel first.)
+(Use `--env-file=.env.local` or `npx vercel env pull` first.)
 
 ## 2. Backup email (every application)
 

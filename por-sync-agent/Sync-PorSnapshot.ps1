@@ -14,7 +14,6 @@ param(
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 
-# Server 2016 often defaults to older TLS; Command Center requires TLS 1.2+
 try {
   [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 } catch {}
@@ -55,43 +54,50 @@ function New-SqlConnection([object]$Config) {
   return $conn
 }
 
-function Invoke-SelectTable {
-  param(
-    [System.Data.SqlClient.SqlConnection]$Connection,
-    [string]$Query
-  )
+function Assert-SelectOnly([string]$Query) {
   $trimmed = $Query.TrimStart()
   if ($trimmed -notmatch '^(SELECT|WITH)\b') { throw "Blocked non-SELECT query." }
   if ($trimmed -match '\b(INSERT|UPDATE|DELETE|MERGE|DROP|ALTER|TRUNCATE|EXEC|EXECUTE)\b') {
     throw "Blocked dangerous SQL keyword."
   }
-
-  $cmd = $Connection.CreateCommand()
-  $cmd.CommandText = $Query
-  $cmd.CommandTimeout = 180
-  $reader = $cmd.ExecuteReader()
-  $table = New-Object System.Data.DataTable
-  $table.Load($reader)
-  $reader.Close()
-  return $table
 }
 
 function Get-Scalar {
-  param(
-    [System.Data.SqlClient.SqlConnection]$Connection,
-    [string]$Query
-  )
-  $trimmed = $Query.TrimStart()
-  if ($trimmed -notmatch '^(SELECT|WITH)\b') { throw "Blocked non-SELECT query." }
-  if ($trimmed -match '\b(INSERT|UPDATE|DELETE|MERGE|DROP|ALTER|TRUNCATE|EXEC|EXECUTE)\b') {
-    throw "Blocked dangerous SQL keyword."
-  }
+  param([System.Data.SqlClient.SqlConnection]$Connection, [string]$Query)
+  Assert-SelectOnly $Query
   $cmd = $Connection.CreateCommand()
   $cmd.CommandText = $Query
   $cmd.CommandTimeout = 120
   $value = $cmd.ExecuteScalar()
   if ($null -eq $value -or $value -is [DBNull]) { return 0 }
   return [double]$value
+}
+
+function Read-Rows {
+  param([System.Data.SqlClient.SqlConnection]$Connection, [string]$Query)
+  Assert-SelectOnly $Query
+  $cmd = $Connection.CreateCommand()
+  $cmd.CommandText = $Query
+  $cmd.CommandTimeout = 180
+  $reader = $cmd.ExecuteReader()
+  $rows = New-Object System.Collections.Generic.List[hashtable]
+  try {
+    while ($reader.Read()) {
+      $map = @{}
+      for ($i = 0; $i -lt $reader.FieldCount; $i++) {
+        $name = $reader.GetName($i)
+        if ($reader.IsDBNull($i)) {
+          $map[$name] = $null
+        } else {
+          $map[$name] = $reader.GetValue($i)
+        }
+      }
+      [void]$rows.Add($map)
+    }
+  } finally {
+    $reader.Close()
+  }
+  return ,$rows.ToArray()
 }
 
 $config = Get-Config
@@ -101,8 +107,6 @@ $conn = $null
 try {
   $conn = New-SqlConnection $config
 
-  # Inventory: ItemFile uses KEY/Name/Category/QTY/QYOT/RATE1 (Party Perfect POR)
-  # Sanity-cap QTY so one bad bulk row cannot dominate totals.
   $totalItems = [int](Get-Scalar $conn "SELECT COUNT(*) FROM dbo.ItemFile WHERE ISNULL(Inactive,0)=0")
   $totalQty = Get-Scalar $conn @"
 SELECT SUM(CASE WHEN ISNULL(QTY,0) > 100000 THEN 0 ELSE ISNULL(QTY,0) END)
@@ -114,7 +118,7 @@ FROM dbo.ItemFile WHERE ISNULL(Inactive,0)=0
 "@
   $availQty = [math]::Max(0, $totalQty - $outQty)
 
-  $catTable = Invoke-SelectTable $conn @"
+  $catRows = Read-Rows $conn @"
 SELECT TOP 165
   ISNULL(NULLIF(LTRIM(RTRIM(Category)), ''), N'Uncategorized') AS CategoryName,
   COUNT(*) AS ItemCount,
@@ -127,20 +131,19 @@ ORDER BY ItemCount DESC
 "@
 
   $categories = @()
-  for ($i = 0; $i -lt $catTable.Rows.Count; $i++) {
-    $row = $catTable.Rows[$i]
-    $q = [double]$row.Item("Quantity")
-    $o = [double]$row.Item("QtyOut")
+  foreach ($row in $catRows) {
+    $q = [double]$row.Quantity
+    $o = [double]$row.QtyOut
     $a = [math]::Max(0, $q - $o)
     $categories += @{
-      name = [string]$row.Item("CategoryName")
-      itemCount = [int]$row.Item("ItemCount")
+      name = [string]$row.CategoryName
+      itemCount = [int]$row.ItemCount
       quantity = [math]::Round($q, 2)
       available = [math]::Round($a, 2)
     }
   }
 
-  $itemTable = Invoke-SelectTable $conn @"
+  $itemRows = Read-Rows $conn @"
 SELECT TOP 250
   CAST([KEY] AS nvarchar(64)) AS ItemKey,
   CAST([Name] AS nvarchar(200)) AS ItemName,
@@ -154,29 +157,27 @@ ORDER BY QtyOut DESC, [Name]
 "@
 
   $items = @()
-  for ($i = 0; $i -lt $itemTable.Rows.Count; $i++) {
-    $row = $itemTable.Rows[$i]
-    $q = [double]$row.Item("Quantity")
-    $o = [double]$row.Item("QtyOut")
+  foreach ($row in $itemRows) {
+    $q = [double]$row.Quantity
+    $o = [double]$row.QtyOut
     $a = [math]::Max(0, $q - $o)
     $status = if ($a -le 0 -and $o -gt 0) { "reserved" } elseif (($a / [math]::Max($q, 1)) -lt 0.25) { "maintenance" } else { "available" }
     $items += @{
-      id = "por-item-$($row.Item('ItemKey'))"
-      name = [string]$row.Item("ItemName")
-      category = [string]$row.Item("CategoryName")
+      id = "por-item-$($row.ItemKey)"
+      name = [string]$row.ItemName
+      category = [string]$row.CategoryName
       quantity = [math]::Round($q, 2)
       available = [math]::Round($a, 2)
-      pricePerDay = [math]::Round([double]$row.Item("Rate"), 2)
+      pricePerDay = [math]::Round([double]$row.Rate, 2)
       status = $status
       notes = "Live from Point of Rental (read-only)"
     }
   }
 
-  # Money: open AR lives on CustomerFile.CurrentBalance (AccountsReceivable is a journal)
   $arOpen = Get-Scalar $conn "SELECT SUM(ISNULL(CurrentBalance,0)) FROM dbo.CustomerFile"
   $arCount = [int](Get-Scalar $conn "SELECT COUNT(*) FROM dbo.CustomerFile WHERE ISNULL(CurrentBalance,0) <> 0")
 
-  $agingTable = Invoke-SelectTable $conn @"
+  $agingRows = Read-Rows $conn @"
 SELECT
   SUM(CASE WHEN AgeDate IS NULL OR AgeDate >= DATEADD(day, -30, GETDATE()) THEN ISNULL(CurrentBalance,0) ELSE 0 END) AS AgingCurrent,
   SUM(CASE WHEN AgeDate < DATEADD(day, -30, GETDATE()) AND AgeDate >= DATEADD(day, -60, GETDATE()) THEN ISNULL(CurrentBalance,0) ELSE 0 END) AS Aging30,
@@ -186,40 +187,25 @@ SELECT
 FROM dbo.CustomerFile
 WHERE ISNULL(CurrentBalance,0) <> 0
 "@
-  $aging = @{
-    current = 0.0
-    days30 = 0.0
-    days60 = 0.0
-    days90 = 0.0
-    days120Plus = 0.0
-  }
-  if ($agingTable.Rows.Count -gt 0) {
-    $ar = $agingTable.Rows[0]
-    $aging.current = [math]::Round([double]$ar.Item("AgingCurrent"), 2)
-    $aging.days30 = [math]::Round([double]$ar.Item("Aging30"), 2)
-    $aging.days60 = [math]::Round([double]$ar.Item("Aging60"), 2)
-    $aging.days90 = [math]::Round([double]$ar.Item("Aging90"), 2)
-    $aging.days120Plus = [math]::Round([double]$ar.Item("Aging120"), 2)
+
+  $aging = @{ current = 0.0; days30 = 0.0; days60 = 0.0; days90 = 0.0; days120Plus = 0.0 }
+  if ($agingRows.Count -gt 0) {
+    $ar = $agingRows[0]
+    $aging.current = [math]::Round([double]$ar.AgingCurrent, 2)
+    $aging.days30 = [math]::Round([double]$ar.Aging30, 2)
+    $aging.days60 = [math]::Round([double]$ar.Aging60, 2)
+    $aging.days90 = [math]::Round([double]$ar.Aging90, 2)
+    $aging.days120Plus = [math]::Round([double]$ar.Aging120, 2)
   }
 
-  # Payments last 24h from PaymentFile (amount only — never card fields)
-  $payCount = [int](Get-Scalar $conn @"
-SELECT COUNT(*) FROM dbo.PaymentFile
-WHERE [Date] >= DATEADD(hour, -24, GETDATE())
-"@)
-  $payVolume = Get-Scalar $conn @"
-SELECT SUM(ISNULL(Amount,0)) FROM dbo.PaymentFile
-WHERE [Date] >= DATEADD(hour, -24, GETDATE())
-"@
+  $payCount = [int](Get-Scalar $conn "SELECT COUNT(*) FROM dbo.PaymentFile WHERE [Date] >= DATEADD(hour, -24, GETDATE())")
+  $payVolume = Get-Scalar $conn "SELECT SUM(ISNULL(Amount,0)) FROM dbo.PaymentFile WHERE [Date] >= DATEADD(hour, -24, GETDATE())"
 
-  # Ops proxy until contract line schema is mapped further:
-  # customers with qty currently out, plus customers last-active today.
   $openContracts = [int](Get-Scalar $conn "SELECT COUNT(*) FROM dbo.CustomerFile WHERE ISNULL(QtyOut,0) > 0")
   $deliveriesToday = [int](Get-Scalar $conn @"
 SELECT COUNT(*) FROM dbo.CustomerFile
 WHERE LastActive IS NOT NULL AND CAST(LastActive AS date) = CAST(GETDATE() AS date)
 "@)
-  $returnsDueToday = 0
 
   $snapshot = [ordered]@{
     version = 1
@@ -252,7 +238,7 @@ WHERE LastActive IS NOT NULL AND CAST(LastActive AS date) = CAST(GETDATE() AS da
     ops = [ordered]@{
       openContracts = $openContracts
       deliveriesToday = $deliveriesToday
-      returnsDueToday = $returnsDueToday
+      returnsDueToday = 0
     }
   }
 

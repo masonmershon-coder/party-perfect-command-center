@@ -68,28 +68,34 @@ function Invoke-Select {
   $cmd = $Connection.CreateCommand()
   $cmd.CommandText = $Query
   $cmd.CommandTimeout = 120
-  $adapter = New-Object System.Data.SqlClient.SqlDataAdapter $cmd
+  $reader = $cmd.ExecuteReader()
   $table = New-Object System.Data.DataTable
-  [void]$adapter.Fill($table)
+  $table.Load($reader)
+  $reader.Close()
   return $table
 }
 
 function Get-ColumnMap {
   param([System.Data.SqlClient.SqlConnection]$Connection, [string]$TableName)
-  $q = @"
+  $set = @{}
+  $cmd = $Connection.CreateCommand()
+  $cmd.CommandText = @"
 SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
 WHERE TABLE_SCHEMA = 'dbo' AND TABLE_NAME = N'$TableName'
 "@
-  $rows = Invoke-Select -Connection $Connection -Query $q
-  $set = @{}
-  if ($null -eq $rows -or $rows.Rows.Count -eq 0) {
-    return $set
-  }
-  foreach ($r in $rows.Rows) {
-    $name = [string]$r["COLUMN_NAME"]
-    if (-not [string]::IsNullOrWhiteSpace($name)) {
-      $set[$name] = $true
+  $cmd.CommandTimeout = 60
+  $reader = $cmd.ExecuteReader()
+  try {
+    while ($reader.Read()) {
+      if (-not $reader.IsDBNull(0)) {
+        $name = [string]$reader.GetValue(0)
+        if (-not [string]::IsNullOrWhiteSpace($name)) {
+          $set[$name] = $true
+        }
+      }
     }
+  } finally {
+    $reader.Close()
   }
   return $set
 }

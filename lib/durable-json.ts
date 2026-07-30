@@ -7,6 +7,8 @@ const BLOB_PREFIX = "party-perfect";
 const REDIS_PREFIX = "pp:json:";
 const REDIS_ALL_KEYS = "pp:all-keys";
 const MEMORY_TTL_MS = 45_000;
+/** Longer cache when Blob is suspended and Redis is not linked yet (warm isolates only). */
+const EMERGENCY_MEMORY_TTL_MS = 6 * 60 * 60 * 1000;
 
 export type DurableStoreMode = "redis" | "blob" | "local" | "ephemeral";
 
@@ -178,10 +180,10 @@ function readMemory<T>(key: string): { hit: true; value: T } | { hit: false } {
   return { hit: true, value: entry.value as T };
 }
 
-function writeMemory(key: string, value: unknown) {
+function writeMemory(key: string, value: unknown, ttlMs = MEMORY_TTL_MS) {
   memoryCache.set(key, {
     value,
-    expiresAt: Date.now() + MEMORY_TTL_MS,
+    expiresAt: Date.now() + ttlMs,
   });
 }
 
@@ -393,6 +395,9 @@ export async function readDurableJson<T>(
 
 /**
  * Write JSON by relative key. Redis is the launch primary on Vercel.
+ * When Blob is suspended and Redis is missing, keep an emergency in-memory
+ * copy so Mike chat / POR sync can still complete on a warm isolate instead
+ * of hard-failing the whole request.
  */
 export async function writeDurableJson(key: string, data: unknown) {
   const text = `${JSON.stringify(data, null, 2)}\n`;
@@ -408,6 +413,7 @@ export async function writeDurableJson(key: string, data: unknown) {
       return;
     }
     if (isVercelRuntime()) {
+      writeMemory(key, data, EMERGENCY_MEMORY_TTL_MS);
       throw new Error(
         `Could not save ${key} to Redis. Check UPSTASH_REDIS_REST_URL / TOKEN.`,
       );
@@ -423,10 +429,21 @@ export async function writeDurableJson(key: string, data: unknown) {
       return;
     }
     if (isVercelRuntime()) {
-      throw new Error(
-        `Could not save ${key}. Configure Upstash Redis (recommended) or Blob.`,
+      // Blob suspended / quota — do not hard-crash Mike/POR; memory only.
+      writeMemory(key, data, EMERGENCY_MEMORY_TTL_MS);
+      console.warn(
+        `[durable-json] Emergency memory write for ${key} (Blob unavailable; link Upstash Redis).`,
       );
+      return;
     }
+  }
+
+  if (isVercelRuntime()) {
+    writeMemory(key, data, EMERGENCY_MEMORY_TTL_MS);
+    console.warn(
+      `[durable-json] Emergency memory write for ${key} (no Redis/Blob).`,
+    );
+    return;
   }
 
   await writeLocalText(key, text);

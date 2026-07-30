@@ -71,8 +71,20 @@ export async function POST(request: Request, context: RouteContext) {
     const userMessage = createMessage("user", body.message.trim(), body.taskId);
     const assistantMessage = createMessage("assistant", "", body.taskId);
 
-    await appendMessages(id, [userMessage, assistantMessage]);
-    await updateAgent(id, { status: "working" });
+    // Soft-persist: never block Mike/Madison replies if durable store is down.
+    try {
+      await appendMessages(id, [userMessage, assistantMessage]);
+    } catch (persistError) {
+      console.warn(
+        "[agent-chat] appendMessages failed; continuing stream:",
+        persistError instanceof Error ? persistError.message : persistError,
+      );
+    }
+    try {
+      await updateAgent(id, { status: "working" });
+    } catch {
+      // ignore
+    }
 
     const priorMessages = [
       ...conversation.messages,
@@ -103,20 +115,36 @@ export async function POST(request: Request, context: RouteContext) {
             controller.enqueue(value);
           }
 
-          await replaceLastAssistantMessage(
-            id,
-            assistantMessage.id,
-            assistantContent,
-          );
-          await updateAgent(id, { status: "idle" });
+          try {
+            await replaceLastAssistantMessage(
+              id,
+              assistantMessage.id,
+              assistantContent,
+            );
+          } catch {
+            // ignore persist failures after a successful reply
+          }
+          try {
+            await updateAgent(id, { status: "idle" });
+          } catch {
+            // ignore
+          }
           controller.close();
         } catch (error) {
-          await replaceLastAssistantMessage(
-            id,
-            assistantMessage.id,
-            assistantContent || "Sorry, I encountered an error.",
-          );
-          await updateAgent(id, { status: "error" });
+          try {
+            await replaceLastAssistantMessage(
+              id,
+              assistantMessage.id,
+              assistantContent || "Sorry, I encountered an error.",
+            );
+          } catch {
+            // ignore
+          }
+          try {
+            await updateAgent(id, { status: "error" });
+          } catch {
+            // ignore
+          }
           controller.error(error);
         }
       },

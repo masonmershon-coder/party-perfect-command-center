@@ -127,13 +127,14 @@ ORDER BY ItemCount DESC
 "@
 
   $categories = @()
-  foreach ($row in $catTable.Rows) {
-    $q = [double]$row["Quantity"]
-    $o = [double]$row["QtyOut"]
+  for ($i = 0; $i -lt $catTable.Rows.Count; $i++) {
+    $row = $catTable.Rows[$i]
+    $q = [double]$row.Item("Quantity")
+    $o = [double]$row.Item("QtyOut")
     $a = [math]::Max(0, $q - $o)
     $categories += @{
-      name = [string]$row["CategoryName"]
-      itemCount = [int]$row["ItemCount"]
+      name = [string]$row.Item("CategoryName")
+      itemCount = [int]$row.Item("ItemCount")
       quantity = [math]::Round($q, 2)
       available = [math]::Round($a, 2)
     }
@@ -153,18 +154,19 @@ ORDER BY QtyOut DESC, [Name]
 "@
 
   $items = @()
-  foreach ($row in $itemTable.Rows) {
-    $q = [double]$row["Quantity"]
-    $o = [double]$row["QtyOut"]
+  for ($i = 0; $i -lt $itemTable.Rows.Count; $i++) {
+    $row = $itemTable.Rows[$i]
+    $q = [double]$row.Item("Quantity")
+    $o = [double]$row.Item("QtyOut")
     $a = [math]::Max(0, $q - $o)
     $status = if ($a -le 0 -and $o -gt 0) { "reserved" } elseif (($a / [math]::Max($q, 1)) -lt 0.25) { "maintenance" } else { "available" }
     $items += @{
-      id = "por-item-$($row['ItemKey'])"
-      name = [string]$row["ItemName"]
-      category = [string]$row["CategoryName"]
+      id = "por-item-$($row.Item('ItemKey'))"
+      name = [string]$row.Item("ItemName")
+      category = [string]$row.Item("CategoryName")
       quantity = [math]::Round($q, 2)
       available = [math]::Round($a, 2)
-      pricePerDay = [math]::Round([double]$row["Rate"], 2)
+      pricePerDay = [math]::Round([double]$row.Item("Rate"), 2)
       status = $status
       notes = "Live from Point of Rental (read-only)"
     }
@@ -193,11 +195,11 @@ WHERE ISNULL(CurrentBalance,0) <> 0
   }
   if ($agingTable.Rows.Count -gt 0) {
     $ar = $agingTable.Rows[0]
-    $aging.current = [math]::Round([double]$ar["AgingCurrent"], 2)
-    $aging.days30 = [math]::Round([double]$ar["Aging30"], 2)
-    $aging.days60 = [math]::Round([double]$ar["Aging60"], 2)
-    $aging.days90 = [math]::Round([double]$ar["Aging90"], 2)
-    $aging.days120Plus = [math]::Round([double]$ar["Aging120"], 2)
+    $aging.current = [math]::Round([double]$ar.Item("AgingCurrent"), 2)
+    $aging.days30 = [math]::Round([double]$ar.Item("Aging30"), 2)
+    $aging.days60 = [math]::Round([double]$ar.Item("Aging60"), 2)
+    $aging.days90 = [math]::Round([double]$ar.Item("Aging90"), 2)
+    $aging.days120Plus = [math]::Round([double]$ar.Item("Aging120"), 2)
   }
 
   # Payments last 24h from PaymentFile (amount only — never card fields)

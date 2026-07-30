@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-  Read-only POR SQL snapshot → Command Center POST /api/por/sync
+  Read-only POR SQL snapshot -> Command Center POST /api/por/sync
 
 .NOTES
   - SELECT only. Never INSERT/UPDATE/DELETE against POR.
@@ -32,7 +32,7 @@ function Write-Log {
 
 function Get-Config {
   if (-not (Test-Path $ConfigPath)) {
-    throw "Missing config.json. Copy config.example.json → config.json and fill secrets."
+    throw "Missing config.json. Copy config.example.json to config.json and fill secrets."
   }
   Get-Content -Raw -Path $ConfigPath | ConvertFrom-Json
 }
@@ -82,7 +82,15 @@ WHERE TABLE_SCHEMA = 'dbo' AND TABLE_NAME = N'$TableName'
 "@
   $rows = Invoke-Select -Connection $Connection -Query $q
   $set = @{}
-  foreach ($r in $rows.Rows) { $set[$r.COLUMN_NAME.ToString()] = $true }
+  if ($null -eq $rows -or $rows.Rows.Count -eq 0) {
+    return $set
+  }
+  foreach ($r in $rows.Rows) {
+    $name = [string]$r["COLUMN_NAME"]
+    if (-not [string]::IsNullOrWhiteSpace($name)) {
+      $set[$name] = $true
+    }
+  }
   return $set
 }
 
@@ -101,7 +109,7 @@ function Get-ScalarNumber($table, [string]$col = $null) {
 }
 
 $config = Get-Config
-Write-Log "Starting read-only POR sync → $($config.CommandCenterUrl)"
+Write-Log "Starting read-only POR sync -> $($config.CommandCenterUrl)"
 
 $conn = $null
 try {

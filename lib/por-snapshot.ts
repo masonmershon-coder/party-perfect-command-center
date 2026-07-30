@@ -29,15 +29,19 @@ export async function getPorSnapshot(): Promise<PorSnapshot | null> {
 export async function savePorSnapshot(snapshot: PorSnapshot): Promise<void> {
   await writeDurableJson(POR_SNAPSHOT_KEY, snapshot);
 
-  const history = await readDurableJson<PorSnapshot[]>(
-    POR_SNAPSHOT_HISTORY_KEY,
-    [],
-  );
-  const next = [snapshot, ...(Array.isArray(history) ? history : [])].slice(
-    0,
-    HISTORY_LIMIT,
-  );
-  await writeDurableJson(POR_SNAPSHOT_HISTORY_KEY, next);
+  try {
+    const history = await readDurableJson<PorSnapshot[]>(
+      POR_SNAPSHOT_HISTORY_KEY,
+      [],
+    );
+    const next = [snapshot, ...(Array.isArray(history) ? history : [])].slice(
+      0,
+      HISTORY_LIMIT,
+    );
+    await writeDurableJson(POR_SNAPSHOT_HISTORY_KEY, next);
+  } catch {
+    // History is optional — never fail the live snapshot push.
+  }
 }
 
 export function getPorSyncMeta(snapshot: PorSnapshot | null): PorSyncMeta {

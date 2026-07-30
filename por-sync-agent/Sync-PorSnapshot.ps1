@@ -3,9 +3,8 @@
   Read-only POR SQL snapshot -> Command Center POST /api/por/sync
 
 .NOTES
-  - SELECT only. Never INSERT/UPDATE/DELETE against POR.
-  - Prefer a SQL login with db_datareader only.
-  - Column mapping uses INFORMATION_SCHEMA with safe fallbacks for Party Perfect POR.
+  Tuned for Party Perfect ENTERPRISE (POR on SQLEXP).
+  SELECT only. Never INSERT/UPDATE/DELETE against POR.
 #>
 [CmdletBinding()]
 param(
@@ -14,6 +13,11 @@ param(
 
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
+
+# Server 2016 often defaults to older TLS; Command Center requires TLS 1.2+
+try {
+  [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+} catch {}
 
 if (-not $PSScriptRoot) {
   $PSScriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -51,23 +55,20 @@ function New-SqlConnection([object]$Config) {
   return $conn
 }
 
-function Invoke-Select {
+function Invoke-SelectTable {
   param(
     [System.Data.SqlClient.SqlConnection]$Connection,
     [string]$Query
   )
-  # Hard rail: reject non-SELECT statements
   $trimmed = $Query.TrimStart()
-  if ($trimmed -notmatch '^(SELECT|WITH)\b') {
-    throw "Blocked non-SELECT query."
-  }
+  if ($trimmed -notmatch '^(SELECT|WITH)\b') { throw "Blocked non-SELECT query." }
   if ($trimmed -match '\b(INSERT|UPDATE|DELETE|MERGE|DROP|ALTER|TRUNCATE|EXEC|EXECUTE)\b') {
     throw "Blocked dangerous SQL keyword."
   }
 
   $cmd = $Connection.CreateCommand()
   $cmd.CommandText = $Query
-  $cmd.CommandTimeout = 120
+  $cmd.CommandTimeout = 180
   $reader = $cmd.ExecuteReader()
   $table = New-Object System.Data.DataTable
   $table.Load($reader)
@@ -75,43 +76,22 @@ function Invoke-Select {
   return $table
 }
 
-function Get-ColumnMap {
-  param([System.Data.SqlClient.SqlConnection]$Connection, [string]$TableName)
-  $set = @{}
+function Get-Scalar {
+  param(
+    [System.Data.SqlClient.SqlConnection]$Connection,
+    [string]$Query
+  )
+  $trimmed = $Query.TrimStart()
+  if ($trimmed -notmatch '^(SELECT|WITH)\b') { throw "Blocked non-SELECT query." }
+  if ($trimmed -match '\b(INSERT|UPDATE|DELETE|MERGE|DROP|ALTER|TRUNCATE|EXEC|EXECUTE)\b') {
+    throw "Blocked dangerous SQL keyword."
+  }
   $cmd = $Connection.CreateCommand()
-  $cmd.CommandText = @"
-SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
-WHERE TABLE_SCHEMA = 'dbo' AND TABLE_NAME = N'$TableName'
-"@
-  $cmd.CommandTimeout = 60
-  $reader = $cmd.ExecuteReader()
-  try {
-    while ($reader.Read()) {
-      if (-not $reader.IsDBNull(0)) {
-        $name = [string]$reader.GetValue(0)
-        if (-not [string]::IsNullOrWhiteSpace($name)) {
-          $set[$name] = $true
-        }
-      }
-    }
-  } finally {
-    $reader.Close()
-  }
-  return $set
-}
-
-function Pick-Column([hashtable]$Cols, [string[]]$Candidates, [string]$Fallback = $null) {
-  foreach ($c in $Candidates) {
-    if ($Cols.ContainsKey($c)) { return $c }
-  }
-  return $Fallback
-}
-
-function Get-ScalarNumber($table, [string]$col = $null) {
-  if ($null -eq $table -or $table.Rows.Count -eq 0) { return 0 }
-  $row = $table.Rows[0]
-  if ($col) { return [double]($row[$col]) }
-  return [double]($row[0])
+  $cmd.CommandText = $Query
+  $cmd.CommandTimeout = 120
+  $value = $cmd.ExecuteScalar()
+  if ($null -eq $value -or $value -is [DBNull]) { return 0 }
+  return [double]$value
 }
 
 $config = Get-Config
@@ -121,185 +101,123 @@ $conn = $null
 try {
   $conn = New-SqlConnection $config
 
-  # --- Inventory categories ---
-  $itemCols = Get-ColumnMap $conn "ItemFile"
-  $catCols = Get-ColumnMap $conn "ItemCategory"
+  # Inventory: ItemFile uses KEY/Name/Category/QTY/QYOT/RATE1 (Party Perfect POR)
+  # Sanity-cap QTY so one bad bulk row cannot dominate totals.
+  $totalItems = [int](Get-Scalar $conn "SELECT COUNT(*) FROM dbo.ItemFile WHERE ISNULL(Inactive,0)=0")
+  $totalQty = Get-Scalar $conn @"
+SELECT SUM(CASE WHEN ISNULL(QTY,0) > 100000 THEN 0 ELSE ISNULL(QTY,0) END)
+FROM dbo.ItemFile WHERE ISNULL(Inactive,0)=0
+"@
+  $outQty = Get-Scalar $conn @"
+SELECT SUM(CASE WHEN ISNULL(QYOT,0) > 100000 THEN 0 ELSE ISNULL(QYOT,0) END)
+FROM dbo.ItemFile WHERE ISNULL(Inactive,0)=0
+"@
+  $availQty = [math]::Max(0, $totalQty - $outQty)
 
-  $itemId = Pick-Column $itemCols @("ItemID","ItemId","ID","ItemNumber")
-  $itemName = Pick-Column $itemCols @("Description","ItemDescription","Name","ItemName")
-  $itemCatId = Pick-Column $itemCols @("CategoryID","CategoryId","ItemCategoryID","CatID")
-  $qtyCol = Pick-Column $itemCols @("Quantity","Qty","QtyOnHand","OnHand","StockQuantity","TotalQuantity")
-  $availCol = Pick-Column $itemCols @("Available","QtyAvailable","AvailableQuantity","QtyAvail","Availability")
-  $rateCol = Pick-Column $itemCols @("DailyRate","Rate","Price","RentalRate","PricePerDay")
-
-  $catId = Pick-Column $catCols @("CategoryID","CategoryId","ID")
-  $catName = Pick-Column $catCols @("Description","Category","Name","CategoryName","CategoryDescription")
-
-  $categories = @()
-  $items = @()
-  $totalItems = 0
-  $totalQty = 0.0
-  $availQty = 0.0
-
-  if ($itemId -and $itemName) {
-    $qtyExpr = if ($qtyCol) { "ISNULL(i.[$qtyCol],0)" } else { "0" }
-    $availExpr = if ($availCol) { "ISNULL(i.[$availCol],0)" } else { $qtyExpr }
-    $rateExpr = if ($rateCol) { "ISNULL(i.[$rateCol],0)" } else { "0" }
-
-    if ($itemCatId -and $catId -and $catName) {
-      $catSql = @"
+  $catTable = Invoke-SelectTable $conn @"
 SELECT TOP 165
-  ISNULL(c.[$catName], N'Uncategorized') AS CategoryName,
+  ISNULL(NULLIF(LTRIM(RTRIM(Category)), ''), N'Uncategorized') AS CategoryName,
   COUNT(*) AS ItemCount,
-  SUM($qtyExpr) AS Quantity,
-  SUM($availExpr) AS Available
-FROM dbo.ItemFile i
-LEFT JOIN dbo.ItemCategory c ON i.[$itemCatId] = c.[$catId]
-GROUP BY ISNULL(c.[$catName], N'Uncategorized')
+  SUM(CASE WHEN ISNULL(QTY,0) > 100000 THEN 0 ELSE ISNULL(QTY,0) END) AS Quantity,
+  SUM(CASE WHEN ISNULL(QYOT,0) > 100000 THEN 0 ELSE ISNULL(QYOT,0) END) AS QtyOut
+FROM dbo.ItemFile
+WHERE ISNULL(Inactive,0)=0
+GROUP BY ISNULL(NULLIF(LTRIM(RTRIM(Category)), ''), N'Uncategorized')
 ORDER BY ItemCount DESC
 "@
-      $catTable = Invoke-Select $conn $catSql
-      foreach ($row in $catTable.Rows) {
-        $q = [double]$row.Quantity
-        $a = [double]$row.Available
-        $totalQty += $q
-        $availQty += $a
-        $totalItems += [int]$row.ItemCount
-        $categories += @{
-          name = [string]$row.CategoryName
-          itemCount = [int]$row.ItemCount
-          quantity = [math]::Round($q, 2)
-          available = [math]::Round($a, 2)
-        }
-      }
-    }
 
-    $itemSql = @"
+  $categories = @()
+  foreach ($row in $catTable.Rows) {
+    $q = [double]$row["Quantity"]
+    $o = [double]$row["QtyOut"]
+    $a = [math]::Max(0, $q - $o)
+    $categories += @{
+      name = [string]$row["CategoryName"]
+      itemCount = [int]$row["ItemCount"]
+      quantity = [math]::Round($q, 2)
+      available = [math]::Round($a, 2)
+    }
+  }
+
+  $itemTable = Invoke-SelectTable $conn @"
 SELECT TOP 250
-  CAST(i.[$itemId] AS nvarchar(64)) AS ItemKey,
-  CAST(i.[$itemName] AS nvarchar(200)) AS ItemName,
-  $(if ($itemCatId -and $catId -and $catName) { "ISNULL(c.[$catName], N'Uncategorized')" } else { "N'Uncategorized'" }) AS CategoryName,
-  $qtyExpr AS Quantity,
-  $availExpr AS Available,
-  $rateExpr AS Rate
-FROM dbo.ItemFile i
-$(if ($itemCatId -and $catId -and $catName) { "LEFT JOIN dbo.ItemCategory c ON i.[$itemCatId] = c.[$catId]" } else { "" })
-ORDER BY i.[$itemId]
+  CAST([KEY] AS nvarchar(64)) AS ItemKey,
+  CAST([Name] AS nvarchar(200)) AS ItemName,
+  ISNULL(NULLIF(LTRIM(RTRIM(Category)), ''), N'Uncategorized') AS CategoryName,
+  CASE WHEN ISNULL(QTY,0) > 100000 THEN 0 ELSE ISNULL(QTY,0) END AS Quantity,
+  CASE WHEN ISNULL(QYOT,0) > 100000 THEN 0 ELSE ISNULL(QYOT,0) END AS QtyOut,
+  ISNULL(RATE1, ISNULL(SELL, 0)) AS Rate
+FROM dbo.ItemFile
+WHERE ISNULL(Inactive,0)=0
+ORDER BY QtyOut DESC, [Name]
 "@
-    $itemTable = Invoke-Select $conn $itemSql
-    if ($totalItems -eq 0) { $totalItems = $itemTable.Rows.Count }
-    foreach ($row in $itemTable.Rows) {
-      $q = [double]$row.Quantity
-      $a = [double]$row.Available
-      if ($categories.Count -eq 0) {
-        $totalQty += $q
-        $availQty += $a
-      }
-      $status = if ($a -le 0) { "reserved" } elseif (($a / [math]::Max($q, 1)) -lt 0.25) { "maintenance" } else { "available" }
-      $items += @{
-        id = "por-item-$($row.ItemKey)"
-        name = [string]$row.ItemName
-        category = [string]$row.CategoryName
-        quantity = [math]::Round($q, 2)
-        available = [math]::Round($a, 2)
-        pricePerDay = [math]::Round([double]$row.Rate, 2)
-        status = $status
-        notes = "Live from Point of Rental (read-only)"
-      }
+
+  $items = @()
+  foreach ($row in $itemTable.Rows) {
+    $q = [double]$row["Quantity"]
+    $o = [double]$row["QtyOut"]
+    $a = [math]::Max(0, $q - $o)
+    $status = if ($a -le 0 -and $o -gt 0) { "reserved" } elseif (($a / [math]::Max($q, 1)) -lt 0.25) { "maintenance" } else { "available" }
+    $items += @{
+      id = "por-item-$($row['ItemKey'])"
+      name = [string]$row["ItemName"]
+      category = [string]$row["CategoryName"]
+      quantity = [math]::Round($q, 2)
+      available = [math]::Round($a, 2)
+      pricePerDay = [math]::Round([double]$row["Rate"], 2)
+      status = $status
+      notes = "Live from Point of Rental (read-only)"
     }
-  } else {
-    Write-Log "ItemFile columns not mapped; inventory section will be empty." "WARN"
   }
 
-  # --- AR ---
-  $arCols = Get-ColumnMap $conn "AccountsReceivable"
-  $arBalance = Pick-Column $arCols @("Balance","OpenBalance","AmountDue","Amount","CurrentBalance","ARBalance")
-  $arCurrent = Pick-Column $arCols @("Current","AgingCurrent","AgeCurrent","Bucket0")
-  $ar30 = Pick-Column $arCols @("Days30","Aging30","Age30","Bucket30","Over30")
-  $ar60 = Pick-Column $arCols @("Days60","Aging60","Age60","Bucket60","Over60")
-  $ar90 = Pick-Column $arCols @("Days90","Aging90","Age90","Bucket90","Over90")
-  $ar120 = Pick-Column $arCols @("Days120","Aging120","Age120","Bucket120","Over120","Days120Plus")
+  # Money: open AR lives on CustomerFile.CurrentBalance (AccountsReceivable is a journal)
+  $arOpen = Get-Scalar $conn "SELECT SUM(ISNULL(CurrentBalance,0)) FROM dbo.CustomerFile"
+  $arCount = [int](Get-Scalar $conn "SELECT COUNT(*) FROM dbo.CustomerFile WHERE ISNULL(CurrentBalance,0) <> 0")
 
-  $arOpen = 0.0
-  $arCount = 0
-  $aging = @{ current = 0.0; days30 = 0.0; days60 = 0.0; days90 = 0.0; days120Plus = 0.0 }
-
-  if ($arBalance) {
-    $arSql = @"
+  $agingTable = Invoke-SelectTable $conn @"
 SELECT
-  COUNT(*) AS CustomerCount,
-  SUM(ISNULL([$arBalance],0)) AS OpenBalance
-  $(if ($arCurrent) { ", SUM(ISNULL([$arCurrent],0)) AS AgingCurrent" } else { ", CAST(0 AS float) AS AgingCurrent" })
-  $(if ($ar30) { ", SUM(ISNULL([$ar30],0)) AS Aging30" } else { ", CAST(0 AS float) AS Aging30" })
-  $(if ($ar60) { ", SUM(ISNULL([$ar60],0)) AS Aging60" } else { ", CAST(0 AS float) AS Aging60" })
-  $(if ($ar90) { ", SUM(ISNULL([$ar90],0)) AS Aging90" } else { ", CAST(0 AS float) AS Aging90" })
-  $(if ($ar120) { ", SUM(ISNULL([$ar120],0)) AS Aging120" } else { ", CAST(0 AS float) AS Aging120" })
-FROM dbo.AccountsReceivable
-WHERE ISNULL([$arBalance],0) <> 0 OR 1=1
+  SUM(CASE WHEN AgeDate IS NULL OR AgeDate >= DATEADD(day, -30, GETDATE()) THEN ISNULL(CurrentBalance,0) ELSE 0 END) AS AgingCurrent,
+  SUM(CASE WHEN AgeDate < DATEADD(day, -30, GETDATE()) AND AgeDate >= DATEADD(day, -60, GETDATE()) THEN ISNULL(CurrentBalance,0) ELSE 0 END) AS Aging30,
+  SUM(CASE WHEN AgeDate < DATEADD(day, -60, GETDATE()) AND AgeDate >= DATEADD(day, -90, GETDATE()) THEN ISNULL(CurrentBalance,0) ELSE 0 END) AS Aging60,
+  SUM(CASE WHEN AgeDate < DATEADD(day, -90, GETDATE()) AND AgeDate >= DATEADD(day, -120, GETDATE()) THEN ISNULL(CurrentBalance,0) ELSE 0 END) AS Aging90,
+  SUM(CASE WHEN AgeDate < DATEADD(day, -120, GETDATE()) THEN ISNULL(CurrentBalance,0) ELSE 0 END) AS Aging120
+FROM dbo.CustomerFile
+WHERE ISNULL(CurrentBalance,0) <> 0
 "@
-    $arTable = Invoke-Select $conn $arSql
-    $arCount = [int](Get-ScalarNumber $arTable "CustomerCount")
-    $arOpen = Get-ScalarNumber $arTable "OpenBalance"
-    $aging.current = Get-ScalarNumber $arTable "AgingCurrent"
-    $aging.days30 = Get-ScalarNumber $arTable "Aging30"
-    $aging.days60 = Get-ScalarNumber $arTable "Aging60"
-    $aging.days90 = Get-ScalarNumber $arTable "Aging90"
-    $aging.days120Plus = Get-ScalarNumber $arTable "Aging120"
-  } else {
-    Write-Log "AccountsReceivable balance column not found." "WARN"
+  $aging = @{
+    current = 0.0
+    days30 = 0.0
+    days60 = 0.0
+    days90 = 0.0
+    days120Plus = 0.0
+  }
+  if ($agingTable.Rows.Count -gt 0) {
+    $ar = $agingTable.Rows[0]
+    $aging.current = [math]::Round([double]$ar["AgingCurrent"], 2)
+    $aging.days30 = [math]::Round([double]$ar["Aging30"], 2)
+    $aging.days60 = [math]::Round([double]$ar["Aging60"], 2)
+    $aging.days90 = [math]::Round([double]$ar["Aging90"], 2)
+    $aging.days120Plus = [math]::Round([double]$ar["Aging120"], 2)
   }
 
-  # --- Payments last 24h (summary only) ---
-  $payCols = Get-ColumnMap $conn "PaymentDetail"
-  $payAmt = Pick-Column $payCols @("Amount","PaymentAmount","PaidAmount","Total","PaymentTotal")
-  $payDate = Pick-Column $payCols @("PaymentDate","Date","TransDate","TransactionDate","CreatedDate","PaidDate")
-  $payCount = 0
-  $payVolume = 0.0
-  if ($payAmt -and $payDate) {
-    $paySql = @"
-SELECT COUNT(*) AS PaymentCount, SUM(ISNULL([$payAmt],0)) AS PaymentVolume
-FROM dbo.PaymentDetail
-WHERE [$payDate] >= DATEADD(hour, -24, GETDATE())
+  # Payments last 24h from PaymentFile (amount only — never card fields)
+  $payCount = [int](Get-Scalar $conn @"
+SELECT COUNT(*) FROM dbo.PaymentFile
+WHERE [Date] >= DATEADD(hour, -24, GETDATE())
+"@)
+  $payVolume = Get-Scalar $conn @"
+SELECT SUM(ISNULL(Amount,0)) FROM dbo.PaymentFile
+WHERE [Date] >= DATEADD(hour, -24, GETDATE())
 "@
-    $payTable = Invoke-Select $conn $paySql
-    $payCount = [int](Get-ScalarNumber $payTable "PaymentCount")
-    $payVolume = Get-ScalarNumber $payTable "PaymentVolume"
-  }
 
-  # --- Ops: contracts / deliveries / returns (best-effort table discovery) ---
-  $openContracts = 0
-  $deliveriesToday = 0
+  # Ops proxy until contract line schema is mapped further:
+  # customers with qty currently out, plus customers last-active today.
+  $openContracts = [int](Get-Scalar $conn "SELECT COUNT(*) FROM dbo.CustomerFile WHERE ISNULL(QtyOut,0) > 0")
+  $deliveriesToday = [int](Get-Scalar $conn @"
+SELECT COUNT(*) FROM dbo.CustomerFile
+WHERE LastActive IS NOT NULL AND CAST(LastActive AS date) = CAST(GETDATE() AS date)
+"@)
   $returnsDueToday = 0
-
-  $tableNames = Invoke-Select $conn "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE='BASE TABLE' AND TABLE_SCHEMA='dbo'"
-  $nameList = @()
-  foreach ($r in $tableNames.Rows) { $nameList += [string]$r.TABLE_NAME }
-
-  $contractTable = $nameList | Where-Object { $_ -match '^(Contract|Contracts|ContractHeader|RentalContract)$' } | Select-Object -First 1
-  if ($contractTable) {
-    $cCols = Get-ColumnMap $conn $contractTable
-    $statusCol = Pick-Column $cCols @("Status","ContractStatus","OpenClosed","State")
-    if ($statusCol) {
-      $oc = Invoke-Select $conn "SELECT COUNT(*) AS Cnt FROM dbo.[$contractTable] WHERE CAST([$statusCol] AS nvarchar(40)) NOT LIKE N'%Close%' AND CAST([$statusCol] AS nvarchar(40)) NOT LIKE N'%Cancel%'"
-      $openContracts = [int](Get-ScalarNumber $oc "Cnt")
-    } else {
-      $oc = Invoke-Select $conn "SELECT COUNT(*) AS Cnt FROM dbo.[$contractTable]"
-      $openContracts = [int](Get-ScalarNumber $oc "Cnt")
-    }
-
-    $delivCol = Pick-Column $cCols @("DeliveryDate","DeliverDate","OutDate","ShipDate")
-    $retCol = Pick-Column $cCols @("ReturnDate","DueDate","InDate","ExpectedReturnDate")
-    if ($delivCol) {
-      $dt = Invoke-Select $conn "SELECT COUNT(*) AS Cnt FROM dbo.[$contractTable] WHERE CAST([$delivCol] AS date) = CAST(GETDATE() AS date)"
-      $deliveriesToday = [int](Get-ScalarNumber $dt "Cnt")
-    }
-    if ($retCol) {
-      $rt = Invoke-Select $conn "SELECT COUNT(*) AS Cnt FROM dbo.[$contractTable] WHERE CAST([$retCol] AS date) = CAST(GETDATE() AS date)"
-      $returnsDueToday = [int](Get-ScalarNumber $rt "Cnt")
-    }
-  }
-
-  $outQty = [math]::Max(0, [math]::Round($totalQty - $availQty, 2))
 
   $snapshot = [ordered]@{
     version = 1
@@ -307,32 +225,32 @@ WHERE [$payDate] >= DATEADD(hour, -24, GETDATE())
     sourceHost = [string]$config.SourceHost
     sourceDatabase = [string]$config.SqlDatabase
     inventory = [ordered]@{
-      totalItems = [int]$totalItems
+      totalItems = $totalItems
       totalQuantity = [math]::Round($totalQty, 2)
       availableQuantity = [math]::Round($availQty, 2)
-      outQuantity = $outQty
+      outQuantity = [math]::Round($outQty, 2)
       categories = $categories
       items = $items
     }
     money = [ordered]@{
       arOpenBalance = [math]::Round($arOpen, 2)
-      arCustomerCount = [int]$arCount
+      arCustomerCount = $arCount
       aging = [ordered]@{
-        current = [math]::Round($aging.current, 2)
-        days30 = [math]::Round($aging.days30, 2)
-        days60 = [math]::Round($aging.days60, 2)
-        days90 = [math]::Round($aging.days90, 2)
-        days120Plus = [math]::Round($aging.days120Plus, 2)
+        current = $aging.current
+        days30 = $aging.days30
+        days60 = $aging.days60
+        days90 = $aging.days90
+        days120Plus = $aging.days120Plus
       }
       paymentsLast24h = [ordered]@{
-        count = [int]$payCount
+        count = $payCount
         volume = [math]::Round($payVolume, 2)
       }
     }
     ops = [ordered]@{
-      openContracts = [int]$openContracts
-      deliveriesToday = [int]$deliveriesToday
-      returnsDueToday = [int]$returnsDueToday
+      openContracts = $openContracts
+      deliveriesToday = $deliveriesToday
+      returnsDueToday = $returnsDueToday
     }
   }
 
@@ -343,9 +261,9 @@ WHERE [$payDate] >= DATEADD(hour, -24, GETDATE())
     "Content-Type" = "application/json"
   }
 
-  $response = Invoke-RestMethod -Method Post -Uri $uri -Headers $headers -Body $json -TimeoutSec 60
-  Write-Log ("Push OK. AR={0} items={1} openContracts={2}" -f $arOpen, $totalItems, $openContracts)
-  $response | ConvertTo-Json -Depth 4 | Write-Log
+  $response = Invoke-RestMethod -Method Post -Uri $uri -Headers $headers -Body $json -TimeoutSec 90
+  Write-Log ("Push OK. items={0} AR={1} out={2} pay24h={3}" -f $totalItems, $arOpen, $outQty, $payCount)
+  ($response | ConvertTo-Json -Depth 4 -Compress) | ForEach-Object { Write-Log $_ }
 }
 catch {
   Write-Log $_.Exception.Message "ERROR"

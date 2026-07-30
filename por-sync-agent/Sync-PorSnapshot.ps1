@@ -9,11 +9,18 @@
 #>
 [CmdletBinding()]
 param(
-  [string]$ConfigPath = (Join-Path $PSScriptRoot "config.json")
+  [string]$ConfigPath = ""
 )
 
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
+
+if (-not $PSScriptRoot) {
+  $PSScriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
+}
+if (-not $ConfigPath) {
+  $ConfigPath = Join-Path $PSScriptRoot "config.json"
+}
 
 function Write-Log {
   param([string]$Message, [string]$Level = "INFO")

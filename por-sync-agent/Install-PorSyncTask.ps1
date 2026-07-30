@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-  Install Task Scheduler job for read-only POR → Command Center sync.
+  Install Task Scheduler job for read-only POR -> Command Center sync.
 #>
 [CmdletBinding()]
 param(
@@ -16,7 +16,10 @@ if (-not (Test-Path (Join-Path $PSScriptRoot "config.json"))) {
 }
 
 $action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-NoProfile -ExecutionPolicy Bypass -File `"$script`""
-$trigger = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) -RepetitionInterval (New-TimeSpan -Minutes $Minutes) -RepetitionDuration ([TimeSpan]::MaxValue)
+# Server 2016 rejects TimeSpan.MaxValue; use ~10 years of repetition instead.
+$trigger = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) `
+  -RepetitionInterval (New-TimeSpan -Minutes $Minutes) `
+  -RepetitionDuration (New-TimeSpan -Days 3650)
 $principal = New-ScheduledTaskPrincipal -UserId "SYSTEM" -LogonType ServiceAccount -RunLevel Highest
 $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -MultipleInstances IgnoreNew
 

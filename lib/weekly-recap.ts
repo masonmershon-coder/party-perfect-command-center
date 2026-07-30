@@ -1,5 +1,6 @@
 import { gatherCatchUpItems } from "./catch-up";
 import { assertGrokConfigured, grokClient } from "./grok";
+import { getPorSnapshot, getPorSyncMeta } from "./por-snapshot";
 import { getDashboardStats, listInventory, listTasks } from "./storage";
 import type { Task } from "./types";
 
@@ -10,11 +11,12 @@ function formatTaskLine(task: Task) {
 }
 
 export async function buildWeeklyRecapContext() {
-  const [stats, tasks, catchUpItems, inventory] = await Promise.all([
+  const [stats, tasks, catchUpItems, inventory, por] = await Promise.all([
     getDashboardStats(),
     listTasks(),
     gatherCatchUpItems(),
     listInventory(),
+    getPorSnapshot(),
   ]);
 
   const lowStock = inventory
@@ -34,6 +36,7 @@ export async function buildWeeklyRecapContext() {
     priority: item.priority,
     source: item.source,
   }));
+  const porMeta = getPorSyncMeta(por);
 
   return {
     company: "Party Perfect Event Rentals",
@@ -46,6 +49,18 @@ export async function buildWeeklyRecapContext() {
     topCatchUp,
     inventoryLowCount: stats.inventoryLow,
     lowStockItems: lowStock,
+    por: por
+      ? {
+          stale: porMeta.stale,
+          syncedAt: por.syncedAt,
+          arOpenBalance: por.money.arOpenBalance,
+          openContracts: por.ops.openContracts,
+          deliveriesToday: por.ops.deliveriesToday,
+          returnsDueToday: por.ops.returnsDueToday,
+          inventoryOut: por.inventory.outQuantity,
+          paymentsLast24h: por.money.paymentsLast24h,
+        }
+      : null,
   };
 }
 
@@ -61,6 +76,12 @@ export function fallbackWeeklyRecap(
     `${stats.tasksInProgress} tasks in progress, ${stats.tasksTodo} to do.`,
     `${stats.inventoryLow} inventory items low, ${outstandingCount} Catch Up items.`,
   ];
+
+  if (context.por) {
+    lines.push(
+      `POR AR $${context.por.arOpenBalance.toFixed(0)}, ${context.por.deliveriesToday} deliveries, ${context.por.returnsDueToday} returns due.`,
+    );
+  }
 
   if (highPriorityTodos[0]) {
     lines.push(`Priority: ${highPriorityTodos[0]}`);

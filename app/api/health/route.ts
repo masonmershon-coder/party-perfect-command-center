@@ -2,8 +2,17 @@ import { isApplicationBackupEmailConfigured } from "@/lib/application-mail";
 import { getAppVersionPayload } from "@/lib/app-version";
 import { getTwilioPublicStatus } from "@/lib/twilio";
 import { isVercelRuntime } from "@/lib/data-dir";
-import { durableStoreMode, probeJobsDurableStore } from "@/lib/durable-json";
+import {
+  durableStoreMode,
+  isDurableRedisConfigured,
+  probeJobsDurableStore,
+} from "@/lib/durable-json";
 import { isMetaLiveConfigured } from "@/lib/meta-graph";
+import {
+  getPorSnapshot,
+  getPorSyncMeta,
+  isPorSyncConfigured,
+} from "@/lib/por-snapshot";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
@@ -56,6 +65,8 @@ export async function GET() {
   const version = getAppVersionPayload();
   const compliance = await fetchTwilioCompliance();
   const jobsStore = await probeJobsDurableStore();
+  const porSnapshot = await getPorSnapshot();
+  const porMeta = getPorSyncMeta(porSnapshot);
 
   return NextResponse.json({
     ok: true,
@@ -64,10 +75,18 @@ export async function GET() {
     location: "Tulsa, Oklahoma",
     runtime: isVercelRuntime() ? "vercel" : "node",
     durableStoreMode: durableStoreMode(),
+    redisConfigured: isDurableRedisConfigured(),
+    redisRequired:
+      !isDurableRedisConfigured() &&
+      "Link Upstash Redis on Vercel (Blob is suspended). See docs/REDIS_SETUP.md",
     jobsStoreOk: jobsStore.ok,
     jobsStoreMode: jobsStore.mode,
     jobsStoreError: jobsStore.error ?? null,
     jobsBackupEmailConfigured: isApplicationBackupEmailConfigured(),
+    porSyncConfigured: isPorSyncConfigured(),
+    porSnapshotPresent: porMeta.present,
+    porSnapshotStale: porMeta.stale,
+    porSyncedAt: porMeta.syncedAt,
     version: version.version,
     releasedAt: version.releasedAt,
     versionLabel: version.label,

@@ -5,7 +5,7 @@ import { PageHeader } from "@/app/components/dashboard/page-header";
 import { StatusBadge } from "@/app/components/status-badge";
 import { MADISON_COMMS_AGENT_ID, MIKE_OPERATIONS_AGENT_ID } from "@/lib/seed";
 import type { Agent, CatchUpItem, DashboardStats, SavedReport, Task } from "@/lib/types";
-import { formatTime } from "@/lib/ui";
+import { formatCurrency, formatTime } from "@/lib/ui";
 
 export function DashboardHome({
   stats,
@@ -40,6 +40,8 @@ export function DashboardHome({
   const latestReport = reports[0] ?? null;
   const mike = agents.find((agent) => agent.id === MIKE_OPERATIONS_AGENT_ID);
   const madison = agents.find((agent) => agent.id === MADISON_COMMS_AGENT_ID);
+  const por = stats.por;
+  const porLive = Boolean(por?.syncedAt);
 
   return (
     <div>
@@ -105,6 +107,67 @@ export function DashboardHome({
           </div>
         ))}
       </div>
+
+      <section
+        className={`mt-6 rounded-2xl border p-5 ${
+          por?.stale
+            ? "border-amber-500/40 bg-amber-500/5"
+            : "border-[var(--pp-border)] bg-[var(--pp-panel)]"
+        }`}
+      >
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--pp-text-muted)]">
+              Today at Party Perfect
+            </p>
+            <h3 className="mt-1 text-lg font-semibold text-[var(--pp-text)]">
+              Point of Rental snapshot
+            </h3>
+            <p className="mt-1 text-xs text-[var(--pp-text-muted)]">
+              {porLive
+                ? por?.stale
+                  ? `POR sync stale — last sync ${por.syncedAt ? formatTime(por.syncedAt) : "unknown"}`
+                  : `Read-only mirror · synced ${por?.syncedAt ? formatTime(por.syncedAt) : ""}`
+                : "Waiting for ENTERPRISE sync agent. POR stays the system of record."}
+            </p>
+          </div>
+        </div>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {[
+            {
+              label: "Out on rent",
+              value: porLive ? String(por?.inventoryOut ?? "—") : "—",
+            },
+            {
+              label: "Deliveries today",
+              value: porLive ? String(por?.deliveriesToday ?? "—") : "—",
+            },
+            {
+              label: "Returns due",
+              value: porLive ? String(por?.returnsDueToday ?? "—") : "—",
+            },
+            {
+              label: "AR open",
+              value:
+                porLive && por?.arOpenBalance != null
+                  ? formatCurrency(por.arOpenBalance)
+                  : "—",
+            },
+          ].map((item) => (
+            <div
+              key={item.label}
+              className="rounded-xl border border-[var(--pp-border)] bg-[var(--pp-bg)] px-4 py-3"
+            >
+              <p className="text-[10px] uppercase tracking-wider text-[var(--pp-text-muted)]">
+                {item.label}
+              </p>
+              <p className="mt-2 text-xl font-semibold pp-accent-text">
+                {item.value}
+              </p>
+            </div>
+          ))}
+        </div>
+      </section>
 
       <CatchUpPanel variant="dashboard" onOpenItem={onCatchUpOpen} />
 

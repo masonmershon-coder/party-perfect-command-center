@@ -60,7 +60,7 @@ export async function POST(_request: Request, context: RouteContext) {
 
     const stream = await streamGrokResponse({
       model: agent.model,
-      systemPrompt: buildAgentSystemPrompt(agent),
+      systemPrompt: await buildAgentSystemPrompt(agent),
       messages: [{ role: "user", content: prompt }],
     });
 

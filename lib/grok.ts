@@ -1,4 +1,11 @@
 import OpenAI from "openai";
+import { MIKE_VOICE } from "./agent-voices";
+import {
+  formatPorContextForAgents,
+  getPorSnapshot,
+  getPorSyncMeta,
+} from "./por-snapshot";
+import { MIKE_OPERATIONS_AGENT_ID } from "./seed";
 import type { Agent, GrokModel, Message } from "./types";
 
 export const grokClient = new OpenAI({
@@ -13,13 +20,25 @@ export function assertGrokConfigured() {
   }
 }
 
-export function buildAgentSystemPrompt(agent: Agent) {
-  return [
+export async function buildAgentSystemPrompt(agent: Agent) {
+  const lines = [
     `You are ${agent.name}, an autonomous company agent.`,
     `Your primary goal: ${agent.goal}`,
     "Respond clearly, take initiative, and report progress when working on tasks.",
     "When completing work, summarize outcomes and next steps.",
-  ].join("\n");
+  ];
+
+  if (agent.id === MIKE_OPERATIONS_AGENT_ID) {
+    lines.push(MIKE_VOICE);
+    const snapshot = await getPorSnapshot();
+    const meta = getPorSyncMeta(snapshot);
+    lines.push(formatPorContextForAgents(snapshot, meta));
+    lines.push(
+      "Answer availability / AR / today's deliveries from the POR snapshot when present. Never invent POR writes.",
+    );
+  }
+
+  return lines.join("\n");
 }
 
 export function toGrokInput(messages: Pick<Message, "role" | "content">[]) {

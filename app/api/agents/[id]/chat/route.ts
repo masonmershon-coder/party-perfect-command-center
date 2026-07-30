@@ -81,7 +81,7 @@ export async function POST(request: Request, context: RouteContext) {
 
     const stream = await streamGrokResponse({
       model: agent.model,
-      systemPrompt: buildAgentSystemPrompt(agent),
+      systemPrompt: await buildAgentSystemPrompt(agent),
       messages: priorMessages,
     });
 

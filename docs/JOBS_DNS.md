@@ -2,6 +2,8 @@
 
 Applications on **partyperfectjobs.com** and Hiring on **partyperfectcomand.app** share one backend. There is no manual transfer — durable Redis + backup email is the source of truth.
 
+Redis setup details: [REDIS_SETUP.md](./REDIS_SETUP.md)
+
 ## 1. Link Upstash Redis (required — free tier is fine)
 
 **Urgent:** Production Blob is **suspended** (`jobsStoreOk` reports `Vercel Blob: This store has been suspended.`). Applications cannot be saved until Redis is linked.

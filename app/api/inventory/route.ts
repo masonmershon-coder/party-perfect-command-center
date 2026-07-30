@@ -1,3 +1,4 @@
+import { getPorSnapshot, getPorSyncMeta } from "@/lib/por-snapshot";
 import {
   createInventoryItem,
   listInventory,
@@ -9,12 +10,28 @@ import { NextResponse } from "next/server";
 export const runtime = "nodejs";
 
 export async function GET() {
-  const inventory = await listInventory();
-  return NextResponse.json({ inventory });
+  const [inventory, por] = await Promise.all([listInventory(), getPorSnapshot()]);
+  const porMeta = getPorSyncMeta(por);
+  return NextResponse.json({
+    inventory,
+    source: porMeta.present ? "por" : "local",
+    por: porMeta,
+  });
 }
 
 export async function POST(request: Request) {
   try {
+    const por = await getPorSnapshot();
+    if (por) {
+      return NextResponse.json(
+        {
+          error:
+            "Inventory is mirrored from Point of Rental (read-only). Edit stock in POR Counter.",
+        },
+        { status: 403 },
+      );
+    }
+
     const body = (await request.json()) as CreateInventoryInput;
 
     if (!body.name?.trim() || !body.category?.trim()) {

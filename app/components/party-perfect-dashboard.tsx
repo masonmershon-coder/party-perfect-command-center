@@ -84,6 +84,7 @@ import type {
   MarketingItem,
   Message,
   NavSection,
+  PorSyncMeta,
   SavedReport,
   SanitizedConnection,
   SocialComment,
@@ -107,6 +108,12 @@ export default function PartyPerfectDashboard() {
   const [grokAgent, setGrokAgent] = useState<Agent | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [inventorySource, setInventorySource] = useState<"por" | "local">(
+    "local",
+  );
+  const [inventoryPorMeta, setInventoryPorMeta] = useState<PorSyncMeta | null>(
+    null,
+  );
   const [emails, setEmails] = useState<EmailItem[]>([]);
   const [emailAccounts, setEmailAccounts] = useState<EmailAccount[]>([]);
   const [emailConnection, setEmailConnection] =
@@ -128,6 +135,11 @@ export default function PartyPerfectDashboard() {
   );
   const [socialSyncError, setSocialSyncError] = useState<string | null>(null);
   const [bookkeeping, setBookkeeping] = useState<BookkeepingEntry[]>([]);
+  const [bookkeepingSource, setBookkeepingSource] = useState<"por" | "local">(
+    "local",
+  );
+  const [bookkeepingPorMeta, setBookkeepingPorMeta] =
+    useState<PorSyncMeta | null>(null);
   const [marketing, setMarketing] = useState<MarketingItem[]>([]);
   const [reports, setReports] = useState<SavedReport[]>([]);
   const [jobApplications, setJobApplications] = useState<
@@ -385,9 +397,15 @@ export default function PartyPerfectDashboard() {
     if (nextAgents.status === "fulfilled") setAgents(nextAgents.value);
     if (nextGrokAgent.status === "fulfilled") setGrokAgent(nextGrokAgent.value);
     if (nextTasks.status === "fulfilled") setTasks(nextTasks.value);
-    if (nextInventory.status === "fulfilled") setInventory(nextInventory.value);
+    if (nextInventory.status === "fulfilled") {
+      setInventory(nextInventory.value.inventory);
+      setInventorySource(nextInventory.value.source ?? "local");
+      setInventoryPorMeta(nextInventory.value.por ?? null);
+    }
     if (nextBookkeeping.status === "fulfilled") {
-      setBookkeeping(nextBookkeeping.value);
+      setBookkeeping(nextBookkeeping.value.bookkeeping);
+      setBookkeepingSource(nextBookkeeping.value.source ?? "local");
+      setBookkeepingPorMeta(nextBookkeeping.value.por ?? null);
     }
     if (nextStats.status === "fulfilled") setStats(nextStats.value);
     if (nextMarketing.status === "fulfilled") setMarketing(nextMarketing.value);
@@ -716,6 +734,8 @@ export default function PartyPerfectDashboard() {
         return (
           <InventorySection
             inventory={inventory}
+            source={inventorySource}
+            porMeta={inventoryPorMeta}
             onCreateItem={async (input) => {
               await createInventoryItem(input);
               await refreshAll();
@@ -880,6 +900,8 @@ export default function PartyPerfectDashboard() {
         return (
           <BookkeepingSection
             entries={bookkeeping}
+            source={bookkeepingSource}
+            porMeta={bookkeepingPorMeta}
             onCreateEntry={async (input) => {
               await createBookkeepingEntry(input);
               await refreshAll();

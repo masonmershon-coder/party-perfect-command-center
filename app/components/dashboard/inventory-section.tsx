@@ -1,16 +1,21 @@
 "use client";
 
 import { PageHeader } from "@/app/components/dashboard/page-header";
+import { PorSyncBanner } from "@/app/components/dashboard/por-sync-banner";
 import { StatusBadge } from "@/app/components/status-badge";
-import type { InventoryItem } from "@/lib/types";
+import type { InventoryItem, PorSyncMeta } from "@/lib/types";
 import { formatCurrency } from "@/lib/ui";
 import { FormEvent, useState } from "react";
 
 export function InventorySection({
   inventory,
+  source = "local",
+  porMeta = null,
   onCreateItem,
 }: {
   inventory: InventoryItem[];
+  source?: "por" | "local";
+  porMeta?: PorSyncMeta | null;
   onCreateItem: (input: {
     name: string;
     category: string;
@@ -25,9 +30,11 @@ export function InventorySection({
   const [available, setAvailable] = useState(10);
   const [pricePerDay, setPricePerDay] = useState(50);
   const [loading, setLoading] = useState(false);
+  const readOnly = source === "por";
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
+    if (readOnly) return;
     setLoading(true);
     try {
       await onCreateItem({ name, category, quantity, available, pricePerDay });
@@ -42,20 +49,28 @@ export function InventorySection({
       <PageHeader
         eyebrow="Warehouse"
         title="Rental Inventory"
-        description="Track tents, seating, linens, and event equipment across the Party Perfect fleet."
+        description={
+          readOnly
+            ? "Live availability from Point of Rental. POR remains the system of record — edits happen in Counter."
+            : "Track tents, seating, linens, and event equipment across the Party Perfect fleet."
+        }
       />
 
-      <form
-        onSubmit={handleSubmit}
-        className="pp-panel mb-8 grid gap-3 rounded-2xl p-5 md:grid-cols-5 xl:grid-cols-[1.2fr_0.8fr_0.5fr_0.5fr_0.5fr_auto]"
-      >
-        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Item name" className="pp-input px-4 py-3 text-sm" required />
-        <input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Category" className="pp-input px-4 py-3 text-sm" required />
-        <input type="number" value={quantity} onChange={(e) => setQuantity(Number(e.target.value))} className="pp-input px-4 py-3 text-sm" />
-        <input type="number" value={available} onChange={(e) => setAvailable(Number(e.target.value))} className="pp-input px-4 py-3 text-sm" />
-        <input type="number" value={pricePerDay} onChange={(e) => setPricePerDay(Number(e.target.value))} className="pp-input px-4 py-3 text-sm" />
-        <button type="submit" disabled={loading} className="pp-btn-primary px-5 py-3 text-sm">Add</button>
-      </form>
+      <PorSyncBanner source={source} porMeta={porMeta} label="inventory" />
+
+      {!readOnly ? (
+        <form
+          onSubmit={handleSubmit}
+          className="pp-panel mb-8 grid gap-3 rounded-2xl p-5 md:grid-cols-5 xl:grid-cols-[1.2fr_0.8fr_0.5fr_0.5fr_0.5fr_auto]"
+        >
+          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Item name" className="pp-input px-4 py-3 text-sm" required />
+          <input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Category" className="pp-input px-4 py-3 text-sm" required />
+          <input type="number" value={quantity} onChange={(e) => setQuantity(Number(e.target.value))} className="pp-input px-4 py-3 text-sm" />
+          <input type="number" value={available} onChange={(e) => setAvailable(Number(e.target.value))} className="pp-input px-4 py-3 text-sm" />
+          <input type="number" value={pricePerDay} onChange={(e) => setPricePerDay(Number(e.target.value))} className="pp-input px-4 py-3 text-sm" />
+          <button type="submit" disabled={loading} className="pp-btn-primary px-5 py-3 text-sm">Add</button>
+        </form>
+      ) : null}
 
       <div className="pp-panel overflow-hidden">
         <table className="min-w-full text-left text-sm">
@@ -81,7 +96,9 @@ export function InventorySection({
                   <td className="px-5 py-4 text-[var(--pp-text-muted)]">{item.category}</td>
                   <td className="px-5 py-4">{item.quantity}</td>
                   <td className={`px-5 py-4 ${lowStock ? "font-semibold pp-accent-text" : ""}`}>{item.available}</td>
-                  <td className="px-5 py-4 font-medium pp-accent-text">{formatCurrency(item.pricePerDay)}</td>
+                  <td className="px-5 py-4 font-medium pp-accent-text">
+                    {item.pricePerDay > 0 ? formatCurrency(item.pricePerDay) : "—"}
+                  </td>
                   <td className="px-5 py-4"><StatusBadge status={item.status} kind="inventory" /></td>
                 </tr>
               );

@@ -9,6 +9,10 @@ import {
   listTasks,
 } from "@/lib/storage";
 import { listJobApplications } from "@/lib/job-applications";
+import {
+  getPorSnapshot,
+  getPorSyncMeta,
+} from "@/lib/por-snapshot";
 import { generateWeeklyRecapMessage } from "@/lib/weekly-recap";
 import { getAuthorizedManagerPhones, getTwilioConfig } from "@/lib/twilio";
 import { readDurableJson, writeDurableJson } from "@/lib/durable-json";
@@ -124,10 +128,11 @@ function helpText() {
 }
 
 async function buildStatusReply() {
-  const [stats, tasks, apps] = await Promise.all([
+  const [stats, tasks, apps, por] = await Promise.all([
     getDashboardStats(),
     listTasks(),
     listJobApplications(),
+    getPorSnapshot(),
   ]);
   const open = tasks.filter((t) => t.status === "todo" || t.status === "in_progress");
   const flagged = apps.filter((a) => a.mike.flagForJosh).length;
@@ -135,10 +140,15 @@ async function buildStatusReply() {
     .slice(0, 4)
     .map((t) => `• ${t.title.slice(0, 50)}`)
     .join("\n");
+  const porMeta = getPorSyncMeta(por);
+  const porLine = por
+    ? `POR${porMeta.stale ? " (stale)" : ""}: AR $${por.money.arOpenBalance.toFixed(0)} · out ${por.inventory.outQuantity} · deliveries ${por.ops.deliveriesToday} · returns ${por.ops.returnsDueToday}`
+    : "POR: no live snapshot yet";
 
   return [
     "Mike · status",
     `Tasks open: ${open.length} · Emails needing reply: ${stats.emailsNeedsReply} · Social needing reply: ${stats.socialNeedsReply}`,
+    porLine,
     flagged ? `Hiring flagged for you: ${flagged}` : "Hiring: no flagged candidates",
     topOpen ? `Next:\n${topOpen}` : "No open tasks.",
   ]

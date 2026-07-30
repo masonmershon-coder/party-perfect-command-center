@@ -333,6 +333,72 @@ export interface GitHubExportInput {
   message?: string;
 }
 
+export interface PorInventoryCategory {
+  name: string;
+  itemCount: number;
+  quantity: number;
+  available: number;
+}
+
+export interface PorInventoryItemSnapshot {
+  id: string;
+  name: string;
+  category: string;
+  quantity: number;
+  available: number;
+  pricePerDay?: number;
+  status: InventoryStatus;
+  notes?: string;
+}
+
+export interface PorMoneySnapshot {
+  arOpenBalance: number;
+  arCustomerCount: number;
+  aging: {
+    current: number;
+    days30: number;
+    days60: number;
+    days90: number;
+    days120Plus: number;
+  };
+  paymentsLast24h: {
+    count: number;
+    volume: number;
+  };
+}
+
+export interface PorOpsSnapshot {
+  openContracts: number;
+  deliveriesToday: number;
+  returnsDueToday: number;
+}
+
+/** Read-only Point of Rental ops snapshot pushed from ENTERPRISE. */
+export interface PorSnapshot {
+  version: 1;
+  syncedAt: string;
+  sourceHost: string;
+  sourceDatabase: string;
+  inventory: {
+    totalItems: number;
+    totalQuantity: number;
+    availableQuantity: number;
+    outQuantity: number;
+    categories: PorInventoryCategory[];
+    items?: PorInventoryItemSnapshot[];
+  };
+  money: PorMoneySnapshot;
+  ops: PorOpsSnapshot;
+}
+
+export interface PorSyncMeta {
+  present: boolean;
+  stale: boolean;
+  syncedAt: string | null;
+  ageMs: number | null;
+  sourceHost: string | null;
+}
+
 export interface DashboardStats {
   agentCount: number;
   tasksTodo: number;
@@ -346,4 +412,16 @@ export interface DashboardStats {
   socialUnread: number;
   socialNeedsReply: number;
   bookkeepingPending: number;
+  /** Live POR mirror fields (null when no snapshot yet). */
+  por?: {
+    syncedAt: string | null;
+    stale: boolean;
+    arOpenBalance: number | null;
+    openContracts: number | null;
+    deliveriesToday: number | null;
+    returnsDueToday: number | null;
+    inventoryAvailable: number | null;
+    inventoryOut: number | null;
+    paymentsLast24hVolume: number | null;
+  };
 }

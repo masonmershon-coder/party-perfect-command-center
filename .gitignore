@@ -44,3 +44,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# POR sync agent local secrets / logs (never commit)
+por-sync-agent/config.json
+por-sync-agent/logs/

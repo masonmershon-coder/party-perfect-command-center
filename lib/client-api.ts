@@ -15,6 +15,7 @@ import type {
   InventoryItem,
   LiveSnapshot,
   MarketingItem,
+  PorSyncMeta,
   SavedReport,
   SanitizedConnection,
   SocialComment,
@@ -225,10 +226,12 @@ export async function streamTaskRun(
 }
 
 export async function fetchInventory() {
-  const payload = await parseJson<{ inventory: InventoryItem[] }>(
-    await fetch("/api/inventory"),
-  );
-  return payload.inventory;
+  const payload = await parseJson<{
+    inventory: InventoryItem[];
+    source?: "por" | "local";
+    por?: PorSyncMeta;
+  }>(await fetch("/api/inventory"));
+  return payload;
 }
 
 export async function createInventoryItem(input: CreateInventoryInput) {
@@ -505,10 +508,12 @@ export async function streamEmailDraftReply(
 }
 
 export async function fetchBookkeeping() {
-  const payload = await parseJson<{ bookkeeping: BookkeepingEntry[] }>(
-    await fetch("/api/bookkeeping"),
-  );
-  return payload.bookkeeping;
+  const payload = await parseJson<{
+    bookkeeping: BookkeepingEntry[];
+    source?: "por" | "local";
+    por?: PorSyncMeta;
+  }>(await fetch("/api/bookkeeping"));
+  return payload;
 }
 
 export async function createBookkeepingEntry(input: CreateBookkeepingInput) {

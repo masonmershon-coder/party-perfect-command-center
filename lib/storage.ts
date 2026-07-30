@@ -20,6 +20,12 @@ import {
   defaultModelForAgent,
   slugify,
 } from "./seed";
+import {
+  bookkeepingFromPorSnapshot,
+  getPorSnapshot,
+  getPorSyncMeta,
+  inventoryFromPorSnapshot,
+} from "./por-snapshot";
 import type {
   Agent,
   BookkeepingEntry,
@@ -516,6 +522,11 @@ export async function updateTask(
 }
 
 export async function listInventory(): Promise<InventoryItem[]> {
+  const por = await getPorSnapshot();
+  if (por?.inventory) {
+    const fromPor = inventoryFromPorSnapshot(por);
+    if (fromPor.length > 0) return fromPor;
+  }
   await ensurePartyPerfectSeed();
   return readJsonFile<InventoryItem[]>(INVENTORY_FILE, []);
 }
@@ -908,6 +919,11 @@ export function buildSocialEngagement(
 }
 
 export async function listBookkeeping(): Promise<BookkeepingEntry[]> {
+  const por = await getPorSnapshot();
+  if (por?.money) {
+    const fromPor = bookkeepingFromPorSnapshot(por);
+    if (fromPor.length > 0) return fromPor;
+  }
   await ensurePartyPerfectSeed();
   return readJsonFile<BookkeepingEntry[]>(BOOKKEEPING_FILE, []);
 }
@@ -999,16 +1015,25 @@ export async function listAllConversations(): Promise<Conversation[]> {
 }
 
 export async function getDashboardStats(): Promise<DashboardStats> {
-  const [agents, tasks, inventory, marketing, emails, social, bookkeeping] =
-    await Promise.all([
-      listAgents(),
-      listTasks(),
-      listInventory(),
-      listMarketing(),
-      listEmails(),
-      getSocialData(),
-      listBookkeeping(),
-    ]);
+  const [
+    agents,
+    tasks,
+    inventory,
+    marketing,
+    emails,
+    social,
+    bookkeeping,
+    por,
+  ] = await Promise.all([
+    listAgents(),
+    listTasks(),
+    listInventory(),
+    listMarketing(),
+    listEmails(),
+    getSocialData(),
+    listBookkeeping(),
+    getPorSnapshot(),
+  ]);
 
   const socialUnread =
     social.comments.filter((item) => item.status === "unread").length +
@@ -1017,6 +1042,8 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   const socialNeedsReply = social.comments.filter(
     (item) => item.status !== "replied" && item.status !== "archived",
   ).length;
+
+  const porMeta = getPorSyncMeta(por);
 
   return {
     agentCount: agents.length,
@@ -1039,8 +1066,20 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     ).length,
     socialUnread,
     socialNeedsReply,
-    bookkeepingPending: bookkeeping.filter((item) => item.status === "pending")
-      .length,
+    bookkeepingPending: bookkeeping.filter(
+      (item) => item.status === "pending" || item.status === "overdue",
+    ).length,
+    por: {
+      syncedAt: porMeta.syncedAt,
+      stale: porMeta.stale,
+      arOpenBalance: por?.money.arOpenBalance ?? null,
+      openContracts: por?.ops.openContracts ?? null,
+      deliveriesToday: por?.ops.deliveriesToday ?? null,
+      returnsDueToday: por?.ops.returnsDueToday ?? null,
+      inventoryAvailable: por?.inventory.availableQuantity ?? null,
+      inventoryOut: por?.inventory.outQuantity ?? null,
+      paymentsLast24hVolume: por?.money.paymentsLast24h.volume ?? null,
+    },
   };
 }
 

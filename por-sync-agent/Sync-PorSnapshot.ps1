@@ -144,7 +144,7 @@ ORDER BY ItemCount DESC
   }
 
   $itemRows = Read-Rows $conn @"
-SELECT TOP 250
+SELECT TOP 80
   CAST([KEY] AS nvarchar(64)) AS ItemKey,
   CAST([Name] AS nvarchar(200)) AS ItemName,
   ISNULL(NULLIF(LTRIM(RTRIM(Category)), ''), N'Uncategorized') AS CategoryName,

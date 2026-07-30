@@ -10,7 +10,8 @@ export const maxDuration = 60;
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const shouldSync = searchParams.get("sync") !== "0";
+  // Default off — Live Mode / boot must stay Redis-cheap. Pass sync=1 to pull Meta.
+  const shouldSync = searchParams.get("sync") === "1";
 
   let sync = null;
   if (shouldSync && (await isMetaLiveConfigured())) {

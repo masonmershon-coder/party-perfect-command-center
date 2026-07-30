@@ -7,10 +7,7 @@ import type {
 } from "./types";
 
 export const POR_SNAPSHOT_KEY = "por-snapshot.json";
-export const POR_SNAPSHOT_HISTORY_KEY = "por-snapshot-history.json";
 export const POR_SYNC_STALE_MS = 30 * 60 * 1000;
-
-const HISTORY_LIMIT = 24;
 
 export function isPorSyncConfigured() {
   return Boolean(process.env.POR_SYNC_SECRET?.trim());
@@ -28,20 +25,7 @@ export async function getPorSnapshot(): Promise<PorSnapshot | null> {
 
 export async function savePorSnapshot(snapshot: PorSnapshot): Promise<void> {
   await writeDurableJson(POR_SNAPSHOT_KEY, snapshot);
-
-  try {
-    const history = await readDurableJson<PorSnapshot[]>(
-      POR_SNAPSHOT_HISTORY_KEY,
-      [],
-    );
-    const next = [snapshot, ...(Array.isArray(history) ? history : [])].slice(
-      0,
-      HISTORY_LIMIT,
-    );
-    await writeDurableJson(POR_SNAPSHOT_HISTORY_KEY, next);
-  } catch {
-    // History is optional — never fail the live snapshot push.
-  }
+  // History removed — was rewriting ~24 full snapshots every sync with no readers.
 }
 
 export function getPorSyncMeta(snapshot: PorSnapshot | null): PorSyncMeta {

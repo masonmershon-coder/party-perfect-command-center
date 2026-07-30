@@ -20,7 +20,7 @@ export function writeLiveModeEnabled(enabled: boolean) {
   }
 }
 
-/** Live Mode poll — kept light now that durable state is Redis-backed. */
+/** Live Mode poll — Redis snapshot only (IMAP/Meta sync via cron or explicit sync=1). */
 export const LIVE_POLL_INTERVAL_MS = 180_000;
 
 /** Sections that pull full payloads when Live Mode is on */

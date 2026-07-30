@@ -60,13 +60,25 @@ async function fetchTwilioCompliance() {
 }
 
 /** Lightweight health check for hosting / uptime monitors */
-export async function GET() {
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const deep = searchParams.get("probe") === "1";
+
   const twilio = getTwilioPublicStatus();
   const version = getAppVersionPayload();
-  const compliance = await fetchTwilioCompliance();
-  const jobsStore = await probeJobsDurableStore();
   const porSnapshot = await getPorSnapshot();
   const porMeta = getPorSyncMeta(porSnapshot);
+
+  const compliance = deep ? await fetchTwilioCompliance() : null;
+  const jobsStore = deep
+    ? await probeJobsDurableStore()
+    : {
+        ok: isDurableRedisConfigured(),
+        mode: durableStoreMode(),
+        error: isDurableRedisConfigured()
+          ? undefined
+          : "Redis not configured",
+      };
 
   return NextResponse.json({
     ok: true,

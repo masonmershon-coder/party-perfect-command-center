@@ -89,7 +89,9 @@ export async function POST(request: Request, context: RouteContext) {
     const priorMessages = [
       ...conversation.messages,
       userMessage,
-    ].map(({ role, content }) => ({ role, content }));
+    ]
+      .slice(-30)
+      .map(({ role, content }) => ({ role, content }));
 
     const stream = await streamGrokResponse({
       model: agent.model,

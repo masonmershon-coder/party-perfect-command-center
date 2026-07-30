@@ -10,7 +10,7 @@
   "crons": [
     {
       "path": "/api/cron/social",
-      "schedule": "0 14 * * *"
+      "schedule": "*/15 * * * *"
     }
   ]
 }

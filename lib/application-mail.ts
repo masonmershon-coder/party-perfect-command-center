@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+import { appUrl } from "./app-url";
 import { roleLabel, type JobApplication } from "./jobs";
 
 function smtpConfigured() {
@@ -57,6 +58,12 @@ function formatApplicationText(app: JobApplication) {
     `Driver license: ${app.validDriverLicense}`,
     `Eligible to work: ${app.eligibleToWork}`,
     `Over 18: ${app.over18}`,
+    `High school / GED: ${app.highSchoolGraduated || "—"}`,
+    `College: ${app.collegeStatus || "—"}`,
+    app.schoolingNotes ? `School notes: ${app.schoolingNotes}` : null,
+    app.resumeFileName
+      ? `Resume: ${app.resumeFileName} (open in Command Center → Hiring)`
+      : null,
     ``,
     `Mike score: ${app.mike.score}${app.mike.flagForJosh ? " · FLAGGED for Josh" : ""}`,
     `Primary fit: ${app.mike.primaryFit}`,
@@ -82,7 +89,7 @@ function formatApplicationText(app: JobApplication) {
     app.videoUrl ? `Video: ${app.videoUrl}` : null,
     ``,
     `Review in Command Center → Hiring`,
-    `https://partyperfectcomand.app/?section=hiring`,
+    appUrl("/?section=hiring"),
   ]
     .filter((line) => line != null)
     .join("\n");

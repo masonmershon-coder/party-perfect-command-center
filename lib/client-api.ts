@@ -119,12 +119,16 @@ export async function streamAgentChat(
   agentId: string,
   message: string,
   onChunk: (chunk: string) => void,
-  taskId?: string,
+  options?: { taskId?: string; financialAccess?: boolean },
 ) {
   const response = await fetch(`/api/agents/${agentId}/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message, taskId }),
+    body: JSON.stringify({
+      message,
+      taskId: options?.taskId,
+      financialAccess: options?.financialAccess === true,
+    }),
   });
 
   if (!response.ok) {
@@ -261,6 +265,97 @@ export async function createMarketingItem(input: CreateMarketingInput) {
     }),
   );
   return payload.item;
+}
+
+export type GoogleAdsSetupPayload = {
+  status: {
+    accountEmail: string | null;
+    hasClientId: boolean;
+    hasClientSecret: boolean;
+    hasDeveloperToken: boolean;
+    hasCustomerId: boolean;
+    hasRefreshToken: boolean;
+    canConnectOAuth: boolean;
+    canSync: boolean;
+    monthlyBudgetUsd: number | null;
+    customerId: string | null;
+    connectedAt: string | null;
+    message: string;
+  };
+  oauthUrl: string | null;
+  redirectUri: string;
+  snapshot: {
+    syncedAt: string;
+    customerId: string;
+    campaigns: Array<{
+      id: string;
+      name: string;
+      status: string;
+      impressions: number;
+      clicks: number;
+      costMicros: number;
+      conversions: number;
+    }>;
+    keywords: Array<{
+      text: string;
+      matchType: string;
+      campaign: string;
+      adGroup: string;
+      impressions: number;
+      clicks: number;
+      costMicros: number;
+    }>;
+    totals: {
+      impressions: number;
+      clicks: number;
+      costUsd: number;
+      conversions: number;
+    };
+  } | null;
+  setupSteps: string[];
+};
+
+export async function fetchGoogleAdsSetup() {
+  return parseJson<GoogleAdsSetupPayload>(await fetch("/api/google-ads/setup"));
+}
+
+export async function saveGoogleAdsSetup(input: {
+  accountEmail?: string;
+  clientId?: string;
+  clientSecret?: string;
+  developerToken?: string;
+  customerId?: string;
+  loginCustomerId?: string;
+  monthlyBudgetUsd?: number | string;
+  notes?: string;
+}) {
+  return parseJson<{
+    success: boolean;
+    message: string;
+    oauthUrl: string | null;
+    redirectUri: string;
+    status: GoogleAdsSetupPayload["status"];
+  }>(
+    await fetch("/api/google-ads/setup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    }),
+  );
+}
+
+export async function syncGoogleAds() {
+  return parseJson<{
+    success: boolean;
+    message: string;
+    snapshot: GoogleAdsSetupPayload["snapshot"];
+  }>(
+    await fetch("/api/google-ads/setup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "sync" }),
+    }),
+  );
 }
 
 export async function fetchEmails(
@@ -616,12 +711,24 @@ export async function fetchJobs() {
   }>(await fetch("/api/jobs"));
 }
 
-export async function deleteJob(id: string) {
-  return parseJson<{ success: boolean; id: string }>(
+export async function deleteJob(
+  id: string,
+  options: {
+    reasonId: string;
+    notes?: string;
+    outcome: "hired" | "rejected";
+  },
+) {
+  return parseJson<{ success: boolean; id: string; outcome?: string }>(
     await fetch("/api/jobs", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id }),
+      body: JSON.stringify({
+        id,
+        reasonId: options.reasonId,
+        notes: options.notes,
+        outcome: options.outcome,
+      }),
     }),
   );
 }

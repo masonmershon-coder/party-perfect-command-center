@@ -1,6 +1,8 @@
 import { createJobApplication, JobApplicationSaveError } from "@/lib/job-applications";
+import { storeJobResume } from "@/lib/job-resume";
 import {
   JOB_ROLES,
+  type CollegeStatus,
   type JobApplicationInput,
   type JobRoleId,
   type WorkHistoryEntry,
@@ -11,11 +13,26 @@ export const runtime = "nodejs";
 export const maxDuration = 60;
 
 const ROLE_IDS = new Set(JOB_ROLES.map((role) => role.id));
+const COLLEGE = new Set<CollegeStatus>([
+  "none",
+  "some",
+  "graduated",
+  "in_progress",
+]);
 
 function cleanText(value: unknown, max = 800) {
   return String(value ?? "")
     .trim()
     .slice(0, max);
+}
+
+function cleanYesNo(value: unknown): "yes" | "no" | "" {
+  return value === "yes" || value === "no" ? value : "";
+}
+
+function cleanCollege(value: unknown): CollegeStatus {
+  const v = String(value ?? "").trim() as CollegeStatus;
+  return COLLEGE.has(v) ? v : "";
 }
 
 function cleanWorkHistory(value: unknown): WorkHistoryEntry[] {
@@ -37,21 +54,81 @@ function cleanWorkHistory(value: unknown): WorkHistoryEntry[] {
     .filter((entry) => entry.employer || entry.roleTitle || entry.startPay);
 }
 
+function parseBodyRoles(raw: unknown): JobRoleId[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map(String)
+    .filter((role): role is JobRoleId => ROLE_IDS.has(role as JobRoleId));
+}
+
+async function parseApplyRequest(request: Request): Promise<{
+  body: Partial<JobApplicationInput>;
+  resumeFile: File | null;
+}> {
+  const contentType = request.headers.get("content-type") || "";
+  if (contentType.includes("multipart/form-data")) {
+    const form = await request.formData();
+    const payloadRaw = form.get("payload");
+    let body: Partial<JobApplicationInput> = {};
+    if (typeof payloadRaw === "string" && payloadRaw.trim()) {
+      body = JSON.parse(payloadRaw) as Partial<JobApplicationInput>;
+    } else {
+      // Flat form fields fallback
+      const rolesRaw = form.get("roles");
+      body = {
+        roles: typeof rolesRaw === "string" ? JSON.parse(rolesRaw) : [],
+        fullName: String(form.get("fullName") || ""),
+        phone: String(form.get("phone") || ""),
+        email: String(form.get("email") || ""),
+        city: String(form.get("city") || ""),
+        eligibleToWork: cleanYesNo(form.get("eligibleToWork")),
+        over18: cleanYesNo(form.get("over18")),
+        validDriverLicense: cleanYesNo(form.get("validDriverLicense")),
+        highSchoolGraduated: cleanYesNo(form.get("highSchoolGraduated")),
+        collegeStatus: cleanCollege(form.get("collegeStatus")),
+        schoolingNotes: String(form.get("schoolingNotes") || ""),
+        availability: String(form.get("availability") || ""),
+        physicalAbility: String(form.get("physicalAbility") || ""),
+        whyPartyPerfect: String(form.get("whyPartyPerfect") || ""),
+        experience: String(form.get("experience") || ""),
+        workHistory: cleanWorkHistory(
+          typeof form.get("workHistory") === "string"
+            ? JSON.parse(String(form.get("workHistory")))
+            : [],
+        ),
+        videoUrl: String(form.get("videoUrl") || "") || undefined,
+      };
+    }
+    const resume = form.get("resume");
+    return {
+      body,
+      resumeFile: resume instanceof File && resume.size > 0 ? resume : null,
+    };
+  }
+
+  const body = (await request.json().catch(() => null)) as Partial<
+    JobApplicationInput
+  > | null;
+  if (!body) {
+    throw new Error("Invalid application payload.");
+  }
+  return { body, resumeFile: null };
+}
+
 export async function POST(request: Request) {
   try {
-    const body = (await request.json().catch(() => null)) as Partial<
-      JobApplicationInput
-    > | null;
-
-    if (!body) {
-      return NextResponse.json({ error: "Invalid application payload." }, { status: 400 });
+    let parsed: { body: Partial<JobApplicationInput>; resumeFile: File | null };
+    try {
+      parsed = await parseApplyRequest(request);
+    } catch {
+      return NextResponse.json(
+        { error: "Invalid application payload." },
+        { status: 400 },
+      );
     }
 
-    const roles = Array.isArray(body.roles)
-      ? body.roles
-          .map(String)
-          .filter((role): role is JobRoleId => ROLE_IDS.has(role as JobRoleId))
-      : [];
+    const { body, resumeFile } = parsed;
+    const roles = parseBodyRoles(body.roles);
 
     if (roles.length === 0) {
       return NextResponse.json(
@@ -60,28 +137,54 @@ export async function POST(request: Request) {
       );
     }
 
+    const applicationId = crypto.randomUUID();
+    let resumeFields: Partial<JobApplicationInput> = {};
+    if (resumeFile) {
+      try {
+        const stored = await storeJobResume({
+          bytes: Buffer.from(await resumeFile.arrayBuffer()),
+          mimeType: resumeFile.type || "application/octet-stream",
+          fileName: resumeFile.name || "resume.pdf",
+          applicationId,
+        });
+        resumeFields = {
+          resumeFileName: stored.fileName,
+          resumeMimeType: stored.mimeType,
+          resumeBlobPathname: stored.blobPathname,
+          resumeDataUrl: stored.dataUrl,
+        };
+      } catch (err) {
+        return NextResponse.json(
+          {
+            error:
+              err instanceof Error
+                ? err.message
+                : "Could not save resume. Try PDF under 8MB, or apply without resume.",
+          },
+          { status: 400 },
+        );
+      }
+    }
+
     const input: JobApplicationInput = {
       roles,
       fullName: cleanText(body.fullName, 120),
       phone: cleanText(body.phone, 40),
       email: cleanText(body.email, 160).toLowerCase(),
       city: cleanText(body.city, 80),
-      eligibleToWork:
-        body.eligibleToWork === "yes" || body.eligibleToWork === "no"
-          ? body.eligibleToWork
-          : "",
-      over18:
-        body.over18 === "yes" || body.over18 === "no" ? body.over18 : "",
-      validDriverLicense:
-        body.validDriverLicense === "yes" || body.validDriverLicense === "no"
-          ? body.validDriverLicense
-          : "",
+      eligibleToWork: cleanYesNo(body.eligibleToWork),
+      over18: cleanYesNo(body.over18),
+      validDriverLicense: cleanYesNo(body.validDriverLicense),
+      highSchoolGraduated: cleanYesNo(body.highSchoolGraduated),
+      collegeStatus: cleanCollege(body.collegeStatus),
+      schoolingNotes: cleanText(body.schoolingNotes, 200) || undefined,
       availability: cleanText(body.availability, 400),
       physicalAbility: cleanText(body.physicalAbility, 400),
       whyPartyPerfect: cleanText(body.whyPartyPerfect, 500),
       experience: cleanText(body.experience, 600),
       workHistory: cleanWorkHistory(body.workHistory),
       videoUrl: cleanText(body.videoUrl, 400) || undefined,
+      ...resumeFields,
     };
 
     if (!input.fullName || !input.phone || !input.email) {
@@ -116,12 +219,32 @@ export async function POST(request: Request) {
     }
 
     if (
+      input.highSchoolGraduated !== "yes" &&
+      input.highSchoolGraduated !== "no"
+    ) {
+      return NextResponse.json(
+        { error: "Please answer whether you graduated high school (or GED)." },
+        { status: 400 },
+      );
+    }
+
+    if (!input.collegeStatus) {
+      return NextResponse.json(
+        { error: "Please tell us about college (none / some / graduated / in progress)." },
+        { status: 400 },
+      );
+    }
+
+    if (
       !input.availability ||
       !input.physicalAbility ||
       !input.whyPartyPerfect
     ) {
       return NextResponse.json(
-        { error: "Please complete availability, physical ability, and why Party Perfect." },
+        {
+          error:
+            "Please complete availability, physical ability, and why Party Perfect.",
+        },
         { status: 400 },
       );
     }
@@ -144,22 +267,14 @@ export async function POST(request: Request) {
       );
     }
 
-    const application = await createJobApplication(input);
+    const application = await createJobApplication(input, { id: applicationId });
 
+    // Applicant-facing only — never expose Mike score / primaryFit / department lean.
     return NextResponse.json({
       success: true,
       id: application.id,
-      // Applicant-facing: warm placement hint only (no raw score)
-      primaryFit: application.mike.primaryFit,
       message:
-        "Application received! Mike is reviewing your fit for the Party Perfect crew.",
-      // Internal fields kept for future Command Center — not advertised in UI
-      review: {
-        score: application.mike.score,
-        flagForJosh: application.mike.flagForJosh,
-        secondaryFits: application.mike.secondaryFits,
-        summary: application.mike.summary,
-      },
+        "Thank you for applying to Party Perfect Event Rentals. We’ve received your application and will be in touch.",
     });
   } catch (error) {
     if (error instanceof JobApplicationSaveError) {

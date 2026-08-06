@@ -870,8 +870,8 @@ export default function PartyPerfectDashboard() {
             flaggedForJosh={jobsFlagged}
             storeMode={jobsStoreMode ?? undefined}
             onRefresh={refreshJobs}
-            onDelete={async (id) => {
-              await deleteJob(id);
+            onDelete={async (id, payload) => {
+              await deleteJob(id, payload);
               await refreshJobs();
             }}
           />

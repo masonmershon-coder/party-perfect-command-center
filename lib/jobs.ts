@@ -1,3 +1,5 @@
+import { applyHiringSelectionWeights } from "./hiring-selection-playbook";
+
 export const JOB_ROLES = [
   {
     id: "showroom",
@@ -44,6 +46,13 @@ export const TOP_CANDIDATE_SCORE = 70;
 
 export type EligibilityAnswer = "yes" | "no" | "";
 
+export type CollegeStatus =
+  | ""
+  | "none"
+  | "some"
+  | "graduated"
+  | "in_progress";
+
 export interface WorkHistoryEntry {
   employer: string;
   roleTitle: string;
@@ -63,12 +72,24 @@ export interface JobApplicationInput {
   eligibleToWork: EligibilityAnswer;
   over18: EligibilityAnswer;
   validDriverLicense: EligibilityAnswer;
+  /** Graduated high school / GED */
+  highSchoolGraduated: EligibilityAnswer;
+  /** none | some college | graduated | currently attending */
+  collegeStatus: CollegeStatus;
+  /** Optional school name / notes */
+  schoolingNotes?: string;
   availability: string;
   physicalAbility: string;
   whyPartyPerfect: string;
   experience: string;
   workHistory: WorkHistoryEntry[];
   videoUrl?: string;
+  /** Resume file metadata after upload (optional) */
+  resumeFileName?: string;
+  resumeMimeType?: string;
+  resumeBlobPathname?: string;
+  /** Inline data URI fallback when Blob is not configured (small files only) */
+  resumeDataUrl?: string;
 }
 
 export interface MikeJobReview {
@@ -128,31 +149,91 @@ export function heuristicMikeReview(
     score += 6;
     strengths.push("Optional video included");
   }
+  if (input.resumeFileName || input.resumeBlobPathname || input.resumeDataUrl) {
+    score += 5;
+    strengths.push("Resume attached");
+  }
+  if (input.highSchoolGraduated === "yes") {
+    score += 3;
+  }
+  if (
+    input.collegeStatus === "graduated" ||
+    input.collegeStatus === "in_progress" ||
+    input.collegeStatus === "some"
+  ) {
+    score += 3;
+    strengths.push("College experience noted");
+  }
 
-  score = Math.max(0, Math.min(100, score));
+  const weighted = applyHiringSelectionWeights(input, score);
+  score = weighted.score;
+  for (const note of weighted.notes.slice(0, 2)) {
+    strengths.push(note);
+  }
 
   const preferred = input.roles.filter((role) => role !== "open");
-  const primaryFit =
-    preferred[0] != null
-      ? roleLabel(preferred[0])
-      : input.roles.includes("open")
-        ? "Open / float — Mike will place"
-        : "General crew";
+  const physicalReady =
+    weighted.notes.some((n) => /physical|outdoor|license|flexible/i.test(n)) ||
+    /\b(lift|outdoor|heavy|warehouse|tent)\b/i.test(
+      `${input.physicalAbility} ${input.experience}`,
+    );
+
+  let primaryFit: string;
+  if (preferred[0] != null) {
+    primaryFit = roleLabel(preferred[0]);
+  } else if (input.roles.includes("open") && physicalReady) {
+    primaryFit = "Tents Crew";
+  } else if (input.roles.includes("open")) {
+    primaryFit = "Open / float — confirm physical path on call";
+  } else {
+    primaryFit = "General crew";
+  }
+
+  // Prefer tents/delivery label when they picked open or only soft front-of-house
+  // but selection weights found strong crew signals.
+  if (
+    physicalReady &&
+    (input.roles.includes("open") || input.roles.includes("tents")) &&
+    preferred[0] !== "delivery"
+  ) {
+    if (!preferred.includes("tents") && preferred[0] === "showroom") {
+      // keep showroom if only shop pick - don't force
+    } else if (input.roles.includes("tents") || input.roles.includes("open")) {
+      if (primaryFit === "Open / float — confirm physical path on call") {
+        primaryFit = "Tents Crew";
+      }
+    }
+  }
 
   const secondaryFits = preferred
     .slice(1, 3)
     .map((role) => roleLabel(role));
 
+  if (
+    physicalReady &&
+    primaryFit === "Tents Crew" &&
+    !secondaryFits.includes("Delivery Team") &&
+    input.validDriverLicense === "yes"
+  ) {
+    secondaryFits.unshift("Delivery Team");
+  }
+
   return {
     score,
     primaryFit,
-    secondaryFits,
+    secondaryFits: secondaryFits.slice(0, 3),
     summary: `${input.fullName} applied for ${
       preferred.length
         ? preferred.map(roleLabel).join(", ")
         : "open placement"
-    }. Availability: ${input.availability.slice(0, 80)}. Mike recommends starting conversations around ${primaryFit}.`,
+    }. Availability: ${input.availability.slice(0, 80)}. ${
+      score >= TOP_CANDIDATE_SCORE
+        ? `Call-today for ${primaryFit} (tents/delivery priority).`
+        : score >= 55
+          ? `Review in Hiring — second-tier for current crew need.`
+          : `Weak for current tents/delivery push — park or front-of-house later.`
+    }`,
     flagForJosh: score >= TOP_CANDIDATE_SCORE,
-    strengths: strengths.length ? strengths : ["Completed a fast application"],
+    strengths: strengths.length ? strengths.slice(0, 4) : ["Completed a fast application"],
   };
 }

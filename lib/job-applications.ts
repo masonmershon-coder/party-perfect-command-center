@@ -1,6 +1,13 @@
 import { sendApplicationBackupEmail } from "@/lib/application-mail";
 import { assertGrokConfigured, grokClient } from "@/lib/grok";
 import {
+  formatHiringFeedbackForMike,
+  listHiringRejectFeedback,
+  recordHiringRejectFeedback,
+  type HireRejectReasonId,
+} from "@/lib/hiring-feedback";
+import { HIRING_SELECTION_PLAYBOOK } from "@/lib/hiring-selection-playbook";
+import {
   heuristicMikeReview,
   roleLabel,
   TOP_CANDIDATE_SCORE,
@@ -35,6 +42,13 @@ async function mikeScoreWithGrok(
 ): Promise<MikeJobReview> {
   assertGrokConfigured();
 
+  let learnings = "Hiring learnings: none yet.";
+  try {
+    learnings = formatHiringFeedbackForMike(await listHiringRejectFeedback());
+  } catch {
+    // ignore — scoring still works
+  }
+
   const response = await grokClient.responses.create({
     model: "grok-build-0.1",
     input: [
@@ -42,12 +56,17 @@ async function mikeScoreWithGrok(
         role: "system",
         content: [
           "You are Mike, Operations Manager for Party Perfect Event Rentals in Tulsa, Oklahoma.",
-          "Score job applicants 0–100 for fit, energy, reliability signals, and role match.",
-          "Do NOT force a rigid starting title — recommend the best department fit.",
+          "Score job applicants 0–100 using Party Perfect’s real selection rules below.",
+          HIRING_SELECTION_PLAYBOOK,
+          learnings,
+          "Do NOT force a rigid starting title — recommend the best department fit under those rules.",
           "Departments: Showroom, Sales, Lines Department, Delivery Team, Tents Crew, or Open/float.",
+          "We are always hiring for all positions when the candidate fits that lane.",
+          "If they are crew-capable, prefer Tents Crew or Delivery Team even when they chose Open.",
           `Flag for Josh / text leadership when score >= ${TOP_CANDIDATE_SCORE} (top candidates).`,
           "Return ONLY valid JSON with keys:",
           'score (number), primaryFit (string), secondaryFits (string[]), summary (string, 1-2 sentences), flagForJosh (boolean), strengths (string[] max 4).',
+          "summary must say if they are call-today or park/review, and which department.",
         ].join("\n"),
       },
       {
@@ -65,7 +84,15 @@ async function mikeScoreWithGrok(
             whyPartyPerfect: input.whyPartyPerfect,
             experience: input.experience,
             workHistory: input.workHistory,
+            highSchoolGraduated: input.highSchoolGraduated,
+            collegeStatus: input.collegeStatus,
+            schoolingNotes: input.schoolingNotes || undefined,
             hasVideo: Boolean(input.videoUrl?.trim()),
+            hasResume: Boolean(
+              input.resumeFileName ||
+                input.resumeBlobPathname ||
+                input.resumeDataUrl,
+            ),
           },
           null,
           2,
@@ -140,6 +167,7 @@ async function notifyTopCandidateSms(application: JobApplication) {
 
 export async function createJobApplication(
   input: JobApplicationInput,
+  options?: { id?: string },
 ): Promise<JobApplication> {
   let mike: MikeJobReview;
   try {
@@ -150,7 +178,7 @@ export async function createJobApplication(
 
   const application: JobApplication = {
     ...input,
-    id: crypto.randomUUID(),
+    id: options?.id || crypto.randomUUID(),
     submittedAt: new Date().toISOString(),
     source: "partyperfectjobs",
     mike,
@@ -199,7 +227,38 @@ export async function getJobApplication(id: string) {
   return applications.find((app) => app.id === id) ?? null;
 }
 
-export async function deleteJobApplication(id: string) {
+export async function deleteJobApplication(
+  id: string,
+  options?: {
+    reasonId?: string;
+    notes?: string;
+    outcome?: "hired" | "rejected";
+  },
+) {
+  const app = await getJobApplication(id);
+  if (!app) return false;
+
+  const reasonId = options?.reasonId?.trim();
+  if (!reasonId) {
+    throw new Error(
+      "Mike needs Hired or Rejected + a reason — pick why so he can learn how to score applicants.",
+    );
+  }
+
+  const outcome = options?.outcome === "hired" ? "hired" : "rejected";
+
+  await recordHiringRejectFeedback({
+    applicationId: app.id,
+    fullName: app.fullName,
+    roles: app.roles,
+    city: app.city,
+    mikeScore: app.mike.score,
+    primaryFit: app.mike.primaryFit,
+    reasonId: reasonId as HireRejectReasonId,
+    notes: options?.notes,
+    outcome,
+  });
+
   return removeJobApplication(id);
 }
 

@@ -4,10 +4,11 @@ import { PartyPerfectLogo } from "@/app/components/dashboard/party-perfect-logo"
 import { BRAND } from "@/lib/brand";
 import {
   JOB_ROLES,
+  type CollegeStatus,
   type JobRoleId,
   type WorkHistoryEntry,
 } from "@/lib/jobs";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 type Stage = "hero" | "roles" | "form" | "success";
 type FormStep = 1 | 2 | 3;
@@ -20,6 +21,9 @@ interface FormState {
   eligibleToWork: "yes" | "no" | "";
   over18: "yes" | "no" | "";
   validDriverLicense: "yes" | "no" | "";
+  highSchoolGraduated: "yes" | "no" | "";
+  collegeStatus: CollegeStatus;
+  schoolingNotes: string;
   availability: string;
   physicalAbility: string;
   whyPartyPerfect: string;
@@ -46,6 +50,9 @@ const EMPTY_FORM: FormState = {
   eligibleToWork: "",
   over18: "",
   validDriverLicense: "",
+  highSchoolGraduated: "",
+  collegeStatus: "",
+  schoolingNotes: "",
   availability: "",
   physicalAbility: "",
   whyPartyPerfect: "",
@@ -61,7 +68,8 @@ export function JobsApplication() {
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [primaryFit, setPrimaryFit] = useState<string | null>(null);
+  const [resumeFile, setResumeFile] = useState<File | null>(null);
+  const resumeRef = useRef<HTMLInputElement>(null);
 
   const progress = useMemo(() => {
     if (stage !== "form") return 0;
@@ -136,6 +144,15 @@ export function JobsApplication() {
       if (form.validDriverLicense !== "yes" && form.validDriverLicense !== "no") {
         return "Tell us if you have a valid driver’s license.";
       }
+      if (
+        form.highSchoolGraduated !== "yes" &&
+        form.highSchoolGraduated !== "no"
+      ) {
+        return "Tell us if you graduated high school (or earned a GED).";
+      }
+      if (!form.collegeStatus) {
+        return "Tell us about college — none, some, graduated, or currently attending.";
+      }
     }
     if (step === 2) {
       if (!form.availability.trim() || !form.physicalAbility.trim()) {
@@ -164,26 +181,28 @@ export function JobsApplication() {
     setSubmitting(true);
     setError(null);
     try {
+      const payload = {
+        roles,
+        ...form,
+        videoUrl: form.videoUrl.trim() || undefined,
+        schoolingNotes: form.schoolingNotes.trim() || undefined,
+      };
+      const body = new FormData();
+      body.set("payload", JSON.stringify(payload));
+      if (resumeFile) body.set("resume", resumeFile);
+
       const response = await fetch("/api/jobs/apply", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          roles,
-          ...form,
-          videoUrl: form.videoUrl.trim() || undefined,
-        }),
+        body,
       });
-      const payload = await response.json();
+      const result = await response.json();
       if (!response.ok) {
         throw new Error(
-          typeof payload?.error === "string"
-            ? payload.error
+          typeof result?.error === "string"
+            ? result.error
             : "Could not submit. Try again.",
         );
       }
-      setPrimaryFit(
-        typeof payload.primaryFit === "string" ? payload.primaryFit : null,
-      );
       setStage("success");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Submission failed.");
@@ -396,6 +415,48 @@ export function JobsApplication() {
                 value={form.validDriverLicense}
                 onChange={(value) => updateField("validDriverLicense", value)}
               />
+              <YesNo
+                label="Did you graduate high school (or earn a GED)?"
+                value={form.highSchoolGraduated}
+                onChange={(value) => updateField("highSchoolGraduated", value)}
+              />
+              <div>
+                <p className="mb-2 text-sm font-extrabold text-[var(--jobs-ink)]">
+                  College
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  {(
+                    [
+                      ["none", "No college"],
+                      ["some", "Some college"],
+                      ["in_progress", "In college now"],
+                      ["graduated", "College graduate"],
+                    ] as const
+                  ).map(([value, label]) => {
+                    const active = form.collegeStatus === value;
+                    return (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => updateField("collegeStatus", value)}
+                        className={`rounded-2xl border px-3 py-3 text-left text-sm font-bold ${
+                          active
+                            ? "border-[var(--jobs-teal)] bg-[var(--jobs-teal-soft)] text-[var(--jobs-teal-deep)]"
+                            : "border-black/10 bg-white text-[var(--jobs-ink)]"
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              <Field
+                label="School name / notes (optional)"
+                value={form.schoolingNotes}
+                onChange={(value) => updateField("schoolingNotes", value)}
+                placeholder="High school, college, trade program…"
+              />
             </div>
           )}
 
@@ -539,6 +600,60 @@ export function JobsApplication() {
                 onChange={(value) => updateField("experience", value)}
                 placeholder="Skills, tools, or wins you want Mike to know"
               />
+
+              <div className="rounded-2xl border border-[var(--jobs-teal)]/30 bg-[var(--jobs-teal-soft)]/30 p-4">
+                <p className="text-sm font-extrabold text-[var(--jobs-ink)]">
+                  Resume (optional)
+                </p>
+                <p className="mt-1 text-xs leading-5 text-[var(--jobs-muted)]">
+                  PDF, Word, or a clear photo of your resume. Our hiring team
+                  reviews it with Mike’s score.
+                </p>
+                <input
+                  ref={resumeRef}
+                  type="file"
+                  accept=".pdf,.doc,.docx,image/*,application/pdf"
+                  className="sr-only"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0] || null;
+                    if (file && file.size > 8 * 1024 * 1024) {
+                      setError("Keep resume under 8MB.");
+                      setResumeFile(null);
+                      if (resumeRef.current) resumeRef.current.value = "";
+                      return;
+                    }
+                    setResumeFile(file);
+                    setError(null);
+                  }}
+                />
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => resumeRef.current?.click()}
+                    className="rounded-xl bg-white px-4 py-2.5 text-sm font-extrabold text-[var(--jobs-teal-deep)] shadow-sm"
+                  >
+                    {resumeFile ? "Change resume" : "Upload resume"}
+                  </button>
+                  {resumeFile && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setResumeFile(null);
+                        if (resumeRef.current) resumeRef.current.value = "";
+                      }}
+                      className="text-xs font-bold text-[var(--jobs-muted)]"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+                {resumeFile && (
+                  <p className="mt-2 truncate text-xs font-semibold text-[var(--jobs-teal-deep)]">
+                    {resumeFile.name}
+                  </p>
+                )}
+              </div>
+
               <Field
                 label="Optional video link (30–60 sec)"
                 value={form.videoUrl}
@@ -637,17 +752,11 @@ export function JobsApplication() {
             You’re in the queue
           </div>
           <h2 className="jobs-display mt-5 text-4xl font-extrabold sm:text-5xl">
-            Application received!
+            Thank you for applying!
           </h2>
           <p className="mt-4 max-w-md text-base leading-7 text-[var(--jobs-muted)]">
-            Mike is reviewing your fit for the Party Perfect crew
-            {primaryFit ? (
-              <>
-                {" "}
-                — leaning toward <strong className="text-[var(--jobs-ink)]">{primaryFit}</strong>
-              </>
-            ) : null}
-            . Top matches get flagged for Josh.
+            We’ve got your application for Party Perfect Event Rentals. Our
+            hiring team will review it and reach out if you’re a match.
           </p>
           <p className="mt-6 text-sm font-semibold text-[var(--jobs-teal-deep)]">
             Watch your phone — we’ll be in touch.
@@ -659,7 +768,8 @@ export function JobsApplication() {
               setRoles([]);
               setForm(EMPTY_FORM);
               setFormStep(1);
-              setPrimaryFit(null);
+              setResumeFile(null);
+              if (resumeRef.current) resumeRef.current.value = "";
               setError(null);
             }}
             className="jobs-cta mt-10 rounded-2xl border border-[var(--jobs-teal)]/40 bg-white px-6 py-3 text-sm font-extrabold text-[var(--jobs-teal-deep)]"

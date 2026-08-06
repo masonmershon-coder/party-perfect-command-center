@@ -1,5 +1,5 @@
 /** Single source of truth for Command Center + Jobs release metadata. */
-export const APP_VERSION = "1.6.4";
+export const APP_VERSION = "1.6.5";
 
 /** ISO date of this release (YYYY-MM-DD). */
 export const APP_RELEASED_AT = "2026-08-06";
@@ -8,9 +8,9 @@ export const APP_RELEASE_LABEL = `v${APP_VERSION} · ${APP_RELEASED_AT}`;
 
 export const APP_RELEASE_NOTES = {
   commandCenter: [
+    "Design Studio simplified — Madison matches inventory in the background",
     "Madison auto-syncs website inventory and vision-matches SKUs from your photo",
     "Madison Design: keep exact showroom linens/chairs — no fantasy venue rebuilds",
-    "Flux Inventory Edit pulls website catalog SKUs with the look board",
     "Primary host is partyperfect.app — old command domains redirect safely",
   ],
   jobs: [

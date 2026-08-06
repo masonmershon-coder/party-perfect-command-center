@@ -2,12 +2,11 @@
 
 import { PageHeader } from "@/app/components/dashboard/page-header";
 import { DESIGN_PRESETS } from "@/lib/design-presets";
-import type { DesignAsset, DesignMatchedItem, WebsiteCatalogItem } from "@/lib/types";
+import type { DesignAsset } from "@/lib/types";
 import { formatTime } from "@/lib/ui";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 const MAX_PENDING = 8;
-const MAX_CATALOG_PICKS = 6;
 
 type PendingMedia = {
   id: string;
@@ -31,17 +30,6 @@ export function DesignSection({
   const [pending, setPending] = useState<PendingMedia[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [lastNote, setLastNote] = useState<string | null>(null);
-
-  const [catalogQuery, setCatalogQuery] = useState("");
-  const [catalogHits, setCatalogHits] = useState<WebsiteCatalogItem[]>([]);
-  const [pickedCatalog, setPickedCatalog] = useState<WebsiteCatalogItem[]>([]);
-  const [catalogMeta, setCatalogMeta] = useState<{
-    totalCached: number;
-    syncedAt: string | null;
-    stale: boolean;
-  } | null>(null);
-  const [catalogBusy, setCatalogBusy] = useState(false);
-  const [catalogSearching, setCatalogSearching] = useState(false);
   const [engineNote, setEngineNote] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
@@ -51,26 +39,6 @@ export function DesignSection({
     setAssets(data.assets || []);
   }, []);
 
-  const refreshCatalogMeta = useCallback(async (q = "") => {
-    const res = await fetch(
-      `/api/design/catalog?q=${encodeURIComponent(q)}&limit=24`,
-    );
-    const data = (await res.json()) as {
-      items?: WebsiteCatalogItem[];
-      totalCached?: number;
-      syncedAt?: string | null;
-      stale?: boolean;
-      error?: string;
-    };
-    if (!res.ok) throw new Error(data.error || "Catalog load failed.");
-    setCatalogHits(data.items || []);
-    setCatalogMeta({
-      totalCached: data.totalCached || 0,
-      syncedAt: data.syncedAt || null,
-      stale: Boolean(data.stale),
-    });
-  }, []);
-
   useEffect(() => {
     void refresh()
       .catch((err) =>
@@ -78,38 +46,20 @@ export function DesignSection({
       )
       .finally(() => setLoading(false));
 
+    // Silent background: Madison refreshes website product photos if stale.
     void (async () => {
       try {
-        await refreshCatalogMeta("");
         const res = await fetch("/api/design/catalog");
         const data = (await res.json()) as {
           totalCached?: number;
           stale?: boolean;
         };
         if (!res.ok) return;
-        // Madison keeps her own website product library fresh.
         if ((data.totalCached || 0) === 0 || data.stale) {
-          setCatalogBusy(true);
-          setEngineNote("Madison is syncing website inventory photos…");
-          try {
-            const syncRes = await fetch("/api/design/catalog", {
-              method: "POST",
-            });
-            const syncData = (await syncRes.json()) as {
-              totalCached?: number;
-            };
-            if (syncRes.ok) {
-              setEngineNote(
-                `Madison linked ${syncData.totalCached?.toLocaleString() || 0} website product photos`,
-              );
-              await refreshCatalogMeta("");
-            }
-          } finally {
-            setCatalogBusy(false);
-          }
+          await fetch("/api/design/catalog", { method: "POST" });
         }
       } catch {
-        // empty catalog until sync is fine
+        // Designers never need to see catalog plumbing.
       }
     })();
 
@@ -118,26 +68,21 @@ export function DesignSection({
       .then(
         (data: {
           falConfigured?: boolean;
-          xaiConfigured?: boolean;
           recommendation?: { label?: string } | null;
+          xaiConfigured?: boolean;
         }) => {
           if (data.falConfigured) {
             setEngineNote(
-              `Madison media: ${data.recommendation?.label || "Flux inventory edit"} · she auto-links website SKUs`,
+              data.recommendation?.label
+                ? `Madison · ${data.recommendation.label}`
+                : "Madison · Flux inventory edit",
             );
           } else if (data.xaiConfigured) {
-            setEngineNote(
-              "Madison media: Grok Imagine (add FAL_KEY for Flux photoreal)",
-            );
-          } else {
-            setEngineNote(
-              "No media engine linked yet — add FAL_KEY and/or XAI_API_KEY",
-            );
+            setEngineNote("Madison · Grok Imagine");
           }
         },
       )
       .catch(() => null);
-    // Initial Design Studio open only
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -150,24 +95,6 @@ export function DesignSection({
     // only on unmount
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  useEffect(() => {
-    const q = catalogQuery.trim();
-    if (!q) {
-      void refreshCatalogMeta("");
-      return;
-    }
-    const t = window.setTimeout(() => {
-      setCatalogSearching(true);
-      void refreshCatalogMeta(q)
-        .catch((err) =>
-          setError(err instanceof Error ? err.message : "Search failed."),
-        )
-        .finally(() => setCatalogSearching(false));
-    }, 280);
-    return () => window.clearTimeout(t);
-  }, [catalogQuery, refreshCatalogMeta]);
-
   function clearPending() {
     setPending((prev) => {
       for (const p of prev) {
@@ -309,45 +236,6 @@ export function DesignSection({
     if (fileRef.current) fileRef.current.value = "";
   }
 
-  function toggleCatalogItem(item: WebsiteCatalogItem) {
-    setError(null);
-    setPickedCatalog((prev) => {
-      if (prev.some((p) => p.key === item.key)) {
-        return prev.filter((p) => p.key !== item.key);
-      }
-      if (prev.length >= MAX_CATALOG_PICKS) {
-        setError(`Pick up to ${MAX_CATALOG_PICKS} catalog pieces.`);
-        return prev;
-      }
-      return [...prev, item];
-    });
-  }
-
-  async function syncCatalog() {
-    setCatalogBusy(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/design/catalog", { method: "POST" });
-      const data = (await res.json()) as {
-        success?: boolean;
-        error?: string;
-        totalCached?: number;
-        syncedAt?: string;
-      };
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || "Catalog sync failed.");
-      }
-      setLastNote(
-        `Website catalog synced — ${data.totalCached || 0} items with photos.`,
-      );
-      await refreshCatalogMeta(catalogQuery.trim());
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Catalog sync failed.");
-    } finally {
-      setCatalogBusy(false);
-    }
-  }
-
   async function sendToMadison() {
     const text = command.trim();
     if (!text) {
@@ -365,9 +253,6 @@ export function DesignSection({
         form.append("files", p.file);
         if (p.frameFile) form.append("videoFrames", p.frameFile);
       }
-      if (pickedCatalog.length) {
-        form.set("catalogKeys", pickedCatalog.map((p) => p.key).join(","));
-      }
 
       const res = await fetch("/api/design/command", {
         method: "POST",
@@ -378,18 +263,12 @@ export function DesignSection({
         error?: string;
         assets?: DesignAsset[];
         board?: DesignAsset[];
-        mediaKind?: string;
-        referenceCount?: number;
         preparedCount?: number;
         boardCount?: number;
-        matchedItems?: DesignMatchedItem[];
-        promptUsed?: string;
+        matchedItems?: DesignAsset["matchedItems"];
         generatorLabel?: string;
-        generatorReason?: string;
         madisonLinkedInventory?: {
           usedVision?: boolean;
-          catalogTotal?: number;
-          searchTerms?: string[];
         };
       };
       if (!res.ok || !data.success) {
@@ -404,22 +283,19 @@ export function DesignSection({
 
       const matchCount = data.matchedItems?.length || 0;
       const boardN = data.boardCount || pending.length;
-      const preparedN = data.preparedCount || 0;
       const engine = data.generatorLabel || first?.generatorLabel || "Madison";
-      const visionBit = data.madisonLinkedInventory?.usedVision
-        ? " · Madison saw photo + linked SKUs"
-        : matchCount
-          ? " · Madison linked SKUs"
-          : "";
       setLastNote(
-        `${engine} · ${
-          boardN > 0
-            ? `look board (${boardN} media${preparedN > 3 ? ` → ${preparedN} refs` : ""})`
-            : "command"
-        } → 2 looks${matchCount ? ` · ${matchCount} inventory matches` : ""}${visionBit}.`,
+        `${engine} built ${data.assets?.length || 0} look${
+          (data.assets?.length || 0) === 1 ? "" : "s"
+        }${boardN ? ` from your photos` : ""}${
+          matchCount
+            ? data.madisonLinkedInventory?.usedVision
+              ? ` · matched ${matchCount} rental pieces`
+              : ` · matched ${matchCount} pieces`
+            : ""
+        }.`,
       );
       clearPending();
-      setPickedCatalog([]);
       setCommand("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Send failed.");
@@ -458,7 +334,7 @@ export function DesignSection({
       <PageHeader
         eyebrow="Madison · Design Studio"
         title="Design Studio"
-        description="Build a look board with multiple photos & videos, then Madison returns 2 options that match what we rent."
+        description="Add photos, tell Madison what you need — she returns 2 looks that match what we rent."
         action={
           onAskMadison ? (
             <button
@@ -501,11 +377,11 @@ export function DesignSection({
             Look board · photos & videos
           </p>
           <p className="text-xs text-[var(--pp-text-muted)]">
-            Add everything that shows the vibe you want. Madison still gives you 2 looks.
+            Drop in showroom photos. Madison returns 2 looks.
           </p>
         </div>
 
-        {pending.length > 0 || pickedCatalog.length > 0 ? (
+        {pending.length > 0 ? (
           <div className="grid grid-cols-3 gap-2">
             {pending.map((p) => (
               <div
@@ -535,29 +411,6 @@ export function DesignSection({
                 <button
                   type="button"
                   onClick={() => removePending(p.id)}
-                  className="absolute right-1 top-1 rounded-full bg-black/70 px-2 py-0.5 text-[10px] text-white"
-                >
-                  ✕
-                </button>
-              </div>
-            ))}
-            {pickedCatalog.map((item) => (
-              <div
-                key={item.key}
-                className="relative aspect-square overflow-hidden rounded-xl border border-[var(--pp-accent)]"
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={item.imageUrl}
-                  alt={item.name}
-                  className="h-full w-full object-cover"
-                />
-                <span className="absolute bottom-0 left-0 right-0 truncate bg-black/65 px-1 py-0.5 text-[9px] text-white">
-                  {item.name}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => toggleCatalogItem(item)}
                   className="absolute right-1 top-1 rounded-full bg-black/70 px-2 py-0.5 text-[10px] text-white"
                 >
                   ✕
@@ -628,8 +481,7 @@ export function DesignSection({
             className="mt-2 w-full rounded-xl border border-[var(--pp-border)] bg-[var(--pp-bg)] px-3 py-3 text-base leading-6 text-[var(--pp-text)] outline-none focus:border-[var(--pp-accent)]"
           />
           <p className="mt-2 text-[11px] leading-5 text-[var(--pp-text-muted)]">
-            Madison edits your photo and links matching website / POR products
-            herself. Optional: tap SKUs below to force exact pieces.
+            Madison matches inventory in the background — just send the photos.
           </p>
         </label>
 
@@ -644,80 +496,6 @@ export function DesignSection({
         <p className="text-center text-[11px] text-[var(--pp-text-muted)]">
           Dump in the photos/videos for the look you want — she always returns 2 options.
         </p>
-      </section>
-
-      <section className="space-y-3 rounded-2xl border border-[var(--pp-border)] bg-[var(--pp-surface)] p-4">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-sm font-semibold text-[var(--pp-text)]">
-              Website inventory
-            </p>
-            <p className="text-xs text-[var(--pp-text-muted)]">
-              Madison syncs this herself and matches your photo. Optional picks
-              force exact SKUs.
-            </p>
-          </div>
-          <button
-            type="button"
-            disabled={catalogBusy}
-            onClick={() => void syncCatalog()}
-            className="shrink-0 rounded-lg border border-[var(--pp-border)] px-3 py-2 text-xs font-medium text-[var(--pp-text)] disabled:opacity-50"
-          >
-            {catalogBusy ? "Syncing…" : "Refresh catalog"}
-          </button>
-        </div>
-        <p className="text-[11px] text-[var(--pp-text-muted)]">
-          {catalogMeta?.totalCached
-            ? `${catalogMeta.totalCached.toLocaleString()} photos in Madison’s library${
-                catalogMeta.syncedAt
-                  ? ` · ${new Date(catalogMeta.syncedAt).toLocaleDateString()}`
-                  : ""
-              }${catalogMeta.stale ? " · she will refresh next open" : ""}`
-            : "Madison will sync website photos automatically on first use…"}
-        </p>
-        <input
-          value={catalogQuery}
-          onChange={(e) => setCatalogQuery(e.target.value)}
-          placeholder="Search linens, chargers, bars, chairs…"
-          className="w-full rounded-xl border border-[var(--pp-border)] bg-[var(--pp-bg)] px-3 py-2.5 text-sm text-[var(--pp-text)] outline-none focus:border-[var(--pp-accent)]"
-        />
-        {catalogSearching && (
-          <p className="text-[11px] text-[var(--pp-text-muted)]">Searching…</p>
-        )}
-        <div className="grid max-h-64 grid-cols-3 gap-2 overflow-y-auto">
-          {catalogHits.map((item) => {
-            const picked = pickedCatalog.some((p) => p.key === item.key);
-            return (
-              <button
-                key={item.key}
-                type="button"
-                onClick={() => toggleCatalogItem(item)}
-                className={`relative aspect-square overflow-hidden rounded-xl border-2 text-left ${
-                  picked
-                    ? "border-[var(--pp-accent)]"
-                    : "border-transparent"
-                }`}
-                title={item.name}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={item.imageUrl}
-                  alt={item.name}
-                  className="h-full w-full object-cover"
-                  loading="lazy"
-                />
-                <span className="absolute inset-x-0 bottom-0 truncate bg-black/60 px-1 py-0.5 text-[9px] text-white">
-                  {item.name}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-        {!catalogHits.length && catalogMeta?.totalCached === 0 && (
-          <p className="text-xs text-[var(--pp-text-muted)]">
-            Sync once to pull product photos from partyperfecteventrental.com.
-          </p>
-        )}
       </section>
 
       <section className="overflow-hidden rounded-2xl border border-[var(--pp-border)] bg-[var(--pp-surface)]">
@@ -751,56 +529,10 @@ export function DesignSection({
                 </p>
               )}
               {selected.matchedItems && selected.matchedItems.length > 0 && (
-                <div className="space-y-2 rounded-xl border border-[var(--pp-border)] bg-[var(--pp-bg)] p-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--pp-text-muted)]">
-                    Match for sales close
-                  </p>
-                  <ul className="space-y-2">
-                    {selected.matchedItems.slice(0, 8).map((m) => (
-                      <li
-                        key={m.key}
-                        className="flex items-center gap-2 text-xs text-[var(--pp-text)]"
-                      >
-                        {m.imageUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={m.imageUrl}
-                            alt=""
-                            className="h-9 w-9 rounded-md object-cover"
-                          />
-                        ) : (
-                          <span className="flex h-9 w-9 items-center justify-center rounded-md bg-[var(--pp-surface)] text-[10px]">
-                            SKU
-                          </span>
-                        )}
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate font-medium">{m.name}</p>
-                          <p className="truncate text-[10px] text-[var(--pp-text-muted)]">
-                            {[m.categoryName, m.porItemId && `POR ${m.porItemId}`]
-                              .filter(Boolean)
-                              .join(" · ")}
-                            {typeof m.porAvailable === "number"
-                              ? ` · avail ${m.porAvailable}`
-                              : ""}
-                            {typeof m.porPricePerDay === "number"
-                              ? ` · $${m.porPricePerDay}/day`
-                              : ""}
-                          </p>
-                        </div>
-                        {m.pageUrl && (
-                          <a
-                            href={m.pageUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="shrink-0 text-[10px] text-[var(--pp-accent)]"
-                          >
-                            Site
-                          </a>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+                <p className="text-xs text-[var(--pp-text-muted)]">
+                  Madison matched {selected.matchedItems.length} rental piece
+                  {selected.matchedItems.length === 1 ? "" : "s"} in the background.
+                </p>
               )}
               <p className="text-[11px] text-[var(--pp-text-muted)]">
                 {formatTime(selected.createdAt)}
@@ -863,11 +595,6 @@ export function DesignSection({
                 {asset.kind === "generated" && (
                   <span className="absolute bottom-1 left-1 rounded bg-black/60 px-1.5 py-0.5 text-[9px] uppercase text-white">
                     AI
-                  </span>
-                )}
-                {asset.matchedItems && asset.matchedItems.length > 0 && (
-                  <span className="absolute bottom-1 right-1 rounded bg-black/60 px-1.5 py-0.5 text-[9px] text-white">
-                    {asset.matchedItems.length} SKU
                   </span>
                 )}
               </button>

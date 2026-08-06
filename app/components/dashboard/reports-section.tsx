@@ -106,7 +106,9 @@ export function ReportsSection({
       )}
 
       <div className="grid gap-6 xl:grid-cols-[320px_1fr]">
-        <section className="pp-panel p-4">
+        <section
+          className={`pp-panel p-4 ${selectedId ? "hidden xl:block" : ""}`}
+        >
           <h3 className="mb-3 text-sm font-semibold text-[var(--pp-text)]">
             Saved reports
           </h3>
@@ -140,9 +142,20 @@ export function ReportsSection({
           </div>
         </section>
 
-        <section className="pp-panel min-h-[420px] p-6">
+        <section
+          className={`pp-panel min-h-[240px] p-4 sm:p-6 xl:min-h-[420px] ${
+            !selectedId ? "hidden xl:block" : ""
+          }`}
+        >
           {selected ? (
             <>
+              <button
+                type="button"
+                onClick={() => setSelectedId(null)}
+                className="mb-3 flex min-h-11 items-center gap-2 rounded-xl border border-[var(--pp-border)] px-3 text-sm font-medium text-[var(--pp-text)] xl:hidden"
+              >
+                ← Back to reports
+              </button>
               <div className="border-b border-[var(--pp-border)] pb-4">
                 <p className="text-[10px] font-semibold uppercase tracking-wider pp-accent-text">
                   {selected.type.replace("-", " ")}
@@ -165,7 +178,7 @@ export function ReportsSection({
               </pre>
             </>
           ) : (
-            <div className="flex h-full min-h-[320px] items-center justify-center text-sm text-[var(--pp-text-muted)]">
+            <div className="flex h-full min-h-[200px] items-center justify-center text-sm text-[var(--pp-text-muted)] xl:min-h-[320px]">
               Select a report or generate a new weekly recap.
             </div>
           )}

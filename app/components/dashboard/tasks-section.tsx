@@ -114,7 +114,7 @@ export function TasksSection({
           className="pp-input px-4 py-3 text-sm"
           required
         />
-        <button type="submit" disabled={loading} className="pp-btn-primary px-5 py-3 text-sm">
+        <button type="submit" disabled={loading} className="pp-btn-primary w-full px-5 py-3 text-sm md:w-auto">
           Add Task
         </button>
       </form>

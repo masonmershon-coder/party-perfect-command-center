@@ -573,7 +573,11 @@ export function SocialSection({
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
-        <section className="pp-panel overflow-hidden rounded-2xl">
+        <section
+          className={`pp-panel overflow-hidden rounded-2xl ${
+            selectedCommentId || selectedMessageId ? "hidden xl:block" : ""
+          }`}
+        >
           <div className="max-h-[520px] overflow-y-auto">
             {activeTab === "posts" &&
               filteredPosts.map((post) => (
@@ -715,9 +719,13 @@ export function SocialSection({
           </div>
         </section>
 
-        <section className="pp-panel rounded-2xl p-5">
+        <section
+          className={`pp-panel rounded-2xl p-4 sm:p-5 ${
+            !selectedCommentId && !selectedMessageId ? "hidden xl:block" : ""
+          }`}
+        >
           {!selectedComment && !selectedMessage ? (
-            <div className="flex min-h-[360px] flex-col items-center justify-center text-center">
+            <div className="flex min-h-[160px] flex-col items-center justify-center text-center xl:min-h-[360px]">
               <p className="text-4xl text-[var(--pp-accent)]">✦</p>
               <p className="mt-4 text-sm font-medium text-[var(--pp-text)]">
                 Select a comment or message
@@ -728,7 +736,18 @@ export function SocialSection({
               </p>
             </div>
           ) : (
-            <div className="flex min-h-[360px] flex-col">
+            <div className="flex min-h-0 flex-col xl:min-h-[360px]">
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedCommentId(null);
+                  setSelectedMessageId(null);
+                  setReplyDraft("");
+                }}
+                className="mb-3 flex min-h-11 items-center gap-2 rounded-xl border border-[var(--pp-border)] px-3 text-sm font-medium text-[var(--pp-text)] xl:hidden"
+              >
+                ← Back to list
+              </button>
               <div className="border-b border-[var(--pp-border)] pb-4">
                 <h3 className="text-lg font-semibold text-[var(--pp-text)]">
                   {selectedComment ? "Comment reply" : "Message reply"}

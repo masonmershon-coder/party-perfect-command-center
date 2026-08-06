@@ -499,7 +499,11 @@ export function EmailsSection({
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
-        <section className="pp-panel overflow-hidden rounded-2xl">
+        <section
+          className={`pp-panel overflow-hidden rounded-2xl ${
+            selectedEmailId ? "hidden xl:block" : ""
+          }`}
+        >
           <div className="flex items-center justify-between border-b border-[var(--pp-border)] px-4 py-3">
             <h3 className="text-sm font-semibold text-[var(--pp-text)]">
               {showArchived ? "Archived" : "Inbox"}
@@ -593,9 +597,13 @@ export function EmailsSection({
           </div>
         </section>
 
-        <section className="pp-panel rounded-2xl p-5">
+        <section
+          className={`pp-panel rounded-2xl p-4 sm:p-5 ${
+            !selectedEmailId ? "hidden xl:block" : ""
+          }`}
+        >
           {!selectedEmail ? (
-            <div className="flex h-full min-h-[420px] flex-col items-center justify-center text-center">
+            <div className="flex h-full min-h-[200px] flex-col items-center justify-center text-center xl:min-h-[420px]">
               <p className="text-4xl text-[var(--pp-accent)]">✉</p>
               <p className="mt-4 text-sm font-medium text-[var(--pp-text)]">
                 Select an email to read
@@ -606,10 +614,20 @@ export function EmailsSection({
               </p>
             </div>
           ) : (
-            <div className="flex min-h-[420px] flex-col">
+            <div className="flex min-h-0 flex-col xl:min-h-[420px]">
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedEmailId(null);
+                  setReplyDraft("");
+                }}
+                className="mb-3 flex min-h-11 items-center gap-2 rounded-xl border border-[var(--pp-border)] px-3 text-sm font-medium text-[var(--pp-text)] xl:hidden"
+              >
+                ← Back to inbox
+              </button>
               <div className="border-b border-[var(--pp-border)] pb-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
+                  <div className="min-w-0">
                     <h3 className="text-lg font-semibold text-[var(--pp-text)]">
                       {selectedEmail.subject}
                     </h3>

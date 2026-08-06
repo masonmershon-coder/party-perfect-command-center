@@ -20,26 +20,26 @@ export function PageHeader({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="mb-8">
+    <div className="mb-5 lg:mb-8">
       {eyebrow && (
         <p className="text-[11px] font-semibold uppercase tracking-[0.24em] pp-accent-text">
           {eyebrow}
         </p>
       )}
-      <div className="mt-2 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-semibold tracking-tight text-[var(--pp-text)] md:text-3xl">
+      <div className="mt-2 flex flex-wrap items-end justify-between gap-3 lg:gap-4">
+        <div className="min-w-0 flex-1">
+          <h2 className="text-xl font-semibold tracking-tight text-[var(--pp-text)] lg:text-3xl">
             {title}
           </h2>
           {description && (
-            <p className="mt-3 max-w-2xl text-sm leading-7 text-[var(--pp-text-muted)]">
+            <p className="mt-2 hidden max-w-2xl text-sm leading-6 text-[var(--pp-text-muted)] sm:block lg:mt-3 lg:leading-7">
               {description}
             </p>
           )}
         </div>
-        {action}
+        {action ? <div className="w-full sm:w-auto">{action}</div> : null}
       </div>
-      <div className="pp-divider mt-6" />
+      <div className="pp-divider mt-4 lg:mt-6" />
     </div>
   );
 }
@@ -98,6 +98,8 @@ export function CommandCenterHeader({
   onUserRoleChange,
   onRequestOwner,
   onSignOut,
+  onOpenMobileMenu,
+  sectionLabel,
 }: {
   liveModeEnabled: boolean;
   onLiveModeChange: (enabled: boolean) => void;
@@ -108,18 +110,42 @@ export function CommandCenterHeader({
   onUserRoleChange: (role: "owner" | "employee") => void;
   onRequestOwner: () => void;
   onSignOut: () => void;
+  onOpenMobileMenu?: () => void;
+  sectionLabel?: string;
 }) {
   return (
-    <header className="sticky top-0 z-20 border-b border-[var(--pp-border)] bg-[var(--pp-header-bg)] px-6 py-4 backdrop-blur-xl lg:px-8">
-      <div className="flex flex-wrap items-center justify-between gap-4">
+    <header className="sticky top-0 z-20 border-b border-[var(--pp-border)] bg-[var(--pp-header-bg)] px-3 py-3 backdrop-blur-xl sm:px-6 sm:py-4 lg:px-8">
+      {/* Phone top bar — full width, hamburger opens drawer */}
+      <div className="flex items-center gap-3 lg:hidden">
+        <button
+          type="button"
+          onClick={onOpenMobileMenu}
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[var(--pp-border)] text-lg text-[var(--pp-text)]"
+          aria-label="Open menu"
+        >
+          ☰
+        </button>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[10px] font-semibold uppercase tracking-[0.2em] pp-accent-text">
+            Party Perfect
+          </p>
+          <h1 className="truncate text-base font-semibold text-[var(--pp-text)]">
+            {sectionLabel || BRAND.commandCenter}
+          </h1>
+        </div>
+        <ThemeToggle />
+      </div>
+
+      {/* Desktop header — role switcher, live Mike, sign out */}
+      <div className="hidden flex-wrap items-center justify-between gap-4 lg:flex">
         <div className="flex items-center gap-4">
           <PartyPerfectLogo variant="compact" className="hidden sm:block" />
-          <div className="hidden h-8 w-px bg-[var(--pp-border)] md:block" />
+          <div className="hidden h-8 w-px bg-[var(--pp-border)] lg:block" />
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.28em] pp-accent-text">
               {BRAND.location}
             </p>
-            <h1 className="text-lg font-semibold tracking-tight text-[var(--pp-text)] md:text-xl">
+            <h1 className="text-lg font-semibold tracking-tight text-[var(--pp-text)] lg:text-xl">
               {BRAND.commandCenter}
             </h1>
           </div>

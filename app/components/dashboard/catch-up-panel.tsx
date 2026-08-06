@@ -155,7 +155,7 @@ export function CatchUpPanel({
                       <button
                         type="button"
                         onClick={() => onOpenItem(item, true)}
-                        className="shrink-0 rounded-xl bg-[var(--pp-accent)] px-4 py-2.5 text-xs font-semibold text-white transition hover:opacity-95"
+                        className="min-h-11 w-full shrink-0 rounded-xl bg-[var(--pp-accent)] px-4 py-2.5 text-sm font-semibold text-white transition hover:opacity-95 sm:w-auto sm:text-xs"
                       >
                         Open & draft reply
                       </button>

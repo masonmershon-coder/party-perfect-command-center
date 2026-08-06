@@ -77,12 +77,12 @@ export function BookkeepingSection({
           <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description" className="pp-input px-4 py-3 text-sm" required />
           <input type="number" value={amount} onChange={(e) => setAmount(Number(e.target.value))} placeholder="Amount" className="pp-input px-4 py-3 text-sm" required />
           <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className="pp-input px-4 py-3 text-sm" />
-          <button type="submit" disabled={loading} className="pp-btn-primary px-5 py-3 text-sm">Add Entry</button>
+          <button type="submit" disabled={loading} className="pp-btn-primary w-full px-5 py-3 text-sm md:w-auto">Add Entry</button>
         </form>
       ) : null}
 
-      <div className="pp-panel overflow-hidden">
-        <table className="min-w-full text-left text-sm">
+      <div className="pp-panel overflow-x-auto">
+        <table className="min-w-[640px] w-full text-left text-sm">
           <thead className="pp-table-head text-[10px] uppercase tracking-wider">
             <tr>
               <th className="px-5 py-3 font-semibold">Vendor</th>

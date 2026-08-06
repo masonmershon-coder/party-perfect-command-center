@@ -110,8 +110,8 @@ export function OwnerPinModal({
           Enter admin code
         </h2>
         <p className="mt-2 text-sm text-[var(--pp-text-muted)]">
-          Bookkeeping, marketing, and reports are protected for internal
-          owners only.
+          Revenue, AR balances, rental rates, bookkeeping, marketing, and
+          reports stay hidden until an owner unlocks with this code.
         </p>
 
         <div className="mt-6 flex justify-center gap-3">

@@ -11,11 +11,14 @@ export function InventorySection({
   inventory,
   source = "local",
   porMeta = null,
+  showRates = true,
   onCreateItem,
 }: {
   inventory: InventoryItem[];
   source?: "por" | "local";
   porMeta?: PorSyncMeta | null;
+  /** Rental rates are owner-only (revenue-sensitive). */
+  showRates?: boolean;
   onCreateItem: (input: {
     name: string;
     category: string;
@@ -67,20 +70,24 @@ export function InventorySection({
           <input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Category" className="pp-input px-4 py-3 text-sm" required />
           <input type="number" value={quantity} onChange={(e) => setQuantity(Number(e.target.value))} className="pp-input px-4 py-3 text-sm" />
           <input type="number" value={available} onChange={(e) => setAvailable(Number(e.target.value))} className="pp-input px-4 py-3 text-sm" />
-          <input type="number" value={pricePerDay} onChange={(e) => setPricePerDay(Number(e.target.value))} className="pp-input px-4 py-3 text-sm" />
-          <button type="submit" disabled={loading} className="pp-btn-primary px-5 py-3 text-sm">Add</button>
+          {showRates ? (
+            <input type="number" value={pricePerDay} onChange={(e) => setPricePerDay(Number(e.target.value))} className="pp-input px-4 py-3 text-sm" />
+          ) : null}
+          <button type="submit" disabled={loading} className="pp-btn-primary w-full px-5 py-3 text-sm md:w-auto">Add</button>
         </form>
       ) : null}
 
-      <div className="pp-panel overflow-hidden">
-        <table className="min-w-full text-left text-sm">
+      <div className="pp-panel overflow-x-auto">
+        <table className="min-w-[640px] w-full text-left text-sm">
           <thead className="pp-table-head text-[10px] uppercase tracking-wider">
             <tr>
               <th className="px-5 py-3 font-semibold">Item</th>
               <th className="px-5 py-3 font-semibold">Category</th>
               <th className="px-5 py-3 font-semibold">Stock</th>
               <th className="px-5 py-3 font-semibold">Available</th>
-              <th className="px-5 py-3 font-semibold">Rate/Day</th>
+              {showRates ? (
+                <th className="px-5 py-3 font-semibold">Rate/Day</th>
+              ) : null}
               <th className="px-5 py-3 font-semibold">Status</th>
             </tr>
           </thead>
@@ -96,9 +103,11 @@ export function InventorySection({
                   <td className="px-5 py-4 text-[var(--pp-text-muted)]">{item.category}</td>
                   <td className="px-5 py-4">{item.quantity}</td>
                   <td className={`px-5 py-4 ${lowStock ? "font-semibold pp-accent-text" : ""}`}>{item.available}</td>
-                  <td className="px-5 py-4 font-medium pp-accent-text">
-                    {item.pricePerDay > 0 ? formatCurrency(item.pricePerDay) : "—"}
-                  </td>
+                  {showRates ? (
+                    <td className="px-5 py-4 font-medium pp-accent-text">
+                      {item.pricePerDay > 0 ? formatCurrency(item.pricePerDay) : "—"}
+                    </td>
+                  ) : null}
                   <td className="px-5 py-4"><StatusBadge status={item.status} kind="inventory" /></td>
                 </tr>
               );

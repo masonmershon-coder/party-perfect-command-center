@@ -27,7 +27,7 @@ export function LiveNotifications({
   if (notifications.length === 0) return null;
 
   return (
-    <div className="fixed right-4 top-20 z-50 flex w-full max-w-sm flex-col gap-2">
+    <div className="fixed inset-x-4 top-[4.5rem] z-50 mx-auto flex w-auto max-w-sm flex-col gap-2 lg:inset-x-auto lg:right-4 lg:left-auto">
       {notifications.map((notification) => (
         <div
           key={notification.id}
@@ -53,7 +53,7 @@ export function LiveNotifications({
           <button
             type="button"
             onClick={() => onDismiss(notification.id)}
-            className="shrink-0 text-[var(--pp-text-muted)] hover:text-[var(--pp-text)]"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-xl text-[var(--pp-text-muted)] hover:text-[var(--pp-text)]"
             aria-label="Dismiss notification"
           >
             ×

@@ -34,6 +34,13 @@ new garden / ballroom / gothic hall. Keep the exact:
 Only polish lighting, framing, and light cleanup unless the staff command
 explicitly asks for a different venue.
 
+## Madison links inventory herself
+- On Design Studio open she refreshes the website product photo cache if stale
+- On each Send she **looks at the photo** (vision) + command text and matches
+  website / POR SKUs automatically
+- Staff can still optionally tap SKUs to force exact pieces
+- Those matched product images are fed to Flux as secondary refs for SKU truth
+
 ## Media quality rules
 - Prefer Flux Inventory Edit for client proposals with phone refs
 - Always feed website catalog / POR product shots alongside the look board

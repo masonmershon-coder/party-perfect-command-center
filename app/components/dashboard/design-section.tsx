@@ -77,30 +77,69 @@ export function DesignSection({
         setError(err instanceof Error ? err.message : "Load failed."),
       )
       .finally(() => setLoading(false));
-    void refreshCatalogMeta("").catch(() => {
-      // empty catalog until sync is fine
-    });
+
+    void (async () => {
+      try {
+        await refreshCatalogMeta("");
+        const res = await fetch("/api/design/catalog");
+        const data = (await res.json()) as {
+          totalCached?: number;
+          stale?: boolean;
+        };
+        if (!res.ok) return;
+        // Madison keeps her own website product library fresh.
+        if ((data.totalCached || 0) === 0 || data.stale) {
+          setCatalogBusy(true);
+          setEngineNote("Madison is syncing website inventory photos…");
+          try {
+            const syncRes = await fetch("/api/design/catalog", {
+              method: "POST",
+            });
+            const syncData = (await syncRes.json()) as {
+              totalCached?: number;
+            };
+            if (syncRes.ok) {
+              setEngineNote(
+                `Madison linked ${syncData.totalCached?.toLocaleString() || 0} website product photos`,
+              );
+              await refreshCatalogMeta("");
+            }
+          } finally {
+            setCatalogBusy(false);
+          }
+        }
+      } catch {
+        // empty catalog until sync is fine
+      }
+    })();
+
     void fetch("/api/design/tools")
       .then((r) => r.json())
-      .then((data: {
-        falConfigured?: boolean;
-        xaiConfigured?: boolean;
-        recommendation?: { label?: string } | null;
-      }) => {
-        if (data.falConfigured) {
-          setEngineNote(
-            `Madison media: ${data.recommendation?.label || "Flux photoreal"} preferred for realistic looks`,
-          );
-        } else if (data.xaiConfigured) {
-          setEngineNote(
-            "Madison media: Grok Imagine (add FAL_KEY for Flux photoreal)",
-          );
-        } else {
-          setEngineNote("No media engine linked yet — add FAL_KEY and/or XAI_API_KEY");
-        }
-      })
+      .then(
+        (data: {
+          falConfigured?: boolean;
+          xaiConfigured?: boolean;
+          recommendation?: { label?: string } | null;
+        }) => {
+          if (data.falConfigured) {
+            setEngineNote(
+              `Madison media: ${data.recommendation?.label || "Flux inventory edit"} · she auto-links website SKUs`,
+            );
+          } else if (data.xaiConfigured) {
+            setEngineNote(
+              "Madison media: Grok Imagine (add FAL_KEY for Flux photoreal)",
+            );
+          } else {
+            setEngineNote(
+              "No media engine linked yet — add FAL_KEY and/or XAI_API_KEY",
+            );
+          }
+        },
+      )
       .catch(() => null);
-  }, [refresh, refreshCatalogMeta]);
+    // Initial Design Studio open only
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -347,6 +386,11 @@ export function DesignSection({
         promptUsed?: string;
         generatorLabel?: string;
         generatorReason?: string;
+        madisonLinkedInventory?: {
+          usedVision?: boolean;
+          catalogTotal?: number;
+          searchTerms?: string[];
+        };
       };
       if (!res.ok || !data.success) {
         throw new Error(data.error || "Madison couldn’t finish that.");
@@ -362,12 +406,17 @@ export function DesignSection({
       const boardN = data.boardCount || pending.length;
       const preparedN = data.preparedCount || 0;
       const engine = data.generatorLabel || first?.generatorLabel || "Madison";
+      const visionBit = data.madisonLinkedInventory?.usedVision
+        ? " · Madison saw photo + linked SKUs"
+        : matchCount
+          ? " · Madison linked SKUs"
+          : "";
       setLastNote(
         `${engine} · ${
           boardN > 0
-            ? `look board (${boardN} media${preparedN > 3 ? ` → packed ${preparedN} visuals` : ""})`
+            ? `look board (${boardN} media${preparedN > 3 ? ` → ${preparedN} refs` : ""})`
             : "command"
-        } → 2 looks${matchCount ? ` · ${matchCount} inventory matches` : ""}.`,
+        } → 2 looks${matchCount ? ` · ${matchCount} inventory matches` : ""}${visionBit}.`,
       );
       clearPending();
       setPickedCatalog([]);
@@ -579,8 +628,8 @@ export function DesignSection({
             className="mt-2 w-full rounded-xl border border-[var(--pp-border)] bg-[var(--pp-bg)] px-3 py-3 text-base leading-6 text-[var(--pp-text)] outline-none focus:border-[var(--pp-accent)]"
           />
           <p className="mt-2 text-[11px] leading-5 text-[var(--pp-text-muted)]">
-            Madison edits your photo (keeps chairs/linens). Sync catalog + tap
-            matching SKUs so website product shots lock the inventory.
+            Madison edits your photo and links matching website / POR products
+            herself. Optional: tap SKUs below to force exact pieces.
           </p>
         </label>
 
@@ -604,7 +653,8 @@ export function DesignSection({
               Website inventory
             </p>
             <p className="text-xs text-[var(--pp-text-muted)]">
-              Same catalog as the public site — pick exact pieces so AI isn’t fake.
+              Madison syncs this herself and matches your photo. Optional picks
+              force exact SKUs.
             </p>
           </div>
           <button
@@ -613,17 +663,17 @@ export function DesignSection({
             onClick={() => void syncCatalog()}
             className="shrink-0 rounded-lg border border-[var(--pp-border)] px-3 py-2 text-xs font-medium text-[var(--pp-text)] disabled:opacity-50"
           >
-            {catalogBusy ? "Syncing…" : "Sync catalog"}
+            {catalogBusy ? "Syncing…" : "Refresh catalog"}
           </button>
         </div>
         <p className="text-[11px] text-[var(--pp-text-muted)]">
           {catalogMeta?.totalCached
-            ? `${catalogMeta.totalCached.toLocaleString()} photos cached${
+            ? `${catalogMeta.totalCached.toLocaleString()} photos in Madison’s library${
                 catalogMeta.syncedAt
                   ? ` · ${new Date(catalogMeta.syncedAt).toLocaleDateString()}`
                   : ""
-              }${catalogMeta.stale ? " · refresh recommended" : ""}`
-            : "Not synced yet — tap Sync catalog (takes ~1–2 min)."}
+              }${catalogMeta.stale ? " · she will refresh next open" : ""}`
+            : "Madison will sync website photos automatically on first use…"}
         </p>
         <input
           value={catalogQuery}

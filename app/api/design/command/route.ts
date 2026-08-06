@@ -4,13 +4,10 @@ import {
   prepareReferenceImageForMadison,
   storeDesignUpload,
 } from "@/lib/design-studio";
+import { madisonLinkInventoryForLook } from "@/lib/madison-inventory-match";
 import { grokClient } from "@/lib/grok";
 import type { DesignAspectRatio, DesignMatchedItem } from "@/lib/types";
-import {
-  getWebsiteCatalogItemsByKeys,
-  matchInventoryForDesign,
-  toMatchedDesignItems,
-} from "@/lib/website-catalog";
+import { getWebsiteCatalogItemsByKeys } from "@/lib/website-catalog";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
@@ -143,33 +140,33 @@ export async function POST(request: Request) {
       }
     }
 
+    // Capture showroom identity refs before Madison appends catalog SKU photos.
+    const showroomRefs = [...preparedImages];
+    const primaryShowroomRef = showroomRefs[0];
+
+    const linked = await madisonLinkInventoryForLook({
+      command,
+      imageUrl: primaryShowroomRef,
+      preferredKeys: catalogKeys,
+      limit: MAX_CATALOG_PICKS,
+    });
+    const matchedItems: DesignMatchedItem[] = linked.matchedItems;
+
+    // Staff look-board photos stay first (identity). Website / POR product
+    // shots append as SKU truth — Madison picks these herself when possible.
+    for (const match of matchedItems) {
+      if (preparedImages.length >= MAX_LOOK_BOARD) break;
+      if (!match.imageUrl) continue;
+      if (preparedImages.includes(match.imageUrl)) continue;
+      preparedImages.push(match.imageUrl);
+    }
+
+    // Explicit staff picks still get forced in if vision missed them.
     const catalogItems = await getWebsiteCatalogItemsByKeys(catalogKeys);
-    // Staff look-board photos stay first (identity). Website catalog product
-    // shots append as SKU truth when Madison/Flux has room for more refs.
     for (const item of catalogItems) {
       if (preparedImages.length >= MAX_LOOK_BOARD) break;
       if (preparedImages.includes(item.imageUrl)) continue;
       preparedImages.push(item.imageUrl);
-    }
-
-    let matchedItems: DesignMatchedItem[] =
-      catalogItems.length > 0
-        ? await toMatchedDesignItems(
-            catalogItems.map((item) => ({ ...item, score: 100 })),
-          )
-        : await matchInventoryForDesign(command, 6);
-
-    // Always try to ground with website/POR product images — even when the
-    // showroom look board is already attached (that was the gap causing rebuilds).
-    if (matchedItems.length === 0) {
-      matchedItems = await matchInventoryForDesign(command, 6);
-    }
-    for (const match of matchedItems) {
-      if (preparedImages.length >= MAX_LOOK_BOARD) break;
-      if (!match.imageUrl) continue;
-      if ((match.score ?? 0) < 40) continue;
-      if (preparedImages.includes(match.imageUrl)) continue;
-      preparedImages.push(match.imageUrl);
     }
 
     const referenceUrls = preparedImages;
@@ -197,11 +194,11 @@ export async function POST(request: Request) {
         .slice(0, 6)
         .map((m) => m.name)
         .join("; ");
-      prompt = `${prompt}\n\nMatched Party Perfect catalog / POR pieces to keep honest: ${names}.`;
+      prompt = `${prompt}\n\nMadison matched Party Perfect catalog / POR pieces: ${names}.`;
     }
 
     if (preparedImages.length > MAX_XAI_IMAGES) {
-      prompt = `${prompt}\n\nStaff look board has ${boardCount || preparedImages.length} visual(s). First images are the showroom tablescape — keep those products exact. Extra refs are website product shots for SKU truth only.`;
+      prompt = `${prompt}\n\nStaff look board has ${boardCount || showroomRefs.length} visual(s). First images are the showroom tablescape — keep those products exact. Extra refs are website product shots Madison linked for SKU truth.`;
     }
 
     const assets = await madisonGenerateImage({
@@ -227,6 +224,12 @@ export async function POST(request: Request) {
       referenceCount: referenceUrls.length,
       preparedCount: preparedImages.length,
       matchedItems,
+      madisonLinkedInventory: {
+        catalogReady: linked.catalogReady,
+        catalogTotal: linked.catalogTotal,
+        usedVision: linked.usedVision,
+        searchTerms: linked.searchTerms,
+      },
       generatorId: assets[0]?.generatorId,
       generatorLabel: assets[0]?.generatorLabel,
       generatorReason: assets[0]?.generatorReason,

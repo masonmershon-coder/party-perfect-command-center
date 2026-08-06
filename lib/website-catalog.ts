@@ -41,6 +41,20 @@ export function isWebsiteCatalogStale(state: WebsiteCatalogState): boolean {
   return Date.now() - t > STALE_MS;
 }
 
+/**
+ * Madison self-maintains the website product photo cache.
+ * Uses the cached index when fresh; crawls the public site when empty/stale.
+ */
+export async function ensureWebsiteCatalogFresh(options?: {
+  force?: boolean;
+}): Promise<WebsiteCatalogState> {
+  const current = await getWebsiteCatalog();
+  if (!options?.force && !isWebsiteCatalogStale(current)) {
+    return current;
+  }
+  return syncWebsiteCatalog();
+}
+
 function nameFromAlt(alt: string): string {
   let s = alt.trim();
   s = s.replace(/^Rental store for\s+/i, "");

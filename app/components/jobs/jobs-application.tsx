@@ -132,6 +132,14 @@ export function JobsApplication() {
     setError(null);
   }
 
+  function focusSchooling() {
+    window.requestAnimationFrame(() => {
+      document
+        .getElementById("jobs-schooling")
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  }
+
   function validateStep(step: FormStep) {
     if (step === 1) {
       if (!form.fullName.trim() || !form.phone.trim() || !form.email.trim()) {
@@ -148,10 +156,12 @@ export function JobsApplication() {
         form.highSchoolGraduated !== "yes" &&
         form.highSchoolGraduated !== "no"
       ) {
-        return "Tell us if you graduated high school (or earned a GED).";
+        focusSchooling();
+        return "Please answer whether you graduated high school (or GED) in the Schooling box below.";
       }
       if (!form.collegeStatus) {
-        return "Tell us about college — none, some, graduated, or currently attending.";
+        focusSchooling();
+        return "Pick a college option in the Schooling box (No college is fine).";
       }
     }
     if (step === 2) {
@@ -368,6 +378,11 @@ export function JobsApplication() {
               <h2 className="jobs-display text-3xl font-extrabold">
                 Let’s get your basics
               </h2>
+              {error && (
+                <p className="rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  {error}
+                </p>
+              )}
               <Field
                 label="Full name"
                 value={form.fullName}
@@ -415,48 +430,65 @@ export function JobsApplication() {
                 value={form.validDriverLicense}
                 onChange={(value) => updateField("validDriverLicense", value)}
               />
-              <YesNo
-                label="Did you graduate high school (or earn a GED)?"
-                value={form.highSchoolGraduated}
-                onChange={(value) => updateField("highSchoolGraduated", value)}
-              />
-              <div>
-                <p className="mb-2 text-sm font-extrabold text-[var(--jobs-ink)]">
-                  College
-                </p>
-                <div className="grid grid-cols-2 gap-2">
-                  {(
-                    [
-                      ["none", "No college"],
-                      ["some", "Some college"],
-                      ["in_progress", "In college now"],
-                      ["graduated", "College graduate"],
-                    ] as const
-                  ).map(([value, label]) => {
-                    const active = form.collegeStatus === value;
-                    return (
-                      <button
-                        key={value}
-                        type="button"
-                        onClick={() => updateField("collegeStatus", value)}
-                        className={`rounded-2xl border px-3 py-3 text-left text-sm font-bold ${
-                          active
-                            ? "border-[var(--jobs-teal)] bg-[var(--jobs-teal-soft)] text-[var(--jobs-teal-deep)]"
-                            : "border-black/10 bg-white text-[var(--jobs-ink)]"
-                        }`}
-                      >
-                        {label}
-                      </button>
-                    );
-                  })}
+
+              <div
+                id="jobs-schooling"
+                className="scroll-mt-24 space-y-4 rounded-3xl border-2 border-[var(--jobs-teal)]/35 bg-[var(--jobs-teal-soft)]/40 p-4 sm:p-5"
+              >
+                <div>
+                  <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[var(--jobs-teal-deep)]">
+                    Schooling · required
+                  </p>
+                  <h3 className="jobs-display mt-1 text-xl font-extrabold text-[var(--jobs-ink)]">
+                    High school &amp; college
+                  </h3>
+                  <p className="mt-1 text-sm text-[var(--jobs-muted)]">
+                    Tap yes/no and pick one college option — then hit Next.
+                  </p>
                 </div>
+                <YesNo
+                  label="Did you graduate high school (or earn a GED)?"
+                  value={form.highSchoolGraduated}
+                  onChange={(value) => updateField("highSchoolGraduated", value)}
+                />
+                <div>
+                  <p className="mb-2 text-sm font-extrabold text-[var(--jobs-ink)]">
+                    College
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {(
+                      [
+                        ["none", "No college"],
+                        ["some", "Some college"],
+                        ["in_progress", "In college now"],
+                        ["graduated", "College graduate"],
+                      ] as const
+                    ).map(([value, label]) => {
+                      const active = form.collegeStatus === value;
+                      return (
+                        <button
+                          key={value}
+                          type="button"
+                          onClick={() => updateField("collegeStatus", value)}
+                          className={`rounded-2xl border px-3 py-3 text-left text-sm font-bold ${
+                            active
+                              ? "border-[var(--jobs-teal)] bg-[var(--jobs-teal)] text-white"
+                              : "border-black/10 bg-white text-[var(--jobs-ink)]"
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                <Field
+                  label="School name / notes (optional)"
+                  value={form.schoolingNotes}
+                  onChange={(value) => updateField("schoolingNotes", value)}
+                  placeholder="High school, college, trade program…"
+                />
               </div>
-              <Field
-                label="School name / notes (optional)"
-                value={form.schoolingNotes}
-                onChange={(value) => updateField("schoolingNotes", value)}
-                placeholder="High school, college, trade program…"
-              />
             </div>
           )}
 

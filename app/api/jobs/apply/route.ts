@@ -223,14 +223,14 @@ export async function POST(request: Request) {
       input.highSchoolGraduated !== "no"
     ) {
       return NextResponse.json(
-        { error: "Please answer whether you graduated high school (or GED)." },
+        { error: "Please answer high school / GED in the Schooling box on step 1." },
         { status: 400 },
       );
     }
 
     if (!input.collegeStatus) {
       return NextResponse.json(
-        { error: "Please tell us about college (none / some / graduated / in progress)." },
+        { error: "Please pick a college option in the Schooling box on step 1 (No college is fine)." },
         { status: 400 },
       );
     }

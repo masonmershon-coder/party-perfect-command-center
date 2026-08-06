@@ -162,7 +162,10 @@ export function bookkeepingFromPorSnapshot(
 export function formatPorContextForAgents(
   snapshot: PorSnapshot | null,
   meta: PorSyncMeta,
+  options?: { includeFinancials?: boolean },
 ): string {
+  const includeFinancials = options?.includeFinancials !== false;
+
   if (!snapshot || !meta.present) {
     return [
       "POR live snapshot: not available yet.",
@@ -174,7 +177,7 @@ export function formatPorContextForAgents(
     ? "WARNING: POR sync is STALE — prefer last-known numbers and say they may be outdated."
     : "POR sync is fresh (within 30 minutes).";
 
-  return [
+  const lines = [
     "Live Point of Rental snapshot (read-only copy — never claim you can change POR):",
     staleNote,
     `Synced at: ${snapshot.syncedAt} from ${snapshot.sourceHost}`,
@@ -183,11 +186,58 @@ export function formatPorContextForAgents(
       .slice(0, 8)
       .map((c) => `${c.name} (${c.available}/${c.quantity})`)
       .join("; ") || "n/a"}`,
-    `AR open: $${snapshot.money.arOpenBalance.toFixed(2)} across ${snapshot.money.arCustomerCount} customers`,
-    `Aging: current $${snapshot.money.aging.current.toFixed(2)} · 30 $${snapshot.money.aging.days30.toFixed(2)} · 60 $${snapshot.money.aging.days60.toFixed(2)} · 90 $${snapshot.money.aging.days90.toFixed(2)} · 120+ $${snapshot.money.aging.days120Plus.toFixed(2)}`,
-    `Payments last 24h: ${snapshot.money.paymentsLast24h.count} / $${snapshot.money.paymentsLast24h.volume.toFixed(2)}`,
     `Ops today: open contracts ${snapshot.ops.openContracts} · deliveries ${snapshot.ops.deliveriesToday} · returns due ${snapshot.ops.returnsDueToday}`,
-  ].join("\n");
+  ];
+
+  const sales = snapshot.sales;
+  if (sales) {
+    lines.push(
+      `Sales pipeline: open quotes ${sales.openQuotes} · reservations ${sales.openReservations} · quotes with event in next 14 days ${sales.quotesEventWithin14Days} (chase full deposit)`,
+    );
+    if (sales.serviceItems?.length) {
+      lines.push(
+        `Service SKUs (use on tickets): ${sales.serviceItems
+          .slice(0, 20)
+          .map((s) =>
+            includeFinancials
+              ? `${s.name} ($${s.pricePerDay.toFixed(2)})`
+              : s.name,
+          )
+          .join("; ")}`,
+      );
+    }
+    if (sales.catalogItems?.length) {
+      lines.push(
+        `Catalog sample for ticket lines (${sales.catalogItems.length} items): ${sales.catalogItems
+          .slice(0, 40)
+          .map((s) => {
+            const avail = `avail ${s.available}`;
+            return includeFinancials
+              ? `${s.name} [${s.category}] $${s.pricePerDay.toFixed(2)} ${avail}`
+              : `${s.name} [${s.category}] ${avail}`;
+          })
+          .join("; ")}`,
+      );
+    }
+  } else {
+    lines.push(
+      "Sales pipeline / quote catalog: not in this snapshot yet — update ENTERPRISE Sync-PorSnapshot.ps1.",
+    );
+  }
+
+  if (includeFinancials) {
+    lines.push(
+      `AR open: $${snapshot.money.arOpenBalance.toFixed(2)} across ${snapshot.money.arCustomerCount} customers`,
+      `Aging: current $${snapshot.money.aging.current.toFixed(2)} · 30 $${snapshot.money.aging.days30.toFixed(2)} · 60 $${snapshot.money.aging.days60.toFixed(2)} · 90 $${snapshot.money.aging.days90.toFixed(2)} · 120+ $${snapshot.money.aging.days120Plus.toFixed(2)}`,
+      `Payments last 24h: ${snapshot.money.paymentsLast24h.count} / $${snapshot.money.paymentsLast24h.volume.toFixed(2)}`,
+    );
+  } else {
+    lines.push(
+      "Financials (AR, aging, payments, revenue, rates): HIDDEN — employee session. Catalog item names/availability still OK for ticket building.",
+    );
+  }
+
+  return lines.join("\n");
 }
 
 export function isValidPorSnapshot(value: unknown): value is PorSnapshot {

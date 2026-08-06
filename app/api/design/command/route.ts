@@ -144,8 +144,11 @@ export async function POST(request: Request) {
     }
 
     const catalogItems = await getWebsiteCatalogItemsByKeys(catalogKeys);
+    // Staff look-board photos stay first (identity). Website catalog product
+    // shots append as SKU truth when Madison/Flux has room for more refs.
     for (const item of catalogItems) {
       if (preparedImages.length >= MAX_LOOK_BOARD) break;
+      if (preparedImages.includes(item.imageUrl)) continue;
       preparedImages.push(item.imageUrl);
     }
 
@@ -156,15 +159,17 @@ export async function POST(request: Request) {
           )
         : await matchInventoryForDesign(command, 6);
 
-    // Strong catalog auto-refs only when the look board is empty.
-    if (preparedImages.length === 0 && catalogItems.length === 0) {
-      for (const match of matchedItems) {
-        if (preparedImages.length >= MAX_XAI_IMAGES) break;
-        if (!match.imageUrl) continue;
-        if ((match.score ?? 0) < 50) continue;
-        if (preparedImages.includes(match.imageUrl)) continue;
-        preparedImages.push(match.imageUrl);
-      }
+    // Always try to ground with website/POR product images — even when the
+    // showroom look board is already attached (that was the gap causing rebuilds).
+    if (matchedItems.length === 0) {
+      matchedItems = await matchInventoryForDesign(command, 6);
+    }
+    for (const match of matchedItems) {
+      if (preparedImages.length >= MAX_LOOK_BOARD) break;
+      if (!match.imageUrl) continue;
+      if ((match.score ?? 0) < 40) continue;
+      if (preparedImages.includes(match.imageUrl)) continue;
+      preparedImages.push(match.imageUrl);
     }
 
     const referenceUrls = preparedImages;
@@ -175,7 +180,9 @@ export async function POST(request: Request) {
     else if (referenceUrls.length > 0) mediaKind = "image";
 
     let prompt = command;
-    if (matchedItems.length > 0) {
+    if (boardCount > 0) {
+      prompt = await enrichCommandForPhoto(command, boardCount);
+    } else if (matchedItems.length > 0) {
       const names = matchedItems
         .slice(0, 8)
         .map((m) => m.name)
@@ -183,12 +190,18 @@ export async function POST(request: Request) {
       prompt = await enrichCommandForInventory(command, names, mediaKind);
     } else if (mediaKind === "video") {
       prompt = await enrichCommandForVideo(command);
-    } else if (mediaKind === "image" || mediaKind === "mixed") {
-      prompt = await enrichCommandForPhoto(command, boardCount);
+    }
+
+    if (matchedItems.length > 0 && boardCount > 0) {
+      const names = matchedItems
+        .slice(0, 6)
+        .map((m) => m.name)
+        .join("; ");
+      prompt = `${prompt}\n\nMatched Party Perfect catalog / POR pieces to keep honest: ${names}.`;
     }
 
     if (preparedImages.length > MAX_XAI_IMAGES) {
-      prompt = `${prompt}\n\nStaff uploaded a multi-photo/video look board (${preparedImages.length} visuals). Honor every piece when composing the desired look.`;
+      prompt = `${prompt}\n\nStaff look board has ${boardCount || preparedImages.length} visual(s). First images are the showroom tablescape — keep those products exact. Extra refs are website product shots for SKU truth only.`;
     }
 
     const assets = await madisonGenerateImage({
@@ -241,22 +254,22 @@ async function enrichCommandForInventory(
         {
           role: "system",
           content:
-            "You write one Grok Imagine prompt for Party Perfect Event Rentals (Tulsa). The staff will attach real inventory photos and/or a look board. Instruct the model to use those exact rental pieces (linens, china, chairs, bars, etc.) so the client proposal matches what we actually rent — photoreal, not generic AI décor. Return ONLY the prompt text.",
+            "You write ONE Flux image-edit instruction for Party Perfect Event Rentals (Tulsa). Staff may attach real inventory photos. Instruct the model to KEEP those exact rental pieces (linens pattern/color, chairs, china, tables) — polish lighting only. Forbid inventing gardens, ballrooms, or different products. Return ONLY the edit instruction.",
         },
         {
           role: "user",
           content: `Command: ${command}\nExact / matched inventory: ${inventoryNames}\nMedia: ${mediaKind}`,
         },
       ],
-      max_tokens: 260,
+      max_tokens: 220,
     });
     const text = res.choices[0]?.message?.content?.trim();
     return (
       text ||
-      `${command} — use exact Party Perfect inventory: ${inventoryNames}`
+      `${command} — keep exact Party Perfect inventory: ${inventoryNames}. Lighting polish only; do not rebuild the tablescape.`
     );
   } catch {
-    return `${command} — photoreal Party Perfect Tulsa using exact inventory: ${inventoryNames}`;
+    return `${command} — keep exact Party Perfect Tulsa inventory: ${inventoryNames}. Do not invent products or venues.`;
   }
 }
 
@@ -268,19 +281,19 @@ async function enrichCommandForPhoto(command: string, boardCount: number) {
         {
           role: "system",
           content:
-            "You write one Grok Imagine image prompt for Party Perfect Event Rentals (Tulsa). Staff attached a look board of photos/video frames showing the desired vibe and pieces. Merge those references into one photoreal client-proposal look. Keep real rental inventory (linens, china, tents, tables, dance floor). Return ONLY the prompt text.",
+            "You write ONE Flux Kontext EDIT instruction (not a fresh scene). Staff uploaded showroom/phone photos of a real Party Perfect tablescape. Tell the model to preserve every linen, chair, table, and place setting exactly — only improve lighting/cleanup for a client proposal. Ban fantasy venues and product swaps. Return ONLY the edit instruction.",
         },
         {
           role: "user",
-          content: `Look board has ${boardCount} media item(s). Command: ${command}`,
+          content: `Look board has ${boardCount} media item(s). Staff command: ${command}`,
         },
       ],
-      max_tokens: 240,
+      max_tokens: 220,
     });
     const text = res.choices[0]?.message?.content?.trim();
     return text || command;
   } catch {
-    return `${command} — photoreal Party Perfect Event Rentals Tulsa showroom quality from staff look board`;
+    return `${command} — edit the showroom reference: keep exact linens/chairs/tables; lighting polish only; no fantasy venue rebuild.`;
   }
 }
 
@@ -292,18 +305,18 @@ async function enrichCommandForVideo(command: string) {
         {
           role: "system",
           content:
-            "Staff uploaded phone video of an event/setup. Write ONE still-image Grok Imagine prompt that matches their command and a polished Party Perfect Tulsa rental look. Return ONLY the prompt text.",
+            "Staff uploaded phone video of a Party Perfect setup. Write ONE still-image EDIT instruction that keeps the real rental pieces from the frames and only polishes lighting for a Tulsa client proposal. Return ONLY the instruction.",
         },
         {
           role: "user",
           content: `Command: ${command}`,
         },
       ],
-      max_tokens: 220,
+      max_tokens: 200,
     });
     const text = res.choices[0]?.message?.content?.trim();
     return text || command;
   } catch {
-    return `${command} — photoreal Party Perfect Event Rentals Tulsa, from phone video mood`;
+    return `${command} — keep exact Party Perfect rentals from the video frames; lighting polish only.`;
   }
 }

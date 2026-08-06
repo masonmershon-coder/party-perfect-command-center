@@ -274,7 +274,53 @@ export function aspectToFalImageSize(
 }
 
 export function withPhotorealPrompt(prompt: string): string {
+  return withInventoryFidelityPrompt(prompt);
+}
+
+/**
+ * Lock Party Perfect rental identity. Stop Flux from rebuilding fantasy venues
+ * or inventing different chairs/linens than the showroom refs.
+ */
+export function withInventoryFidelityPrompt(prompt: string): string {
   const base = prompt.trim();
-  if (/photoreal|real inventory|party perfect/i.test(base)) return base;
-  return `${base}\n\nPhotoreal Party Perfect Event Rentals Tulsa inventory — real linens, china, chargers, tables, tents. Client proposal quality. No cartoon, no plastic AI look, no invented products.`;
+  const lock = [
+    "IDENTITY LOCK — Party Perfect Event Rentals Tulsa:",
+    "- This is an EDIT of the reference photo(s), not a new AI scene.",
+    "- Keep the EXACT rental pieces: chair style, table shape, linen color/pattern, china, chargers, glassware, centerpieces.",
+    "- Do NOT replace blue patterned linens with plain white, or green velvet with white, or swap chair styles.",
+    "- Do NOT invent a garden, fountain, gothic hall, or luxury ballroom unless the reference already shows that place.",
+    "- Prefer honest showroom / real-event lighting over glossy CGI.",
+    "- No plastic AI look, no watermark spam, no invented products we do not rent.",
+  ].join("\n");
+
+  if (/IDENTITY LOCK|exact rental pieces|do not invent/i.test(base)) {
+    return base;
+  }
+  return `${base}\n\n${lock}`;
+}
+
+/** Two edit strengths when staff uploads a look board. */
+export function buildShowroomEditPrompts(command: string): {
+  tight: string;
+  polish: string;
+} {
+  const goal = command.trim() || "Client proposal look";
+  return {
+    tight: withInventoryFidelityPrompt(
+      [
+        `${goal}.`,
+        "Edit the main reference tablescape ONLY: improve lighting, straighten framing, tidy crumbs/clutter, and make it client-proposal clean.",
+        "Keep the same room/showroom context unless the staff command explicitly asks for a new venue.",
+        "Furniture and soft goods must stay recognizable as the same Party Perfect SKUs in the photo.",
+      ].join(" "),
+    ),
+    polish: withInventoryFidelityPrompt(
+      [
+        `${goal}.`,
+        "Light polish for a sales proposal: flattering light and a slightly cleaner backdrop.",
+        "CRITICAL: preserve every linen pattern, chair, table, and place setting from the reference — do not redesign the tablescape.",
+        "If adding atmosphere, keep it subtle and Tulsa-event-real, not fantasy architecture.",
+      ].join(" "),
+    ),
+  };
 }

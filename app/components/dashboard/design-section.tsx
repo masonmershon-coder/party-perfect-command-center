@@ -575,9 +575,13 @@ export function DesignSection({
             value={command}
             onChange={(e) => setCommand(e.target.value)}
             rows={3}
-            placeholder="Example: Turn this look board into a black & gold charity gala tablescape"
+            placeholder="Example: Polish this showroom tablescape for a client proposal — keep these exact linens and chairs"
             className="mt-2 w-full rounded-xl border border-[var(--pp-border)] bg-[var(--pp-bg)] px-3 py-3 text-base leading-6 text-[var(--pp-text)] outline-none focus:border-[var(--pp-accent)]"
           />
+          <p className="mt-2 text-[11px] leading-5 text-[var(--pp-text-muted)]">
+            Madison edits your photo (keeps chairs/linens). Sync catalog + tap
+            matching SKUs so website product shots lock the inventory.
+          </p>
         </label>
 
         <button

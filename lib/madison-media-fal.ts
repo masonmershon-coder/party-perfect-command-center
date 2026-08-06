@@ -1,5 +1,7 @@
 import {
   aspectToFalImageSize,
+  buildShowroomEditPrompts,
+  withInventoryFidelityPrompt,
   withPhotorealPrompt,
   type MadisonMediaJob,
   type MadisonMediaResult,
@@ -99,8 +101,40 @@ export async function runFluxPhotoreal(
   };
 }
 
+async function runKontextOnce(
+  refs: string[],
+  prompt: string,
+  numImages: number,
+): Promise<{ urls: string[]; modelId: string }> {
+  const model =
+    refs.length > 1
+      ? "fal-ai/flux-pro/kontext/multi"
+      : "fal-ai/flux-pro/kontext";
+  const input: Record<string, unknown> = {
+    prompt: withInventoryFidelityPrompt(prompt),
+    num_images: numImages,
+    output_format: "jpeg",
+    // Stronger prompt stickiness so “keep exact linens/chairs” wins over fantasy rebuilds.
+    guidance_scale: 5.5,
+    safety_tolerance: "2",
+    enhance_prompt: false,
+  };
+  if (refs.length > 1) {
+    input.image_urls = refs;
+  } else {
+    input.image_url = refs[0];
+  }
+
+  const payload = await falRun(model, input);
+  const urls = collectUrls(payload);
+  if (!urls.length) throw new Error("Flux edit returned no images.");
+  return { urls, modelId: model };
+}
+
 /**
  * Multi-reference inventory edit. Falls back to single-image kontext if needed.
+ * When staff uploads a look board, run two edit strengths so results stay
+ * product-true instead of rebuilding a glossy AI venue.
  */
 export async function runFluxEdit(
   tool: MadisonMediaTool,
@@ -112,49 +146,44 @@ export async function runFluxEdit(
     throw new Error("Flux edit needs at least one reference photo.");
   }
 
-  const prompt = withPhotorealPrompt(
-    refs.length > 1
-      ? `${job.prompt}\n\nUse every reference photo as exact Party Perfect rental inventory. Compose one photoreal client proposal look.`
-      : job.prompt,
-  );
+  const edits = buildShowroomEditPrompts(job.prompt);
 
   try {
-    const model =
-      refs.length > 1
-        ? "fal-ai/flux-pro/kontext/multi"
-        : "fal-ai/flux-pro/kontext";
-    const input: Record<string, unknown> = {
-      prompt,
-      num_images: n,
-      output_format: "jpeg",
-      guidance_scale: 3.5,
-      safety_tolerance: "2",
-    };
-    if (refs.length > 1) {
-      input.image_urls = refs;
-    } else {
-      input.image_url = refs[0];
+    if (n >= 2) {
+      const [tight, polish] = await Promise.all([
+        runKontextOnce(refs, edits.tight, 1),
+        runKontextOnce(refs, edits.polish, 1),
+      ]);
+      const urls = [...tight.urls, ...polish.urls].slice(0, n);
+      return {
+        urls,
+        toolId: tool.id,
+        toolLabel: tool.label,
+        modelId: tight.modelId,
+        reason: `Flux inventory edit — keep exact SKUs (${refs.length} refs; tight + polish)`,
+      };
     }
 
-    const payload = await falRun(model, input);
-    const urls = collectUrls(payload);
-    if (!urls.length) throw new Error("Flux edit returned no images.");
+    const one = await runKontextOnce(refs, edits.tight, 1);
     return {
-      urls: urls.slice(0, n),
+      urls: one.urls.slice(0, 1),
       toolId: tool.id,
       toolLabel: tool.label,
-      modelId: model,
+      modelId: one.modelId,
       reason: `Flux inventory edit (${refs.length} refs)`,
     };
   } catch (err) {
     // Older/alternate multi path — try flex edit
     console.error("[madison-media] kontext failed, trying flux-2-flex/edit:", err);
+    const prompt = withInventoryFidelityPrompt(
+      `${job.prompt}\n\nKeep exact Party Perfect rental pieces from every reference. Do not rebuild the tablescape.`,
+    );
     const payload = await falRun("fal-ai/flux-2-flex/edit", {
       prompt,
       image_urls: refs.slice(0, 8),
       num_images: n,
       output_format: "jpeg",
-      guidance_scale: 3.5,
+      guidance_scale: 5.5,
       num_inference_steps: 28,
     });
     const urls = collectUrls(payload);

@@ -13,11 +13,87 @@ export type NavSection =
   | "inventory"
   | "emails"
   | "social"
+  | "design"
   | "bookkeeping"
   | "marketing"
   | "reports"
   | "hiring"
   | "chat";
+
+export type DesignAspectRatio =
+  | "1:1"
+  | "4:3"
+  | "3:4"
+  | "16:9"
+  | "9:16"
+  | "auto";
+
+export type DesignAssetKind = "upload" | "generated";
+
+/** Catalog / POR item Madison used or matched for sales close. */
+export interface DesignMatchedItem {
+  key: string;
+  name: string;
+  imageUrl?: string;
+  pageUrl?: string;
+  categoryName?: string;
+  /** POR inventory id when fuzzy/exact match succeeds */
+  porItemId?: string;
+  porAvailable?: number;
+  porPricePerDay?: number;
+  source: "website" | "por" | "both";
+  score?: number;
+}
+
+export interface DesignAsset {
+  id: string;
+  kind: DesignAssetKind;
+  /** image/jpeg, image/png, video/mp4, etc. */
+  mimeType: string;
+  /** Browser URL: `/api/design/media/:id`, data URI, or legacy public Blob URL */
+  url: string;
+  /** Private Vercel Blob pathname when stored in Blob (store is private-access). */
+  blobPathname?: string;
+  fileName: string;
+  prompt?: string;
+  aspectRatio?: DesignAspectRatio;
+  createdAt: string;
+  createdBy?: string;
+  sourceAssetId?: string;
+  /** Extra source asset ids when merging multiple photos */
+  sourceAssetIds?: string[];
+  /** Website/POR items used as references or auto-matched for the quote */
+  matchedItems?: DesignMatchedItem[];
+  /** Which media engine Madison used (Flux, Grok Imagine, etc.) */
+  generatorId?: string;
+  generatorLabel?: string;
+  generatorReason?: string;
+}
+
+export interface DesignStudioState {
+  assets: DesignAsset[];
+  updatedAt: string;
+}
+
+/** Public website rental catalog (partyperfecteventrental.com itemimages). */
+export interface WebsiteCatalogItem {
+  key: string;
+  name: string;
+  categoryId: string;
+  categoryName: string;
+  /** Absolute URL to product photo (itemimages/…). */
+  imageUrl: string;
+  pageUrl: string;
+  /** Numeric id from itemimages/{id}.jpg when present */
+  imageId?: string;
+}
+
+export interface WebsiteCatalogState {
+  items: WebsiteCatalogItem[];
+  syncedAt: string;
+  source: string;
+  categoryCount: number;
+}
 
 export type InventoryStatus = "available" | "reserved" | "maintenance";
 
@@ -373,6 +449,28 @@ export interface PorOpsSnapshot {
   returnsDueToday: number;
 }
 
+/** Quote / reservation pipeline + catalog for showroom ticket completion. */
+export interface PorSalesCatalogItem {
+  id: string;
+  name: string;
+  category: string;
+  available: number;
+  quantity: number;
+  pricePerDay: number;
+  kind: "product" | "service";
+}
+
+export interface PorSalesSnapshot {
+  openQuotes: number;
+  openReservations: number;
+  /** Quotes with event begin date in the next 14 days (deposit chase). */
+  quotesEventWithin14Days: number;
+  /** Service-like SKUs (delivery, flip, linen bag, labor). */
+  serviceItems: PorSalesCatalogItem[];
+  /** Broader catalog sample for completing tickets (rates + availability). */
+  catalogItems: PorSalesCatalogItem[];
+}
+
 /** Read-only Point of Rental ops snapshot pushed from ENTERPRISE. */
 export interface PorSnapshot {
   version: 1;
@@ -389,6 +487,8 @@ export interface PorSnapshot {
   };
   money: PorMoneySnapshot;
   ops: PorOpsSnapshot;
+  /** Optional — older agents omit until ENTERPRISE script is updated. */
+  sales?: PorSalesSnapshot;
 }
 
 export interface PorSyncMeta {

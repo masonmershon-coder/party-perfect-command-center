@@ -13,8 +13,9 @@ import { ReportsSection } from "@/app/components/dashboard/reports-section";
 import { InventorySection } from "@/app/components/dashboard/inventory-section";
 import { CommandCenterHeader } from "@/app/components/dashboard/page-header";
 import { LiveNotifications } from "@/app/components/dashboard/live-notifications";
-import { Sidebar } from "@/app/components/dashboard/sidebar";
+import { Sidebar, MobileBottomNav } from "@/app/components/dashboard/sidebar";
 import { SocialSection } from "@/app/components/dashboard/social-section";
+import { DesignSection } from "@/app/components/dashboard/design-section";
 import { TasksSection } from "@/app/components/dashboard/tasks-section";
 import { VersionBadge } from "@/app/components/dashboard/version-badge";
 import type { EmailAccount, EmailConnectionInfo } from "@/lib/email-accounts";
@@ -57,6 +58,7 @@ import {
 import {
   canAccessSection,
   clearStoredUserRole,
+  canViewFinancials,
   readUserRole,
   writeUserRole,
   type UserRole,
@@ -97,10 +99,12 @@ import type {
 } from "@/lib/types";
 import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { navItems } from "@/lib/ui";
 
 export default function PartyPerfectDashboard() {
   const searchParams = useSearchParams();
   const [activeSection, setActiveSection] = useState<NavSection>("dashboard");
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
   const [chatAgentId, setChatAgentId] = useState<string | null>(null);
 
@@ -445,6 +449,7 @@ export default function PartyPerfectDashboard() {
     const section = searchParams.get("section");
     if (
       section === "social" ||
+      section === "design" ||
       section === "emails" ||
       section === "dashboard" ||
       section === "agents" ||
@@ -549,15 +554,23 @@ export default function PartyPerfectDashboard() {
     setIsStreaming(true);
 
     try {
-      await streamAgentChat(agentId, message, (content) => {
-        setMessages((current) =>
-          current.map((entry) =>
-            entry.id === assistantMessage.id
-              ? { ...entry, content }
-              : entry,
-          ),
-        );
-      });
+      await streamAgentChat(
+        agentId,
+        message,
+        (content) => {
+          setMessages((current) =>
+            current.map((entry) =>
+              entry.id === assistantMessage.id
+                ? { ...entry, content }
+                : entry,
+            ),
+          );
+        },
+        {
+          financialAccess:
+            ownerUnlocked && canViewFinancials(userRole),
+        },
+      );
 
       await Promise.all([refreshChat(agentId), refreshAll()]);
     } catch (chatError) {
@@ -632,6 +645,9 @@ export default function PartyPerfectDashboard() {
   }
 
   function renderMainContent() {
+    const financialsVisible =
+      ownerUnlocked && canViewFinancials(userRole);
+
     if (activeSection === "agents" && selectedAgentId) {
       return (
         <AgentChatView
@@ -642,8 +658,9 @@ export default function PartyPerfectDashboard() {
           onBack={() => setSelectedAgentId(null)}
           showBack
           sectionTitle="Agent Chat"
+          enableVoice={activeChatAgent?.slug === "mike-operations"}
           onSendWeeklyRecap={
-            activeChatAgent?.slug === "mike-operations"
+            financialsVisible && activeChatAgent?.slug === "mike-operations"
               ? async () => {
                   const result = await sendWeeklyRecapSms();
                   await refreshReports();
@@ -652,23 +669,24 @@ export default function PartyPerfectDashboard() {
               : undefined
           }
           onSendTestSms={
-            activeChatAgent?.slug === "mike-operations"
+            financialsVisible && activeChatAgent?.slug === "mike-operations"
               ? sendTestSms
               : undefined
           }
           agentHints={
-            activeChatAgent?.slug === "madison-comms"
+              activeChatAgent?.slug === "madison-comms"
               ? [
-                  "Draft a warm reply to the latest Instagram wedding comment",
-                  "What's trending for Tulsa event engagement this week?",
-                  "Help Michelle reply to a big client gala inquiry",
-                  "Quick friendly response for a Facebook pricing question",
+                  "Draft a warm reply to the latest open social comment",
+                  "7-day content + growth plan for Party Perfect Tulsa",
+                  "Write a hiring FB/IG post pointing to partyperfectjobs.com",
+                  "How do we grow followers and wedding DMs this month?",
                 ]
-              : activeChatAgent?.slug === "mike-operations"
+                : activeChatAgent?.slug === "mike-operations"
                 ? [
-                    "Summarize today's Catch Up queue",
-                    "What tasks need attention this week?",
-                    "Draft a manager update on inbox backlog",
+                    "Who should we call first from today's applicants?",
+                    "How do we choose hires — rank Maria vs Gabriel",
+                    "Look up socials / visual for Maria Sotomayor",
+                    "Hold the mic and tell me about today's apps goal",
                   ]
                 : undefined
           }
@@ -684,6 +702,7 @@ export default function PartyPerfectDashboard() {
           isStreaming={isStreaming}
           onSendMessage={handleSendMessage}
           sectionTitle="Chat with Grok"
+          enableVoice
         />
       );
     }
@@ -698,6 +717,8 @@ export default function PartyPerfectDashboard() {
             reports={reports}
             liveModeEnabled={liveModeEnabled}
             lastCheckedAt={lastCheckedAt}
+            isOwner={financialsVisible}
+            onRequestOwner={() => openOwnerPin(null)}
             onNavigateAgents={() => setActiveSection("agents")}
             onNavigateTasks={() => setActiveSection("tasks")}
             onNavigateEmails={() => setActiveSection("emails")}
@@ -736,6 +757,7 @@ export default function PartyPerfectDashboard() {
             inventory={inventory}
             source={inventorySource}
             porMeta={inventoryPorMeta}
+            showRates={ownerUnlocked && canViewFinancials(userRole)}
             onCreateItem={async (input) => {
               await createInventoryItem(input);
               await refreshAll();
@@ -858,6 +880,8 @@ export default function PartyPerfectDashboard() {
             onAskMadison={openMadisonChat}
           />
         ) : null;
+      case "design":
+        return <DesignSection onAskMadison={openMadisonChat} />;
       case "marketing":
         return (
           <MarketingSection marketing={marketing} />
@@ -880,14 +904,14 @@ export default function PartyPerfectDashboard() {
         return (
           <ReportsSection
             reports={reports}
-            isOwner={userRole === "owner"}
+            isOwner={ownerUnlocked && canViewFinancials(userRole)}
             onGenerateRecap={async () => {
               const report = await generateWeeklyRecapReport();
               await refreshReports();
               return report;
             }}
             onSendSmsRecap={
-              userRole === "owner"
+              ownerUnlocked && canViewFinancials(userRole)
                 ? async () => {
                     await sendWeeklyRecapSms();
                     await refreshReports();
@@ -927,7 +951,7 @@ export default function PartyPerfectDashboard() {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[var(--pp-bg)] text-[var(--pp-text)]">
+    <div className="flex h-[100dvh] max-w-[100vw] overflow-hidden bg-[var(--pp-bg)] text-[var(--pp-text)]">
       <OwnerPinModal
         open={ownerPinOpen}
         onClose={() => {
@@ -941,6 +965,8 @@ export default function PartyPerfectDashboard() {
         userRole={userRole}
         ownerUnlocked={ownerUnlocked}
         onRequestOwner={() => openOwnerPin(null)}
+        mobileOpen={mobileNavOpen}
+        onMobileClose={() => setMobileNavOpen(false)}
         replyCounts={
           stats
             ? {
@@ -958,7 +984,7 @@ export default function PartyPerfectDashboard() {
         onNavigate={handleNavigate}
       />
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         <CommandCenterHeader
           liveModeEnabled={liveModeEnabled}
           onLiveModeChange={handleLiveModeChange}
@@ -969,18 +995,31 @@ export default function PartyPerfectDashboard() {
           onUserRoleChange={handleUserRoleChange}
           onRequestOwner={() => openOwnerPin(null)}
           onSignOut={handleSignOut}
+          onOpenMobileMenu={() => setMobileNavOpen(true)}
+          sectionLabel={
+            navItems.find((item) => item.id === activeSection)?.label ||
+            "Command Center"
+          }
         />
         <LiveNotifications
           notifications={notifications}
           onDismiss={dismissNotification}
         />
-        <main className="min-h-0 flex-1 overflow-y-auto px-6 py-6 lg:px-8 lg:py-8">
+        <main className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain px-3 py-4 pb-28 sm:px-6 sm:py-6 lg:px-8 lg:py-8 lg:pb-6">
           {renderMainContent()}
         </main>
       </div>
 
+      <MobileBottomNav
+        activeSection={activeSection}
+        onNavigate={handleNavigate}
+        onOpenMenu={() => setMobileNavOpen(true)}
+        emailNeedsReply={stats?.emailsNeedsReply ?? 0}
+        socialNeedsReply={stats?.socialNeedsReply ?? 0}
+      />
+
       {error && (
-        <div className="fixed bottom-4 left-1/2 z-40 -translate-x-1/2 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm text-red-500 shadow-lg">
+        <div className="fixed bottom-24 left-1/2 z-40 w-[min(100%-2rem,24rem)] -translate-x-1/2 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm text-red-500 shadow-lg lg:bottom-4">
           {error}
           <button type="button" onClick={() => setError(null)} className="ml-3 underline">
             Dismiss

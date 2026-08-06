@@ -47,9 +47,15 @@ export function canAccessSection(
     "tasks",
     "emails",
     "social",
+    "design",
     "inventory",
     "hiring",
   ]);
   if (role === "owner") return true;
   return employeeAllowed.has(section);
+}
+
+/** Revenue, AR, rates, bills — owner PIN session only. */
+export function canViewFinancials(role: UserRole) {
+  return role === "owner";
 }

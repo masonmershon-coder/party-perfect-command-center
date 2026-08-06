@@ -25,15 +25,16 @@ function requestUrl(request: Request) {
   const host =
     request.headers.get("x-forwarded-host")?.split(",")[0]?.trim() ||
     request.headers.get("host") ||
-    "partyperfectcomand.app";
+    "partyperfect.app";
   const { pathname } = new URL(request.url);
   return `${proto}://${host}${pathname}`;
 }
 
 /**
- * Twilio Messaging webhook — Josh texts Mike's Twilio number.
- * Configure SMS webhook URL to:
- *   https://partyperfectcomand.app/api/sms/inbound
+ * Twilio Messaging webhook — Josh/owners text Mike's Twilio number.
+ * Prefer:
+ *   https://partyperfect.app/api/sms/inbound
+ * Legacy hosts still accept /api (middleware does not redirect APIs).
  */
 export async function POST(request: Request) {
   try {

@@ -15,7 +15,6 @@ export function DashboardHome({
   liveModeEnabled,
   lastCheckedAt,
   isOwner = false,
-  onRequestOwner,
   onNavigateAgents,
   onNavigateTasks,
   onNavigateEmails,
@@ -31,7 +30,6 @@ export function DashboardHome({
   liveModeEnabled: boolean;
   lastCheckedAt: string | null;
   isOwner?: boolean;
-  onRequestOwner?: () => void;
   onNavigateAgents: () => void;
   onNavigateTasks: () => void;
   onNavigateEmails: () => void;
@@ -52,36 +50,33 @@ export function DashboardHome({
       label: "Emails Need Reply",
       value: String(stats.emailsNeedsReply),
       hint: `${stats.emailsUnread} unread`,
-      sensitive: false,
     },
     {
       label: "Social Waiting",
       value: String(stats.socialNeedsReply),
       hint: `${stats.socialUnread} unread total`,
-      sensitive: false,
     },
     {
       label: "Tasks To Do",
       value: String(stats.tasksTodo),
       hint: `${stats.tasksInProgress} in progress`,
-      sensitive: false,
     },
     {
       label: "Low Inventory",
       value: String(stats.inventoryLow),
       hint: "Items below 25% available",
-      sensitive: false,
     },
-    {
-      label: "Pending Bills",
-      value: isOwner ? String(stats.bookkeepingPending) : "••••",
-      hint: isOwner
-        ? latestReport
-          ? `Last recap ${formatTime(latestReport.generatedAt)}`
-          : "No recap saved yet"
-        : "Owner unlock required",
-      sensitive: true,
-    },
+    ...(isOwner
+      ? [
+          {
+            label: "Pending Bills",
+            value: String(stats.bookkeepingPending),
+            hint: latestReport
+              ? `Last recap ${formatTime(latestReport.generatedAt)}`
+              : "No recap saved yet",
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -105,7 +100,11 @@ export function DashboardHome({
         }
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+      <div
+        className={`grid gap-4 sm:grid-cols-2 lg:grid-cols-3 ${
+          isOwner ? "xl:grid-cols-5" : "xl:grid-cols-4"
+        }`}
+      >
         {summaryCards.map((card) => (
           <div key={card.label} className="pp-stat-card rounded-2xl p-5">
             <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--pp-text-muted)]">
@@ -117,15 +116,6 @@ export function DashboardHome({
             <p className="mt-2 text-[11px] text-[var(--pp-text-muted)]">
               {card.hint}
             </p>
-            {card.sensitive && !isOwner && onRequestOwner ? (
-              <button
-                type="button"
-                onClick={onRequestOwner}
-                className="mt-3 text-[11px] font-semibold pp-accent-text underline-offset-2 hover:underline"
-              >
-                Unlock with owner code
-              </button>
-            ) : null}
           </div>
         ))}
       </div>
@@ -153,43 +143,36 @@ export function DashboardHome({
                 : "Waiting for ENTERPRISE sync agent. POR stays the system of record."}
             </p>
           </div>
-          {!isOwner && onRequestOwner ? (
-            <button
-              type="button"
-              onClick={onRequestOwner}
-              className="rounded-lg border border-[var(--pp-border)] px-3 py-1.5 text-[11px] font-semibold text-[var(--pp-text-muted)] hover:border-[var(--pp-accent)] hover:pp-accent-text"
-            >
-              Show money (owner)
-            </button>
-          ) : null}
         </div>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div
+          className={`mt-4 grid gap-3 sm:grid-cols-2 ${
+            isOwner ? "lg:grid-cols-4" : "lg:grid-cols-3"
+          }`}
+        >
           {[
             {
               label: "Out on rent",
               value: porLive ? String(por?.inventoryOut ?? "—") : "—",
-              sensitive: false,
             },
             {
               label: "Deliveries today",
               value: porLive ? String(por?.deliveriesToday ?? "—") : "—",
-              sensitive: false,
             },
             {
               label: "Returns due",
               value: porLive ? String(por?.returnsDueToday ?? "—") : "—",
-              sensitive: false,
             },
-            {
-              label: "AR open",
-              value:
-                isOwner && porLive && por?.arOpenBalance != null
-                  ? formatCurrency(por.arOpenBalance)
-                  : isOwner
-                    ? "—"
-                    : "••••",
-              sensitive: true,
-            },
+            ...(isOwner
+              ? [
+                  {
+                    label: "AR open",
+                    value:
+                      porLive && por?.arOpenBalance != null
+                        ? formatCurrency(por.arOpenBalance)
+                        : "—",
+                  },
+                ]
+              : []),
           ].map((item) => (
             <div
               key={item.label}
@@ -197,7 +180,6 @@ export function DashboardHome({
             >
               <p className="text-[10px] uppercase tracking-wider text-[var(--pp-text-muted)]">
                 {item.label}
-                {item.sensitive && !isOwner ? " · owner" : ""}
               </p>
               <p className="mt-2 text-xl font-semibold pp-accent-text">
                 {item.value}
@@ -284,7 +266,9 @@ export function DashboardHome({
               { label: "Open Emails", action: onNavigateEmails },
               { label: "Social Inbox", action: onNavigateSocial },
               { label: "View Agents", action: onNavigateAgents },
-              { label: "Saved Reports", action: onNavigateReports },
+              ...(isOwner
+                ? [{ label: "Saved Reports", action: onNavigateReports }]
+                : []),
             ].map((item) => (
               <button
                 key={item.label}
@@ -307,25 +291,6 @@ export function DashboardHome({
               <p className="mt-1 line-clamp-2 text-xs text-[var(--pp-text-muted)]">
                 {latestReport.content}
               </p>
-            </div>
-          )}
-          {latestReport && !isOwner && (
-            <div className="mt-4 rounded-xl border border-[var(--pp-border)] bg-[var(--pp-bg)] px-4 py-3">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--pp-text-muted)]">
-                Latest report · owner only
-              </p>
-              <p className="mt-1 text-sm text-[var(--pp-text-muted)]">
-                Recap details are hidden in employee view.
-              </p>
-              {onRequestOwner ? (
-                <button
-                  type="button"
-                  onClick={onRequestOwner}
-                  className="mt-2 text-[11px] font-semibold pp-accent-text underline-offset-2 hover:underline"
-                >
-                  Unlock with owner code
-                </button>
-              ) : null}
             </div>
           )}
         </section>

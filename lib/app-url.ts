@@ -1,8 +1,8 @@
 /**
- * Live Command Center host (typo domain until SSL cutover).
- * Override with NEXT_PUBLIC_APP_URL when partyperfectcommand.app is ready.
+ * Live Command Center host.
+ * Override in Vercel with NEXT_PUBLIC_APP_URL / APP_URL if needed.
  */
-const DEFAULT_APP_URL = "https://partyperfectcomand.app";
+const DEFAULT_APP_URL = "https://partyperfect.app";
 
 export function getPublicAppUrl() {
   const fromEnv =

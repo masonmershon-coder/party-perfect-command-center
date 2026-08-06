@@ -17,7 +17,6 @@ export function Sidebar({
   replyCounts,
   userRole,
   ownerUnlocked,
-  onRequestOwner,
   mobileOpen = false,
   onMobileClose,
 }: {
@@ -26,7 +25,6 @@ export function Sidebar({
   replyCounts?: SidebarReplyCounts;
   userRole: UserRole;
   ownerUnlocked: boolean;
-  onRequestOwner: () => void;
   mobileOpen?: boolean;
   onMobileClose?: () => void;
 }) {
@@ -37,14 +35,12 @@ export function Sidebar({
     return `${unread} unread · ${needsReply} need reply`;
   }
 
+  // Owner-only tabs (bookkeeping, marketing, reports) stay completely hidden
+  // until Owner is selected and the admin code unlocks the session.
   const visibleItems = navItems.filter((item) => {
     if (!item.ownerOnly) return true;
     return ownerUnlocked && canAccessSection(userRole, item.id);
   });
-
-  const lockedOwnerItems = navItems.filter(
-    (item) => item.ownerOnly && !ownerUnlocked,
-  );
 
   function go(section: NavSection) {
     onNavigate(section);
@@ -157,38 +153,6 @@ export function Sidebar({
               </button>
             );
           })}
-
-          {lockedOwnerItems.length > 0 && (
-            <>
-              <p className="px-3 pb-2 pt-4 text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--pp-text-muted)]">
-                Admin
-              </p>
-              {lockedOwnerItems.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => {
-                    onRequestOwner();
-                    onMobileClose?.();
-                  }}
-                  className="flex min-h-[48px] w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-base font-medium text-[var(--pp-text-muted)] transition hover:bg-[var(--pp-nav-hover)] hover:text-[var(--pp-text)] lg:min-h-0 lg:py-2.5 lg:text-sm"
-                >
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[var(--pp-accent-muted)] text-base text-[var(--pp-text-muted)] lg:h-8 lg:w-8 lg:text-sm">
-                    {item.icon}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block">{item.label}</span>
-                    <span className="mt-0.5 block text-[10px] font-normal text-[var(--pp-text-muted)]">
-                      Owner code required
-                    </span>
-                  </span>
-                  <span className="text-xs" aria-hidden>
-                    🔒
-                  </span>
-                </button>
-              ))}
-            </>
-          )}
         </nav>
 
         <div className="border-t border-[var(--pp-border)] p-4">

@@ -1,5 +1,5 @@
 /** Single source of truth for Command Center + Jobs release metadata. */
-export const APP_VERSION = "1.6.0";
+export const APP_VERSION = "1.6.1";
 
 /** ISO date of this release (YYYY-MM-DD). */
 export const APP_RELEASED_AT = "2026-08-06";
@@ -8,10 +8,10 @@ export const APP_RELEASE_LABEL = `v${APP_VERSION} · ${APP_RELEASED_AT}`;
 
 export const APP_RELEASE_NOTES = {
   commandCenter: [
+    "Primary host is partyperfect.app — old command domains redirect safely",
+    "Employee view hides Bookkeeping / Marketing / Reports until Owner unlock",
     "Madison auto-picks Flux photoreal (Fal) vs Grok Imagine for Design Studio",
     "Hiring: open applicant resumes + schooling on Mike review cards",
-    "Madison Design look board: multi photo + video uploads, still returns 2 looks",
-    "Phone-friendly Command Center + Jobs Safari findability",
   ],
   jobs: [
     "Thank-you only after apply — no department fit shown to applicants",

@@ -718,7 +718,6 @@ export default function PartyPerfectDashboard() {
             liveModeEnabled={liveModeEnabled}
             lastCheckedAt={lastCheckedAt}
             isOwner={financialsVisible}
-            onRequestOwner={() => openOwnerPin(null)}
             onNavigateAgents={() => setActiveSection("agents")}
             onNavigateTasks={() => setActiveSection("tasks")}
             onNavigateEmails={() => setActiveSection("emails")}
@@ -964,7 +963,6 @@ export default function PartyPerfectDashboard() {
         activeSection={activeSection}
         userRole={userRole}
         ownerUnlocked={ownerUnlocked}
-        onRequestOwner={() => openOwnerPin(null)}
         mobileOpen={mobileNavOpen}
         onMobileClose={() => setMobileNavOpen(false)}
         replyCounts={

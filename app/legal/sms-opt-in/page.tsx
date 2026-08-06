@@ -50,14 +50,14 @@ export default function SmsOptInPage() {
           <strong>Legal.</strong>{" "}
           <a
             className="underline"
-            href="https://partyperfectcomand.app/legal/privacy"
+            href="https://partyperfect.app/legal/privacy"
           >
             Privacy Policy
           </a>{" "}
           ·{" "}
           <a
             className="underline"
-            href="https://partyperfectcomand.app/legal/terms"
+            href="https://partyperfect.app/legal/terms"
           >
             SMS Terms &amp; Conditions
           </a>
@@ -68,7 +68,7 @@ export default function SmsOptInPage() {
           Screenshot evidence for reviewers:{" "}
           <a
             className="underline"
-            href="https://partyperfectcomand.app/legal/sms-opt-in.png"
+            href="https://partyperfect.app/legal/sms-opt-in.png"
           >
             sms-opt-in.png
           </a>

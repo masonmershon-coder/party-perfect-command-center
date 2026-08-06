@@ -2,6 +2,7 @@
 
 import { PageHeader } from "@/app/components/dashboard/page-header";
 import { StatusBadge } from "@/app/components/status-badge";
+import { useSpeechToText } from "@/lib/speech-to-text";
 import type { Agent, Message } from "@/lib/types";
 import {
   FormEvent,
@@ -28,6 +29,7 @@ export function AgentChatView({
   onBack,
   showBack = false,
   sectionTitle = "Chat",
+  enableVoice = false,
   onSendWeeklyRecap,
   onSendTestSms,
   agentHints,
@@ -39,6 +41,7 @@ export function AgentChatView({
   onBack?: () => void;
   showBack?: boolean;
   sectionTitle?: string;
+  enableVoice?: boolean;
   onSendWeeklyRecap?: () => Promise<SmsResult>;
   onSendTestSms?: () => Promise<SmsResult>;
   agentHints?: string[];
@@ -52,6 +55,13 @@ export function AgentChatView({
   const [smsMeta, setSmsMeta] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const speech = useSpeechToText({
+    continuous: true,
+    onFinalTranscript: (text) => {
+      setInput((prev) => (prev ? `${prev.trim()} ${text}` : text));
+    },
+  });
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -71,6 +81,7 @@ export function AgentChatView({
 
     setError(null);
     setInput("");
+    if (speech.listening) speech.stop();
 
     try {
       await onSendMessage(trimmed);
@@ -239,7 +250,7 @@ export function AgentChatView({
       )}
 
       <div className="pp-panel flex min-h-0 flex-1 flex-col overflow-hidden">
-        <div className="flex-1 overflow-y-auto px-6 py-6">
+        <div className="flex-1 overflow-y-auto px-3 py-4 sm:px-6 sm:py-6">
           {messages.length === 0 ? (
             <div className="mx-auto flex h-full max-w-lg flex-col items-center justify-center text-center">
               <span className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--pp-accent-muted)] text-3xl">
@@ -280,27 +291,93 @@ export function AgentChatView({
           )}
         </div>
 
-        <div className="border-t border-[var(--pp-border)] px-6 py-4">
-          <form onSubmit={handleSubmit} className="mx-auto flex max-w-3xl gap-3">
-            <div className="pp-input flex-1 px-4 py-3">
+        <div className="border-t border-[var(--pp-border)] px-3 py-3 sm:px-6 sm:py-4">
+          <form
+            onSubmit={handleSubmit}
+            className="mx-auto flex max-w-3xl flex-col gap-2 sm:flex-row sm:gap-3"
+          >
+            <div className="pp-input flex flex-1 items-end gap-2 px-3 py-3 sm:px-4">
               <textarea
                 ref={textareaRef}
-                value={input}
+                value={
+                  speech.listening && speech.interim
+                    ? `${input}${input ? " " : ""}${speech.interim}`
+                    : input
+                }
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
                 rows={1}
                 placeholder={`Message ${agent.name}…`}
                 disabled={isStreaming}
-                className="max-h-40 w-full resize-none bg-transparent text-sm leading-6 text-[var(--pp-text)] outline-none placeholder:text-[var(--pp-text-muted)] disabled:opacity-60"
+                className="max-h-40 w-full resize-none bg-transparent text-base leading-6 text-[var(--pp-text)] outline-none placeholder:text-[var(--pp-text-muted)] disabled:opacity-60 sm:text-sm"
               />
+              {enableVoice && (
+                <button
+                  type="button"
+                  disabled={isStreaming || !speech.supported}
+                  onPointerDown={(event) => {
+                    if (event.button !== 0 || isStreaming || !speech.supported) {
+                      return;
+                    }
+                    event.preventDefault();
+                    speech.start();
+                  }}
+                  onPointerUp={() => {
+                    if (speech.listening) speech.stop();
+                  }}
+                  onPointerLeave={() => {
+                    if (speech.listening) speech.stop();
+                  }}
+                  onPointerCancel={() => {
+                    if (speech.listening) speech.stop();
+                  }}
+                  onClick={(event) => {
+                    // Fallback single-tap toggle for touch devices that miss hold.
+                    if (!speech.supported || isStreaming) return;
+                    if (event.detail === 0) return;
+                  }}
+                  className={`mb-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border text-base ${
+                    speech.listening
+                      ? "border-red-500/50 bg-red-500/15 text-red-600"
+                      : speech.supported
+                        ? "border-[var(--pp-border)] text-[var(--pp-text)] hover:border-[var(--pp-accent)] hover:pp-accent-text"
+                        : "cursor-not-allowed border-[var(--pp-border)] text-[var(--pp-text-muted)] opacity-50"
+                  }`}
+                  title={
+                    !speech.supported
+                      ? "Voice needs Chrome or Safari (HTTPS)"
+                      : speech.listening
+                        ? "Release to stop"
+                        : "Hold to talk — speech to text"
+                  }
+                  aria-label={
+                    speech.listening ? "Listening — release to stop" : "Hold to talk"
+                  }
+                >
+                  {speech.listening ? "●" : "🎙"}
+                </button>
+              )}
             </div>
-            <button type="submit" disabled={!input.trim() || isStreaming} className="pp-btn-primary inline-flex h-12 items-center px-5 text-sm">
+            <button
+              type="submit"
+              disabled={!input.trim() || isStreaming}
+              className="pp-btn-primary inline-flex h-12 w-full items-center justify-center px-5 text-sm sm:w-auto"
+            >
               {isStreaming ? "…" : "Send"}
             </button>
           </form>
-          {error && (
+          {enableVoice && (
+            <p className="mx-auto mt-2 max-w-3xl text-[11px] text-[var(--pp-text-muted)]">
+              {speech.supported
+                ? speech.listening
+                  ? "Listening… release the mic when you’re done talking."
+                  : "Hold the mic button and speak — text fills the box, then hit Send."
+                : "Mic needs Chrome or Safari on HTTPS. Allow microphone permission if prompted."}
+            </p>
+          )}
+          {(error || speech.error) && (
             <p className="mx-auto mt-3 max-w-3xl rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm text-red-500">
-              {error}
+              {error || speech.error}
             </p>
           )}
         </div>

@@ -24,11 +24,16 @@ powershell -ExecutionPolicy Bypass -File .\Install-PorSyncTask.ps1
 
 ## What it pushes
 
-Inventory + AR + ops proxies, plus optional **sales** for Mike:
-- Open quotes / reservations / quotes with event in next 14 days (`ContractFile` when present)
-- Service SKUs (delivery, flip, linen bag, labor) + ~300-item catalog sample with rates
+1. **Ops snapshot** → `/api/por/sync`  
+   Inventory + AR + ops proxies, plus optional **sales** for Mike (open quotes / reservations / ~300-item sample).
 
-If `ContractFile` columns differ, quote counts log a WARN and stay `0` — inventory sync still works.
+2. **Full catalog** → `/api/por/sync/catalog`  
+   All active `ItemFile` rows including **`NUM`** (required for availability join).
+
+3. **Reservations** → `/api/por/sync/reservations`  
+   Future `TransactionItems` + `Transactions` (status R/O firm, Q soft). Feeds `/api/quote/availability`.
+
+If `ContractFile` / `Transactions` columns differ, those blocks log a WARN and the main inventory sync still works.
 
 ## Safety
 

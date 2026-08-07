@@ -310,6 +310,100 @@ ORDER BY CategoryName, [Name]
     Write-Log ("Catalog pull failed: {0}" -f $_.Exception.Message) "WARN"
   }
 
+  # --- Full catalog (with NUM) + reservations for quoting / availability ---
+  # Best-effort: never fail the main inventory snapshot if these tables differ.
+  $fullCatalogItems = @()
+  $reservationLines = @()
+  $reservationsQueryOk = $false
+  try {
+    $fullRows = Read-Rows $conn @"
+SELECT
+  CAST([KEY] AS nvarchar(64)) AS Sku,
+  CAST([Name] AS nvarchar(200)) AS ItemName,
+  CAST(ISNULL(Category, N'') AS nvarchar(64)) AS CategoryCode,
+  CAST(ISNULL(NUM, N'') AS nvarchar(64)) AS Num,
+  CASE WHEN ISNULL(QTY,0) > 100000 THEN 0 ELSE ISNULL(QTY,0) END AS Quantity,
+  CASE WHEN ISNULL(QYOT,0) > 100000 THEN 0 ELSE ISNULL(QYOT,0) END AS QtyOut,
+  ISNULL(RATE1, ISNULL(SELL, 0)) AS Rate
+FROM dbo.ItemFile
+WHERE ISNULL(Inactive,0)=0
+  AND LTRIM(RTRIM(ISNULL([Name], N''))) <> N''
+ORDER BY [Name]
+"@
+    foreach ($row in $fullRows) {
+      $q = [double]$row.Quantity
+      $o = [double]$row.QtyOut
+      $a = [math]::Max(0, $q - $o)
+      $catCode = [string]$row.CategoryCode
+      $fullCatalogItems += @{
+        sku = [string]$row.Sku
+        name = [string]$row.ItemName
+        categoryCode = $catCode
+        category = $catCode
+        num = ([string]$row.Num).Trim()
+        ratePerDay = [math]::Round([double]$row.Rate, 2)
+        qty = [math]::Round($q, 2)
+        available = [math]::Round($a, 2)
+      }
+    }
+    Write-Log ("Full catalog rows={0} withNum={1}" -f $fullCatalogItems.Count, @($fullCatalogItems | Where-Object { $_.num }).Count)
+  } catch {
+    Write-Log ("Full catalog (NUM) pull failed: {0}" -f $_.Exception.Message) "WARN"
+  }
+
+  try {
+    $resRows = Read-Rows $conn @"
+SELECT
+  CAST(ti.ITEM AS nvarchar(64)) AS ItemKey,
+  CASE WHEN ISNULL(ti.QTY,0) > 100000 THEN 0 ELSE ISNULL(ti.QTY,0) END AS Qty,
+  ti.CNTR AS ContractNumber,
+  t.DeliveryDate,
+  t.PickupDate,
+  t.EventEndDate,
+  CAST(ISNULL(t.STAT, N'') AS nvarchar(10)) AS Status
+FROM dbo.TransactionItems ti
+INNER JOIN dbo.Transactions t ON t.CNTR = ti.CNTR
+WHERE ISNULL(ti.Archived,0)=0
+  AND ISNULL(t.Archived,0)=0
+  AND ISNULL(t.Cancelled,0)=0
+  AND (t.PickupDate IS NULL OR CAST(t.PickupDate AS date) >= CAST(GETDATE() AS date))
+  AND ISNULL(ti.QTY,0) BETWEEN 1 AND 100000
+  AND UPPER(LEFT(LTRIM(RTRIM(CAST(ISNULL(t.STAT, N'') AS nvarchar(10)))), 1)) IN (N'R', N'O', N'Q')
+"@
+    $reservationsQueryOk = $true
+    foreach ($row in $resRows) {
+      $status = ([string]$row.Status).Trim().ToUpperInvariant()
+      if (-not $status) { continue }
+      $first = $status.Substring(0, 1)
+      if ($first -notin @('R', 'O', 'Q')) { continue }
+      $firm = ($first -eq 'R' -or $first -eq 'O')
+      $delivery = $null
+      $pickup = $null
+      if ($null -ne $row.DeliveryDate -and $row.DeliveryDate -isnot [DBNull]) {
+        $delivery = ([datetime]$row.DeliveryDate).ToString("yyyy-MM-dd")
+      }
+      if ($null -ne $row.PickupDate -and $row.PickupDate -isnot [DBNull]) {
+        $pickup = ([datetime]$row.PickupDate).ToString("yyyy-MM-dd")
+      }
+      if (-not $delivery -and $null -ne $row.EventEndDate -and $row.EventEndDate -isnot [DBNull]) {
+        $delivery = ([datetime]$row.EventEndDate).ToString("yyyy-MM-dd")
+      }
+      if (-not $delivery) { continue }
+      if (-not $pickup) { $pickup = $delivery }
+      $reservationLines += @{
+        itemKey = ([string]$row.ItemKey).Trim()
+        qty = [math]::Round([double]$row.Qty, 2)
+        delivery = $delivery
+        pickup = $pickup
+        status = $status
+        firm = [bool]$firm
+      }
+    }
+    Write-Log ("Reservation lines={0} firm={1}" -f $reservationLines.Count, @($reservationLines | Where-Object { $_.firm }).Count)
+  } catch {
+    Write-Log ("Reservations pull failed: {0}" -f $_.Exception.Message) "WARN"
+  }
+
   $snapshot = [ordered]@{
     version = 1
     syncedAt = (Get-Date).ToUniversalTime().ToString("o")
@@ -353,15 +447,49 @@ ORDER BY CategoryName, [Name]
   }
 
   $json = $snapshot | ConvertTo-Json -Depth 8 -Compress
-  $uri = "$($config.CommandCenterUrl.TrimEnd('/'))/api/por/sync"
+  $baseUrl = $config.CommandCenterUrl.TrimEnd('/')
   $headers = @{
     Authorization = "Bearer $($config.PorSyncSecret)"
     "Content-Type" = "application/json"
   }
 
-  $response = Invoke-RestMethod -Method Post -Uri $uri -Headers $headers -Body $json -TimeoutSec 90
+  $response = Invoke-RestMethod -Method Post -Uri "$baseUrl/api/por/sync" -Headers $headers -Body $json -TimeoutSec 90
   Write-Log ("Push OK. items={0} AR={1} out={2} pay24h={3} catalog={4} services={5} quotes={6}" -f $totalItems, $arOpen, $outQty, $payCount, $catalogItems.Count, $serviceItems.Count, $openQuotes)
   ($response | ConvertTo-Json -Depth 4 -Compress) | ForEach-Object { Write-Log $_ }
+
+  if ($fullCatalogItems.Count -gt 0) {
+    try {
+      $catalogPayload = [ordered]@{
+        source = "ENTERPRISE Sync-PorSnapshot ItemFile"
+        syncedAt = (Get-Date).ToUniversalTime().ToString("o")
+        activeItems = $fullCatalogItems.Count
+        items = $fullCatalogItems
+      }
+      $catalogJson = $catalogPayload | ConvertTo-Json -Depth 6 -Compress
+      $catResp = Invoke-RestMethod -Method Post -Uri "$baseUrl/api/por/sync/catalog" -Headers $headers -Body $catalogJson -TimeoutSec 180
+      Write-Log ("Full catalog push OK. items={0}" -f $fullCatalogItems.Count)
+      ($catResp | ConvertTo-Json -Depth 4 -Compress) | ForEach-Object { Write-Log $_ }
+    } catch {
+      Write-Log ("Full catalog push failed: {0}" -f $_.Exception.Message) "WARN"
+    }
+  }
+
+  if ($reservationsQueryOk) {
+    try {
+      # Push even when empty so Redis doesn't keep stale future holds forever.
+      $resPayload = [ordered]@{
+        source = "ENTERPRISE Sync-PorSnapshot Transactions+TransactionItems"
+        syncedAt = (Get-Date).ToUniversalTime().ToString("o")
+        reservations = @($reservationLines)
+      }
+      $resJson = $resPayload | ConvertTo-Json -Depth 6 -Compress
+      $resResp = Invoke-RestMethod -Method Post -Uri "$baseUrl/api/por/sync/reservations" -Headers $headers -Body $resJson -TimeoutSec 180
+      Write-Log ("Reservations push OK. lines={0}" -f $reservationLines.Count)
+      ($resResp | ConvertTo-Json -Depth 4 -Compress) | ForEach-Object { Write-Log $_ }
+    } catch {
+      Write-Log ("Reservations push failed: {0}" -f $_.Exception.Message) "WARN"
+    }
+  }
 }
 catch {
   Write-Log $_.Exception.Message "ERROR"

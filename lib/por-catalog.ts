@@ -1,13 +1,12 @@
-import { readDurableJson } from "@/lib/durable-json";
+import { readDurableJson, writeDurableJson } from "@/lib/durable-json";
 import type { PorCatalogItem, PorCatalogState } from "@/lib/types";
 
 /**
  * The FULL Point of Rental item catalog (all active SKUs), so Madison can match a
  * design/photo against every real rental — not just the ~300-item live snapshot sample.
  *
- * Data lives under durable key `por-catalog.json` (data/por-catalog.json in dev; seed
- * into Redis for prod via `node --env-file=.env.local scripts/seed-por-catalog.mjs`).
- * Changes rarely (only when POR items/rates change), so a periodic re-seed is enough.
+ * Data lives under durable key `por-catalog.json`. ENTERPRISE sync refreshes it every
+ * ~10 min (with ItemFile.NUM). Manual seed: `scripts/seed-por-catalog.mjs`.
  */
 const CATALOG_KEY = "por-catalog.json";
 const CACHE_MS = 5 * 60 * 1000;
@@ -15,6 +14,34 @@ let cache: { state: PorCatalogState; at: number } | null = null;
 
 function emptyCatalog(): PorCatalogState {
   return { items: [], activeItems: 0, source: "", syncedAt: "" };
+}
+
+/** Drop in-memory cache after ENTERPRISE sync writes a fresh catalog. */
+export function clearPorCatalogCache() {
+  cache = null;
+}
+
+export function isValidPorCatalogState(value: unknown): value is PorCatalogState {
+  if (!value || typeof value !== "object") return false;
+  const state = value as PorCatalogState;
+  if (!Array.isArray(state.items)) return false;
+  if (state.items.length === 0) return false;
+  const sample = state.items[0] as Partial<PorCatalogItem>;
+  return (
+    typeof sample.sku === "string" &&
+    typeof sample.name === "string" &&
+    typeof sample.ratePerDay === "number" &&
+    typeof sample.qty === "number"
+  );
+}
+
+export async function savePorCatalog(state: PorCatalogState): Promise<void> {
+  clearPorCatalogCache();
+  await writeDurableJson(CATALOG_KEY, {
+    ...state,
+    activeItems: state.activeItems || state.items.length,
+    syncedAt: state.syncedAt || new Date().toISOString(),
+  });
 }
 
 function tokenize(text: string): string[] {

@@ -1,12 +1,13 @@
-import { readDurableJson } from "@/lib/durable-json";
+import { readDurableJson, writeDurableJson } from "@/lib/durable-json";
 import { getPorCatalog } from "@/lib/por-catalog";
-import type { PorReservationState } from "@/lib/types";
+import type { PorReservation, PorReservationState } from "@/lib/types";
 
 /**
  * Availability-by-date / overbooking. Reservations come from POR
  * (Transactions + TransactionItems). Firm holds (Status R or O) reduce
  * availability; soft holds (Q quotes) are pending warnings only.
  * Total owned qty comes from the full catalog (ItemFile.QTY).
+ * Join: reservation.itemKey = ItemFile.NUM (not KEY).
  */
 const KEY = "por-reservations.json";
 const CACHE_MS = 5 * 60 * 1000;
@@ -14,6 +15,37 @@ let cache: { state: PorReservationState; at: number } | null = null;
 
 function empty(): PorReservationState {
   return { reservations: [], syncedAt: "", source: "" };
+}
+
+/** Drop in-memory cache after ENTERPRISE sync writes fresh reservations. */
+export function clearReservationsCache() {
+  cache = null;
+}
+
+export function isValidPorReservationState(
+  value: unknown,
+): value is PorReservationState {
+  if (!value || typeof value !== "object") return false;
+  const state = value as PorReservationState;
+  if (!Array.isArray(state.reservations)) return false;
+  if (state.reservations.length === 0) return true; // empty OK (quiet day)
+  const sample = state.reservations[0] as Partial<PorReservation>;
+  return (
+    typeof sample.itemKey === "string" &&
+    typeof sample.qty === "number" &&
+    typeof sample.delivery === "string" &&
+    typeof sample.firm === "boolean"
+  );
+}
+
+export async function savePorReservations(
+  state: PorReservationState,
+): Promise<void> {
+  clearReservationsCache();
+  await writeDurableJson(KEY, {
+    ...state,
+    syncedAt: state.syncedAt || new Date().toISOString(),
+  });
 }
 
 export async function getReservations(): Promise<PorReservationState> {

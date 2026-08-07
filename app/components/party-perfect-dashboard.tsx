@@ -16,6 +16,7 @@ import { LiveNotifications } from "@/app/components/dashboard/live-notifications
 import { Sidebar, MobileBottomNav } from "@/app/components/dashboard/sidebar";
 import { SocialSection } from "@/app/components/dashboard/social-section";
 import { DesignSection } from "@/app/components/dashboard/design-section";
+import { QuotingSection } from "@/app/components/dashboard/quoting-section";
 import { TasksSection } from "@/app/components/dashboard/tasks-section";
 import { VersionBadge } from "@/app/components/dashboard/version-badge";
 import type { EmailAccount, EmailConnectionInfo } from "@/lib/email-accounts";
@@ -450,6 +451,7 @@ export default function PartyPerfectDashboard() {
     if (
       section === "social" ||
       section === "design" ||
+      section === "quoting" ||
       section === "emails" ||
       section === "dashboard" ||
       section === "agents" ||
@@ -881,6 +883,12 @@ export default function PartyPerfectDashboard() {
         ) : null;
       case "design":
         return <DesignSection onAskMadison={openMadisonChat} />;
+      case "quoting":
+        return (
+          <QuotingSection
+            createdBy={userRole === "owner" ? "owner" : "showroom"}
+          />
+        );
       case "marketing":
         return (
           <MarketingSection marketing={marketing} />

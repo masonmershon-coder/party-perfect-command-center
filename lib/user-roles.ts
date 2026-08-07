@@ -48,6 +48,7 @@ export function canAccessSection(
     "emails",
     "social",
     "design",
+    "quoting",
     "inventory",
     "hiring",
   ]);

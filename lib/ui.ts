@@ -21,6 +21,7 @@ export const navItems: {
   { id: "emails", label: "Emails", icon: "✉" },
   { id: "social", label: "Social Media", icon: "✦" },
   { id: "design", label: "Design Studio", icon: "◐" },
+  { id: "quoting", label: "Quoting", icon: "◇" },
   { id: "inventory", label: "Inventory", icon: "▣" },
   { id: "bookkeeping", label: "Bookkeeping", icon: "◈", ownerOnly: true },
   { id: "marketing", label: "Marketing / Ads", icon: "◉", ownerOnly: true },

@@ -14,6 +14,7 @@ export type NavSection =
   | "emails"
   | "social"
   | "design"
+  | "quoting"
   | "bookkeeping"
   | "marketing"
   | "reports"
@@ -586,6 +587,51 @@ export interface Quote {
   serviceLines: QuoteLine[];
   totals: QuoteTotals;
   notes: string[];
+}
+
+export type QuoteQueueStatus = "draft" | "reviewed" | "sent";
+
+/** Customer + event fields from the paper Rental Proposal form. */
+export interface QuoteCustomerEvent {
+  customerName: string;
+  customerPhone: string;
+  customerEmail: string;
+  customerAddress?: string;
+  /** YYYY-MM-DD — drives availability check */
+  eventDate: string;
+  eventStartTime: string;
+  fulfillment: "pickup" | "delivery";
+  deliveryAddress?: string;
+  locationType?: string;
+  venue?: string;
+  guestCount?: string;
+  themeColors?: string;
+  salesRep?: string;
+  notes?: string;
+}
+
+/** Shared showroom quote queue (durable Redis/local). */
+export interface SavedQuote {
+  id: string;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  status: QuoteQueueStatus;
+  customer: QuoteCustomerEvent;
+  quote: Quote;
+  emailDraft: string;
+  ticketText: string;
+}
+
+export interface QuoteAvailabilityLineResult {
+  itemKey: string;
+  total: number;
+  firmHeld: number;
+  softHeld: number;
+  available: number;
+  requested: number;
+  overbooked: boolean;
+  tight: boolean;
 }
 
 /** A POR reservation line (from Transactions + TransactionItems) for availability. */

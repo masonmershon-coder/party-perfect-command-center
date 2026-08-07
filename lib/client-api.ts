@@ -27,6 +27,14 @@ import type {
   Task,
   TaskStatus,
   ConnectionType,
+  DesignMatchedItem,
+  PorCatalogItem,
+  Quote,
+  QuoteAvailabilityLineResult,
+  QuoteCustomerEvent,
+  QuoteLineInput,
+  QuoteQueueStatus,
+  SavedQuote,
 } from "./types";
 import type { EmailAccount, EmailConnectionInfo } from "./email-accounts";
 import { CORE_AGENT_SLUGS } from "@/lib/user-roles";
@@ -742,4 +750,156 @@ export async function generateWeeklyRecapReport() {
     }),
   );
   return payload.report;
+}
+
+/* ─── Quoting / Booking ─── */
+
+export type QuoteCandidateLine = {
+  qty: number;
+  term: string;
+  candidates: Array<PorCatalogItem & { score: number }>;
+};
+
+export async function fetchQuoteCandidates(command: string, perItem = 3) {
+  return parseJson<{ lines: QuoteCandidateLine[] }>(
+    await fetch("/api/quote/candidates", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ command, perItem }),
+    }),
+  );
+}
+
+export async function buildQuoteFromMatchesApi(input: {
+  matches: DesignMatchedItem[];
+  quantities?: Record<string, number>;
+  serviceLines?: QuoteLineInput[];
+  customerName?: string;
+  eventDate?: string;
+  salesRep?: string;
+}) {
+  return parseJson<{
+    quote: Quote;
+    ticketText: string;
+    emailDraft: string;
+  }>(
+    await fetch("/api/quote/from-matches", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    }),
+  );
+}
+
+export async function buildQuoteApi(input: {
+  productLines: QuoteLineInput[];
+  serviceLines?: QuoteLineInput[];
+  customerName?: string;
+  eventDate?: string;
+  salesRep?: string;
+  applyRounding?: boolean;
+}) {
+  return parseJson<{
+    quote: Quote;
+    ticketText: string;
+    emailDraft: string;
+  }>(
+    await fetch("/api/quote", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    }),
+  );
+}
+
+export async function checkQuoteAvailabilityApi(input: {
+  lines: Array<{ itemKey?: string; sku?: string; qty: number }>;
+  date: string;
+}) {
+  return parseJson<{
+    date: string;
+    results: QuoteAvailabilityLineResult[];
+    anyOverbooked: boolean;
+  }>(
+    await fetch("/api/quote/availability", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    }),
+  );
+}
+
+export async function matchQuotePhoto(file: File, command?: string) {
+  const form = new FormData();
+  form.append("image", file);
+  if (command?.trim()) form.append("command", command.trim());
+  return parseJson<{
+    matchedItems: DesignMatchedItem[];
+    searchTerms: string[];
+    usedVision: boolean;
+    catalogReady: boolean;
+    catalogTotal: number;
+  }>(await fetch("/api/quote/match-photo", { method: "POST", body: form }));
+}
+
+export async function searchPorCatalogApi(q: string, limit = 8) {
+  const params = new URLSearchParams({
+    q,
+    limit: String(limit),
+  });
+  return parseJson<{ items: Array<PorCatalogItem & { score: number }> }>(
+    await fetch(`/api/por/catalog/search?${params}`),
+  );
+}
+
+export async function fetchSavedQuotes() {
+  const payload = await parseJson<{ quotes: SavedQuote[] }>(
+    await fetch("/api/quotes"),
+  );
+  return payload.quotes;
+}
+
+export async function saveQuoteToQueue(input: {
+  createdBy?: string;
+  status?: QuoteQueueStatus;
+  customer?: Partial<QuoteCustomerEvent>;
+  quote: Quote;
+  emailDraft: string;
+  ticketText: string;
+}) {
+  const payload = await parseJson<{ quote: SavedQuote }>(
+    await fetch("/api/quotes", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    }),
+  );
+  return payload.quote;
+}
+
+export async function updateSavedQuoteApi(
+  id: string,
+  patch: {
+    status?: QuoteQueueStatus;
+    customer?: Partial<QuoteCustomerEvent>;
+    quote?: Quote;
+    emailDraft?: string;
+    ticketText?: string;
+    createdBy?: string;
+  },
+) {
+  const payload = await parseJson<{ quote: SavedQuote }>(
+    await fetch(`/api/quotes/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch),
+    }),
+  );
+  return payload.quote;
+}
+
+export async function deleteSavedQuoteApi(id: string) {
+  return parseJson<{ ok: boolean }>(
+    await fetch(`/api/quotes/${id}`, { method: "DELETE" }),
+  );
 }

@@ -1,6 +1,6 @@
 import nodemailer from "nodemailer";
 import { appUrl } from "./app-url";
-import { roleLabel, type JobApplication } from "./jobs";
+import { referralSourceLabel, roleLabel, type JobApplication } from "./jobs";
 
 function smtpConfigured() {
   const host = process.env.SMTP_HOST?.trim();
@@ -61,6 +61,11 @@ function formatApplicationText(app: JobApplication) {
     `High school / GED: ${app.highSchoolGraduated || "—"}`,
     `College: ${app.collegeStatus || "—"}`,
     app.schoolingNotes ? `School notes: ${app.schoolingNotes}` : null,
+    `Heard about us: ${
+      app.referralSource === "friend" && app.referralName
+        ? `${referralSourceLabel(app.referralSource)} — ${app.referralName}`
+        : referralSourceLabel(app.referralSource)
+    }`,
     app.resumeFileName
       ? `Resume: ${app.resumeFileName} (open in Command Center → Hiring)`
       : null,

@@ -15,7 +15,7 @@ import {
   hiringGoalStatus,
 } from "@/lib/hiring-goals";
 import type { JobApplication } from "@/lib/jobs";
-import { JOB_ROLES, roleLabel } from "@/lib/jobs";
+import { JOB_ROLES, referralSourceLabel, roleLabel } from "@/lib/jobs";
 import { formatTime } from "@/lib/ui";
 import { useEffect, useMemo, useState } from "react";
 
@@ -648,6 +648,16 @@ export function HiringSection({
                       {selected.schoolingNotes}
                     </p>
                   ) : null}
+                </div>
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--pp-text-muted)]">
+                    How they heard about us
+                  </p>
+                  <p className="mt-1 text-[var(--pp-text)]">
+                    {selected.referralSource === "friend" && selected.referralName
+                      ? `${referralSourceLabel(selected.referralSource)} — ${selected.referralName}`
+                      : referralSourceLabel(selected.referralSource)}
+                  </p>
                 </div>
                 {(selected.resumeFileName ||
                   selected.resumeBlobPathname ||

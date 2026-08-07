@@ -53,6 +53,19 @@ export type CollegeStatus =
   | "graduated"
   | "in_progress";
 
+/** How applicants heard about Party Perfect — one-tap on the jobs form. */
+export const JOB_REFERRAL_SOURCES = [
+  { id: "friend", label: "Friend / coworker" },
+  { id: "indeed", label: "Indeed" },
+  { id: "facebook", label: "Facebook" },
+  { id: "instagram", label: "Instagram" },
+  { id: "craigslist", label: "Craigslist" },
+  { id: "walkin", label: "Walk-in / saw us" },
+  { id: "other", label: "Other" },
+] as const;
+
+export type JobReferralSourceId = (typeof JOB_REFERRAL_SOURCES)[number]["id"] | "";
+
 export interface WorkHistoryEntry {
   employer: string;
   roleTitle: string;
@@ -78,6 +91,10 @@ export interface JobApplicationInput {
   collegeStatus: CollegeStatus;
   /** Optional school name / notes */
   schoolingNotes?: string;
+  /** One-tap: how they heard about us */
+  referralSource: JobReferralSourceId;
+  /** Who referred them (when source is friend/coworker) */
+  referralName?: string;
   availability: string;
   physicalAbility: string;
   whyPartyPerfect: string;
@@ -110,6 +127,11 @@ export interface JobApplication extends JobApplicationInput {
 
 export function roleLabel(id: string) {
   return JOB_ROLES.find((role) => role.id === id)?.label ?? id;
+}
+
+export function referralSourceLabel(id: string) {
+  if (!id) return "—";
+  return JOB_REFERRAL_SOURCES.find((row) => row.id === id)?.label ?? id;
 }
 
 /** Fast heuristic when Grok is unavailable — Mike still returns a fit. */
@@ -155,6 +177,12 @@ export function heuristicMikeReview(
   }
   if (input.highSchoolGraduated === "yes") {
     score += 3;
+  }
+  if (input.referralSource === "friend" && input.referralName?.trim()) {
+    score += 4;
+    strengths.push(`Referred by ${input.referralName.trim()}`);
+  } else if (input.referralSource) {
+    score += 1;
   }
   if (
     input.collegeStatus === "graduated" ||

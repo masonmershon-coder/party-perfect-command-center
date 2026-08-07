@@ -278,49 +278,137 @@ export function withPhotorealPrompt(prompt: string): string {
 }
 
 /**
- * Lock Party Perfect rental identity. Stop Flux from rebuilding fantasy venues
- * or inventing different chairs/linens than the showroom refs.
+ * True when staff is asking to relocate / stage inventory into a new place
+ * (garden wedding, warehouse, ballroom, etc.) — not just a lighting filter.
  */
-export function withInventoryFidelityPrompt(prompt: string): string {
-  const base = prompt.trim();
-  const lock = [
-    "IDENTITY LOCK — Party Perfect Event Rentals Tulsa:",
-    "- This is an EDIT of the reference photo(s), not a new AI scene.",
-    "- Keep the EXACT rental pieces: chair style, table shape, linen color/pattern, china, chargers, glassware, centerpieces.",
-    "- Do NOT replace blue patterned linens with plain white, or green velvet with white, or swap chair styles.",
-    "- Do NOT invent a garden, fountain, gothic hall, or luxury ballroom unless the reference already shows that place.",
-    "- Prefer honest showroom / real-event lighting over glossy CGI.",
-    "- No plastic AI look, no watermark spam, no invented products we do not rent.",
-  ].join("\n");
+export function commandWantsSceneChange(command: string): boolean {
+  const text = command.trim();
+  if (!text) return false;
 
-  if (/IDENTITY LOCK|exact rental pieces|do not invent/i.test(base)) {
+  if (
+    /\b(put|place|move|set|relocate|stage|drop|situate)\b[\s\S]{0,60}\b(in|at|into|on|onto|inside)\b/i.test(
+      text,
+    )
+  ) {
+    return true;
+  }
+  if (
+    /\b(change|swap|replace|move)\b[\s\S]{0,30}\b(background|backdrop|setting|scene|venue|location|room|environment)\b/i.test(
+      text,
+    )
+  ) {
+    return true;
+  }
+  if (
+    /\b(garden|warehouse|ballroom|barn|tent exterior|outdoor|patio|backyard|dock|reception|ceremony|church|hotel|manor|lawn|courtyard|greenhouse|vineyard|estate|park)\b/i.test(
+      text,
+    )
+  ) {
+    return true;
+  }
+  if (
+    /\b(for (this|a|an|the)\s+[\w-]*\s*(wedding|gala|party|event|reception|dinner))\b/i.test(
+      text,
+    )
+  ) {
+    return true;
+  }
+  if (/\b(make it look like|as if (it'?s|at)|staged (at|in|for))\b/i.test(text)) {
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Lock Party Perfect rental identity. Products stay exact.
+ * Venue/background only stays locked when staff did NOT ask to move the look.
+ */
+export function withInventoryFidelityPrompt(
+  prompt: string,
+  opts?: { allowSceneChange?: boolean },
+): string {
+  const base = prompt.trim();
+  const allowScene =
+    opts?.allowSceneChange ?? commandWantsSceneChange(base);
+
+  const lock = allowScene
+    ? [
+        "PRODUCT IDENTITY LOCK — Party Perfect Event Rentals Tulsa:",
+        "- Keep the EXACT rental pieces from the reference: chair style, table shape, linen color/pattern, china, chargers, glassware, centerpieces.",
+        "- Do NOT replace patterned linens with plain white, swap chair styles, or invent products we do not rent.",
+        "- DO change the surrounding place to match the staff command (garden, warehouse, wedding venue, etc.).",
+        "- Relight so the same inventory belongs in that new place — photoreal event photo, not a filter or Instagram LUT.",
+        "- No plastic AI look, no watermark spam.",
+      ].join("\n")
+    : [
+        "IDENTITY LOCK — Party Perfect Event Rentals Tulsa:",
+        "- This is an EDIT of the reference photo(s).",
+        "- Keep the EXACT rental pieces: chair style, table shape, linen color/pattern, china, chargers, glassware, centerpieces.",
+        "- Do NOT replace patterned linens with plain white, or swap chair styles.",
+        "- Keep the same place unless the staff command asks for a new venue.",
+        "- Prefer honest showroom / real-event lighting over glossy CGI.",
+        "- No plastic AI look, no watermark spam, no invented products we do not rent.",
+      ].join("\n");
+
+  if (/IDENTITY LOCK|PRODUCT IDENTITY LOCK|exact rental pieces/i.test(base)) {
     return base;
   }
   return `${base}\n\n${lock}`;
 }
 
-/** Two edit strengths when staff uploads a look board. */
+/**
+ * Two edit passes for a look board.
+ * Scene commands → place inventory in the asked venue (2 angles).
+ * Otherwise → lighting polish (not a filter-y rebuild).
+ */
 export function buildShowroomEditPrompts(command: string): {
   tight: string;
   polish: string;
+  mode: "scene" | "polish";
 } {
   const goal = command.trim() || "Client proposal look";
+  const scene = commandWantsSceneChange(goal);
+
+  if (scene) {
+    return {
+      mode: "scene",
+      tight: withInventoryFidelityPrompt(
+        [
+          `${goal}.`,
+          "SCENE PLACEMENT: take the exact Party Perfect table / linens / chairs / place settings from the reference photo and place them in the location the staff described.",
+          "Change the environment and lighting to match that place. Keep product identity identical — same linen pattern, chair style, china, table shape.",
+          "Photoreal Tulsa event rental photo for a client proposal. Do not apply a color filter or style LUT on the original room.",
+        ].join(" "),
+        { allowSceneChange: true },
+      ),
+      polish: withInventoryFidelityPrompt(
+        [
+          `${goal}.`,
+          "Same exact Party Perfect inventory in that same commanded place, alternate camera angle or lighting (golden hour / reception glow) for a second proposal option.",
+          "Products must stay recognizable as the same SKUs — only the shot and atmosphere may differ.",
+        ].join(" "),
+        { allowSceneChange: true },
+      ),
+    };
+  }
+
   return {
+    mode: "polish",
     tight: withInventoryFidelityPrompt(
       [
         `${goal}.`,
-        "Edit the main reference tablescape ONLY: improve lighting, straighten framing, tidy crumbs/clutter, and make it client-proposal clean.",
-        "Keep the same room/showroom context unless the staff command explicitly asks for a new venue.",
-        "Furniture and soft goods must stay recognizable as the same Party Perfect SKUs in the photo.",
+        "Edit the main reference tablescape: improve lighting, straighten framing, tidy crumbs/clutter, and make it client-proposal clean.",
+        "Keep the same room/showroom context. Furniture and soft goods must stay the same Party Perfect SKUs.",
       ].join(" "),
+      { allowSceneChange: false },
     ),
     polish: withInventoryFidelityPrompt(
       [
         `${goal}.`,
         "Light polish for a sales proposal: flattering light and a slightly cleaner backdrop.",
-        "CRITICAL: preserve every linen pattern, chair, table, and place setting from the reference — do not redesign the tablescape.",
-        "If adding atmosphere, keep it subtle and Tulsa-event-real, not fantasy architecture.",
+        "CRITICAL: preserve every linen pattern, chair, table, and place setting — do not redesign the tablescape or invent a new venue.",
       ].join(" "),
+      { allowSceneChange: false },
     ),
   };
 }

@@ -334,7 +334,7 @@ export function DesignSection({
       <PageHeader
         eyebrow="Madison · Design Studio"
         title="Design Studio"
-        description="Add photos, tell Madison what you need — she returns 2 looks that match what we rent."
+        description="Add photos, tell Madison what you need — polish in place, or put this table in a garden / warehouse / wedding."
         action={
           onAskMadison ? (
             <button
@@ -477,7 +477,7 @@ export function DesignSection({
             value={command}
             onChange={(e) => setCommand(e.target.value)}
             rows={3}
-            placeholder="Example: Polish this showroom tablescape for a client proposal — keep these exact linens and chairs"
+            placeholder="Example: Put this exact table in a garden for a wedding — keep these linens and chairs"
             className="mt-2 w-full rounded-xl border border-[var(--pp-border)] bg-[var(--pp-bg)] px-3 py-3 text-base leading-6 text-[var(--pp-text)] outline-none focus:border-[var(--pp-accent)]"
           />
           <p className="mt-2 text-[11px] leading-5 text-[var(--pp-text-muted)]">

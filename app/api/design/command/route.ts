@@ -5,6 +5,7 @@ import {
   storeDesignUpload,
 } from "@/lib/design-studio";
 import { madisonLinkInventoryForLook } from "@/lib/madison-inventory-match";
+import { commandWantsSceneChange } from "@/lib/madison-media-tools";
 import { grokClient } from "@/lib/grok";
 import type { DesignAspectRatio, DesignMatchedItem } from "@/lib/types";
 import { getWebsiteCatalogItemsByKeys } from "@/lib/website-catalog";
@@ -189,6 +190,12 @@ export async function POST(request: Request) {
       prompt = await enrichCommandForVideo(command);
     }
 
+    // Keep the raw staff ask in front so Flux still sees garden/warehouse/etc.
+    // even if the enricher softens the wording.
+    if (commandWantsSceneChange(command)) {
+      prompt = `Staff scene command: ${command}\n\n${prompt}`;
+    }
+
     if (matchedItems.length > 0 && boardCount > 0) {
       const names = matchedItems
         .slice(0, 6)
@@ -250,14 +257,16 @@ async function enrichCommandForInventory(
   inventoryNames: string,
   mediaKind: string,
 ) {
+  const scene = commandWantsSceneChange(command);
   try {
     const res = await grokClient.chat.completions.create({
       model: "grok-4.3",
       messages: [
         {
           role: "system",
-          content:
-            "You write ONE Flux image-edit instruction for Party Perfect Event Rentals (Tulsa). Staff may attach real inventory photos. Instruct the model to KEEP those exact rental pieces (linens pattern/color, chairs, china, tables) — polish lighting only. Forbid inventing gardens, ballrooms, or different products. Return ONLY the edit instruction.",
+          content: scene
+            ? "You write ONE Flux Kontext SCENE-PLACEMENT instruction for Party Perfect Event Rentals (Tulsa). Staff attached real inventory photos and asked to stage them in a new place. Instruct: keep exact rental pieces (linen pattern/color, chairs, china, tables); CHANGE environment/venue/lighting to match the staff command. Not a color filter. Return ONLY the edit instruction."
+            : "You write ONE Flux image-edit instruction for Party Perfect Event Rentals (Tulsa). Staff may attach real inventory photos. Instruct the model to KEEP those exact rental pieces (linens pattern/color, chairs, china, tables) and polish lighting/cleanup only. Do not invent a new venue unless the command asks. Return ONLY the edit instruction.",
         },
         {
           role: "user",
@@ -269,22 +278,28 @@ async function enrichCommandForInventory(
     const text = res.choices[0]?.message?.content?.trim();
     return (
       text ||
-      `${command} — keep exact Party Perfect inventory: ${inventoryNames}. Lighting polish only; do not rebuild the tablescape.`
+      (scene
+        ? `${command} — place exact Party Perfect inventory (${inventoryNames}) in the commanded location; keep SKUs identical.`
+        : `${command} — keep exact Party Perfect inventory: ${inventoryNames}. Lighting polish only.`)
     );
   } catch {
-    return `${command} — keep exact Party Perfect Tulsa inventory: ${inventoryNames}. Do not invent products or venues.`;
+    return scene
+      ? `${command} — place exact Party Perfect Tulsa inventory (${inventoryNames}) into the commanded setting.`
+      : `${command} — keep exact Party Perfect Tulsa inventory: ${inventoryNames}. Do not invent products.`;
   }
 }
 
 async function enrichCommandForPhoto(command: string, boardCount: number) {
+  const scene = commandWantsSceneChange(command);
   try {
     const res = await grokClient.chat.completions.create({
       model: "grok-4.3",
       messages: [
         {
           role: "system",
-          content:
-            "You write ONE Flux Kontext EDIT instruction (not a fresh scene). Staff uploaded showroom/phone photos of a real Party Perfect tablescape. Tell the model to preserve every linen, chair, table, and place setting exactly — only improve lighting/cleanup for a client proposal. Ban fantasy venues and product swaps. Return ONLY the edit instruction.",
+          content: scene
+            ? "You write ONE Flux Kontext SCENE-PLACEMENT instruction. Staff uploaded Party Perfect showroom/phone photos and asked to put that exact tablescape into a new place (garden, warehouse, wedding venue, etc.). Preserve every linen, chair, table, and place setting. Change ONLY the surrounding environment and lighting to match their command. Forbidden: Instagram filters, color LUTs, or inventing different products. Return ONLY the edit instruction."
+            : "You write ONE Flux Kontext EDIT instruction. Staff uploaded showroom/phone photos of a real Party Perfect tablescape. Preserve every linen, chair, table, and place setting — improve lighting/cleanup for a client proposal. Do not invent a new venue unless the staff command asks for one. Return ONLY the edit instruction.",
         },
         {
           role: "user",
@@ -296,19 +311,23 @@ async function enrichCommandForPhoto(command: string, boardCount: number) {
     const text = res.choices[0]?.message?.content?.trim();
     return text || command;
   } catch {
-    return `${command} — edit the showroom reference: keep exact linens/chairs/tables; lighting polish only; no fantasy venue rebuild.`;
+    return scene
+      ? `${command} — place the exact showroom linens/chairs/tables into the commanded venue; keep products identical; change environment + lighting only.`
+      : `${command} — edit the showroom reference: keep exact linens/chairs/tables; lighting polish only.`;
   }
 }
 
 async function enrichCommandForVideo(command: string) {
+  const scene = commandWantsSceneChange(command);
   try {
     const res = await grokClient.chat.completions.create({
       model: "grok-4.3",
       messages: [
         {
           role: "system",
-          content:
-            "Staff uploaded phone video of a Party Perfect setup. Write ONE still-image EDIT instruction that keeps the real rental pieces from the frames and only polishes lighting for a Tulsa client proposal. Return ONLY the instruction.",
+          content: scene
+            ? "Staff uploaded phone video of a Party Perfect setup and asked for a new venue. Write ONE still-image SCENE-PLACEMENT instruction: keep exact rental pieces from the frames; place them in the commanded location with matching lighting. Not a filter. Return ONLY the instruction."
+            : "Staff uploaded phone video of a Party Perfect setup. Write ONE still-image EDIT instruction that keeps the real rental pieces from the frames and polishes lighting for a Tulsa client proposal. Return ONLY the instruction.",
         },
         {
           role: "user",
@@ -320,6 +339,8 @@ async function enrichCommandForVideo(command: string) {
     const text = res.choices[0]?.message?.content?.trim();
     return text || command;
   } catch {
-    return `${command} — keep exact Party Perfect rentals from the video frames; lighting polish only.`;
+    return scene
+      ? `${command} — place exact Party Perfect rentals from the video frames into the commanded venue.`
+      : `${command} — keep exact Party Perfect rentals from the video frames; lighting polish only.`;
   }
 }

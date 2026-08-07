@@ -1,9 +1,11 @@
 import { createJobApplication, JobApplicationSaveError } from "@/lib/job-applications";
 import { storeJobResume } from "@/lib/job-resume";
 import {
+  JOB_REFERRAL_SOURCES,
   JOB_ROLES,
   type CollegeStatus,
   type JobApplicationInput,
+  type JobReferralSourceId,
   type JobRoleId,
   type WorkHistoryEntry,
 } from "@/lib/jobs";
@@ -19,6 +21,9 @@ const COLLEGE = new Set<CollegeStatus>([
   "graduated",
   "in_progress",
 ]);
+const REFERRALS = new Set<string>(
+  JOB_REFERRAL_SOURCES.map((row) => row.id),
+);
 
 function cleanText(value: unknown, max = 800) {
   return String(value ?? "")
@@ -33,6 +38,11 @@ function cleanYesNo(value: unknown): "yes" | "no" | "" {
 function cleanCollege(value: unknown): CollegeStatus {
   const v = String(value ?? "").trim() as CollegeStatus;
   return COLLEGE.has(v) ? v : "";
+}
+
+function cleanReferralSource(value: unknown): JobReferralSourceId {
+  const v = String(value ?? "").trim();
+  return REFERRALS.has(v) ? (v as JobReferralSourceId) : "";
 }
 
 function cleanWorkHistory(value: unknown): WorkHistoryEntry[] {
@@ -87,6 +97,8 @@ async function parseApplyRequest(request: Request): Promise<{
         highSchoolGraduated: cleanYesNo(form.get("highSchoolGraduated")),
         collegeStatus: cleanCollege(form.get("collegeStatus")),
         schoolingNotes: String(form.get("schoolingNotes") || ""),
+        referralSource: cleanReferralSource(form.get("referralSource")),
+        referralName: String(form.get("referralName") || ""),
         availability: String(form.get("availability") || ""),
         physicalAbility: String(form.get("physicalAbility") || ""),
         whyPartyPerfect: String(form.get("whyPartyPerfect") || ""),
@@ -178,6 +190,8 @@ export async function POST(request: Request) {
       highSchoolGraduated: cleanYesNo(body.highSchoolGraduated),
       collegeStatus: cleanCollege(body.collegeStatus),
       schoolingNotes: cleanText(body.schoolingNotes, 200) || undefined,
+      referralSource: cleanReferralSource(body.referralSource),
+      referralName: cleanText(body.referralName, 80) || undefined,
       availability: cleanText(body.availability, 400),
       physicalAbility: cleanText(body.physicalAbility, 400),
       whyPartyPerfect: cleanText(body.whyPartyPerfect, 500),
@@ -231,6 +245,23 @@ export async function POST(request: Request) {
     if (!input.collegeStatus) {
       return NextResponse.json(
         { error: "Please pick a college option in the Schooling box on step 1 (No college is fine)." },
+        { status: 400 },
+      );
+    }
+
+    if (!input.referralSource) {
+      return NextResponse.json(
+        { error: "Quick tap — how’d you hear about us?" },
+        { status: 400 },
+      );
+    }
+
+    if (
+      input.referralSource === "friend" &&
+      !(input.referralName || "").trim()
+    ) {
+      return NextResponse.json(
+        { error: "Who referred you? First name is perfect." },
         { status: 400 },
       );
     }

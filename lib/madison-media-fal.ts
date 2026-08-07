@@ -105,17 +105,19 @@ async function runKontextOnce(
   refs: string[],
   prompt: string,
   numImages: number,
+  allowSceneChange = false,
 ): Promise<{ urls: string[]; modelId: string }> {
   const model =
     refs.length > 1
       ? "fal-ai/flux-pro/kontext/multi"
       : "fal-ai/flux-pro/kontext";
   const input: Record<string, unknown> = {
-    prompt: withInventoryFidelityPrompt(prompt),
+    prompt: withInventoryFidelityPrompt(prompt, { allowSceneChange }),
     num_images: numImages,
     output_format: "jpeg",
-    // Stronger prompt stickiness so “keep exact linens/chairs” wins over fantasy rebuilds.
-    guidance_scale: 5.5,
+    // Scene placement needs stronger stickiness to the venue ask;
+    // polish stays moderate so it doesn’t over-stylize into a filter.
+    guidance_scale: allowSceneChange ? 6.5 : 4.5,
     safety_tolerance: "2",
     enhance_prompt: false,
   };
@@ -147,12 +149,13 @@ export async function runFluxEdit(
   }
 
   const edits = buildShowroomEditPrompts(job.prompt);
+  const sceneMode = edits.mode === "scene";
 
   try {
     if (n >= 2) {
       const [tight, polish] = await Promise.all([
-        runKontextOnce(refs, edits.tight, 1),
-        runKontextOnce(refs, edits.polish, 1),
+        runKontextOnce(refs, edits.tight, 1, sceneMode),
+        runKontextOnce(refs, edits.polish, 1, sceneMode),
       ]);
       const urls = [...tight.urls, ...polish.urls].slice(0, n);
       return {
@@ -160,23 +163,30 @@ export async function runFluxEdit(
         toolId: tool.id,
         toolLabel: tool.label,
         modelId: tight.modelId,
-        reason: `Flux inventory edit — keep exact SKUs (${refs.length} refs; tight + polish)`,
+        reason: sceneMode
+          ? `Flux scene placement — exact SKUs into commanded venue (${refs.length} refs)`
+          : `Flux inventory polish — exact SKUs (${refs.length} refs; lighting cleanup)`,
       };
     }
 
-    const one = await runKontextOnce(refs, edits.tight, 1);
+    const one = await runKontextOnce(refs, edits.tight, 1, sceneMode);
     return {
       urls: one.urls.slice(0, 1),
       toolId: tool.id,
       toolLabel: tool.label,
       modelId: one.modelId,
-      reason: `Flux inventory edit (${refs.length} refs)`,
+      reason: sceneMode
+        ? `Flux scene placement (${refs.length} refs)`
+        : `Flux inventory polish (${refs.length} refs)`,
     };
   } catch (err) {
     // Older/alternate multi path — try flex edit
     console.error("[madison-media] kontext failed, trying flux-2-flex/edit:", err);
     const prompt = withInventoryFidelityPrompt(
-      `${job.prompt}\n\nKeep exact Party Perfect rental pieces from every reference. Do not rebuild the tablescape.`,
+      sceneMode
+        ? `${job.prompt}\n\nPlace the exact Party Perfect rental pieces from the reference into the commanded location. Keep SKUs identical; change environment and lighting.`
+        : `${job.prompt}\n\nKeep exact Party Perfect rental pieces from every reference. Lighting polish only unless a new venue was requested.`,
+      { allowSceneChange: sceneMode },
     );
     const payload = await falRun("fal-ai/flux-2-flex/edit", {
       prompt,

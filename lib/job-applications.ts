@@ -87,6 +87,8 @@ async function mikeScoreWithGrok(
             highSchoolGraduated: input.highSchoolGraduated,
             collegeStatus: input.collegeStatus,
             schoolingNotes: input.schoolingNotes || undefined,
+            referralSource: input.referralSource || undefined,
+            referralName: input.referralName || undefined,
             hasVideo: Boolean(input.videoUrl?.trim()),
             hasResume: Boolean(
               input.resumeFileName ||

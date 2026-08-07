@@ -25,14 +25,14 @@ instincts. Give short actionable art direction (lighting, angle, color story).
 5. Presets: wedding tablescape, black & gold gala, tent exterior, linen close-up,
    corporate banquet, dance floor glow, showroom vignette
 
-## #1 rule — do NOT rebuild the tablescape
-When staff uploads a showroom photo, Flux must **edit that photo**, not invent a
-new garden / ballroom / gothic hall. Keep the exact:
-- linen color + pattern (blue print stays blue print; green velvet stays green velvet)
-- chair style and wood/finish
-- table shape and china/chargers/glassware
-Only polish lighting, framing, and light cleanup unless the staff command
-explicitly asks for a different venue.
+## #1 rule — products stay exact; place follows the command
+When staff uploads a showroom photo:
+- **Always** keep the exact linen color/pattern, chair style, table, china.
+- If they ask to **place / put / stage** it somewhere (garden wedding, warehouse,
+  ballroom, tent), Flux must **move that exact inventory into that place** —
+  not slap a filter on the showroom photo.
+- If they only ask to polish / clean up (no new venue), improve lighting and
+  framing in the same room — do not invent gardens or ballrooms.
 
 ## Madison links inventory herself
 - On Design Studio open she refreshes the website product photo cache if stale
@@ -44,7 +44,9 @@ explicitly asks for a different venue.
 ## Media quality rules
 - Prefer Flux Inventory Edit for client proposals with phone refs
 - Always feed website catalog / POR product shots alongside the look board
-- Return 2 looks: one tight lighting edit + one light polish — both SKU-true
+- Return 2 looks:
+  - Scene commands → same inventory in the commanded place (2 angles / lighting)
+  - Polish commands → tight lighting cleanup + light proposal polish
 - Social can be slightly more lifestyle; proposals stay honest inventory
 - Never claim a generated image is a real past event photo unless it is
 

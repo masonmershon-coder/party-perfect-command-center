@@ -3,8 +3,10 @@
 import { PartyPerfectLogo } from "@/app/components/dashboard/party-perfect-logo";
 import { BRAND } from "@/lib/brand";
 import {
+  JOB_REFERRAL_SOURCES,
   JOB_ROLES,
   type CollegeStatus,
+  type JobReferralSourceId,
   type JobRoleId,
   type WorkHistoryEntry,
 } from "@/lib/jobs";
@@ -24,6 +26,8 @@ interface FormState {
   highSchoolGraduated: "yes" | "no" | "";
   collegeStatus: CollegeStatus;
   schoolingNotes: string;
+  referralSource: JobReferralSourceId;
+  referralName: string;
   availability: string;
   physicalAbility: string;
   whyPartyPerfect: string;
@@ -53,6 +57,8 @@ const EMPTY_FORM: FormState = {
   highSchoolGraduated: "",
   collegeStatus: "",
   schoolingNotes: "",
+  referralSource: "",
+  referralName: "",
   availability: "",
   physicalAbility: "",
   whyPartyPerfect: "",
@@ -162,6 +168,20 @@ export function JobsApplication() {
       if (!form.collegeStatus) {
         focusSchooling();
         return "Pick a college option in the Schooling box (No college is fine).";
+      }
+      if (!form.referralSource) {
+        window.requestAnimationFrame(() => {
+          document
+            .getElementById("jobs-referral")
+            ?.scrollIntoView({ behavior: "smooth", block: "center" });
+        });
+        return "Quick tap — how’d you hear about us?";
+      }
+      if (
+        form.referralSource === "friend" &&
+        form.referralName.trim().length < 2
+      ) {
+        return "Who referred you? First name is perfect.";
       }
     }
     if (step === 2) {
@@ -488,6 +508,50 @@ export function JobsApplication() {
                   onChange={(value) => updateField("schoolingNotes", value)}
                   placeholder="High school, college, trade program…"
                 />
+              </div>
+
+              <div id="jobs-referral" className="scroll-mt-24 space-y-3">
+                <div>
+                  <p className="text-sm font-extrabold text-[var(--jobs-ink)]">
+                    How’d you hear about us?
+                  </p>
+                  <p className="mt-0.5 text-xs text-[var(--jobs-muted)]">
+                    One tap — keeps it simple.
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {JOB_REFERRAL_SOURCES.map((source) => {
+                    const active = form.referralSource === source.id;
+                    return (
+                      <button
+                        key={source.id}
+                        type="button"
+                        onClick={() => {
+                          updateField("referralSource", source.id);
+                          if (source.id !== "friend") {
+                            updateField("referralName", "");
+                          }
+                        }}
+                        className={`rounded-full border px-3.5 py-2 text-sm font-bold transition ${
+                          active
+                            ? "border-[var(--jobs-teal)] bg-[var(--jobs-teal)] text-white"
+                            : "border-black/10 bg-white text-[var(--jobs-ink)] hover:border-[var(--jobs-teal)]/40"
+                        }`}
+                      >
+                        {source.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                {form.referralSource === "friend" && (
+                  <Field
+                    label="Who referred you?"
+                    value={form.referralName}
+                    onChange={(value) => updateField("referralName", value)}
+                    placeholder="First name is perfect"
+                    autoComplete="off"
+                  />
+                )}
               </div>
             </div>
           )}

@@ -1,21 +1,23 @@
 #!/usr/bin/env node
 /**
- * Seed the full POR active catalog into durable Redis for Madison (prod).
+ * Seed POR catalog + reservations into durable Redis (prod).
  *
  *   node --env-file=.env.local scripts/seed-por-catalog.mjs
  *
- * Reads data/por-catalog.json (committed) and writes durable key `por-catalog.json`.
- * Re-run whenever POR rates/items change.
+ * Writes:
+ *   - data/por-catalog.json      → durable key por-catalog.json  (includes ItemFile.NUM)
+ *   - data/por-reservations.json → durable key por-reservations.json
+ *
+ * Re-run when POR rates/items/reservations change. For live freshness later,
+ * add the reservations SELECT to Sync-PorSnapshot.ps1 (see AVAILABILITY_BY_DATE_SPEC).
  */
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Redis } from "@upstash/redis";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, "..");
-const FILE = resolve(ROOT, "data/por-catalog.json");
-const DURABLE_KEY = "por-catalog.json";
 const REDIS_JSON_PREFIX = "pp:json:";
 const REDIS_ALL_KEYS = "pp:json:keys";
 
@@ -33,30 +35,71 @@ if (!url || !token) {
   process.exit(1);
 }
 
-const raw = readFileSync(FILE, "utf8");
-const catalog = JSON.parse(raw);
+const redis = new Redis({ url, token });
 
-if (!Array.isArray(catalog.items) || catalog.items.length === 0) {
-  console.error("data/por-catalog.json has no items.");
-  process.exit(1);
+async function seedJson(fileRel, durableKey, verify) {
+  const file = resolve(ROOT, fileRel);
+  if (!existsSync(file)) {
+    console.error(`Missing ${fileRel}`);
+    process.exit(1);
+  }
+  const data = JSON.parse(readFileSync(file, "utf8"));
+  verify(data, fileRel);
+
+  const redisKey = `${REDIS_JSON_PREFIX}${durableKey}`;
+  console.log(`Seeding ${fileRel} → Redis ${redisKey}`);
+
+  const pipeline = redis.pipeline();
+  pipeline.set(redisKey, data);
+  pipeline.sadd(REDIS_ALL_KEYS, durableKey);
+  await pipeline.exec();
+
+  const check = await redis.get(redisKey);
+  return { durableKey, redisKey, check, data };
 }
 
-const redis = new Redis({ url, token });
-const redisKey = `${REDIS_JSON_PREFIX}${DURABLE_KEY}`;
-
-console.log(
-  `Seeding ${catalog.items.length} items (activeItems=${catalog.activeItems}) → Redis ${redisKey}`,
+const catalogSeed = await seedJson(
+  "data/por-catalog.json",
+  "por-catalog.json",
+  (catalog, path) => {
+    if (!Array.isArray(catalog.items) || catalog.items.length === 0) {
+      throw new Error(`${path} has no items.`);
+    }
+    const withNum = catalog.items.filter((i) => i?.num != null && String(i.num).trim()).length;
+    if (withNum < catalog.items.length * 0.9) {
+      throw new Error(
+        `${path}: only ${withNum}/${catalog.items.length} items have num — re-export before seeding.`,
+      );
+    }
+  },
 );
 
-const pipeline = redis.pipeline();
-pipeline.set(redisKey, catalog);
-pipeline.sadd(REDIS_ALL_KEYS, DURABLE_KEY);
-await pipeline.exec();
+const catalogCount = Array.isArray(catalogSeed.check?.items)
+  ? catalogSeed.check.items.length
+  : 0;
+if (catalogCount < 1000) {
+  console.error(`Catalog seed verify failed — Redis has ${catalogCount} items.`);
+  process.exit(1);
+}
+const sampleNum = catalogSeed.check.items.find((i) => i?.num)?.num;
 
-const check = await redis.get(redisKey);
-const count = Array.isArray(check?.items) ? check.items.length : 0;
-if (count < 1000) {
-  console.error(`Seed verify failed — Redis has ${count} items.`);
+const resSeed = await seedJson(
+  "data/por-reservations.json",
+  "por-reservations.json",
+  (state, path) => {
+    if (!Array.isArray(state.reservations) || state.reservations.length === 0) {
+      throw new Error(`${path} has no reservations.`);
+    }
+  },
+);
+
+const resCount = Array.isArray(resSeed.check?.reservations)
+  ? resSeed.check.reservations.length
+  : 0;
+if (resCount < 100) {
+  console.error(
+    `Reservations seed verify failed — Redis has ${resCount} rows.`,
+  );
   process.exit(1);
 }
 
@@ -64,12 +107,19 @@ console.log(
   JSON.stringify(
     {
       ok: true,
-      durableKey: DURABLE_KEY,
-      redisKey,
-      items: count,
-      activeItems: check.activeItems,
-      syncedAt: check.syncedAt,
-      source: check.source,
+      catalog: {
+        durableKey: "por-catalog.json",
+        items: catalogCount,
+        activeItems: catalogSeed.check.activeItems,
+        sampleNum,
+        syncedAt: catalogSeed.check.syncedAt,
+      },
+      reservations: {
+        durableKey: "por-reservations.json",
+        count: resCount,
+        syncedAt: resSeed.check.syncedAt,
+        source: resSeed.check.source,
+      },
     },
     null,
     2,

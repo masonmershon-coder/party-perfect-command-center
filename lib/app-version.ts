@@ -1,5 +1,5 @@
 /** Single source of truth for Command Center + Jobs release metadata. */
-export const APP_VERSION = "1.7.0";
+export const APP_VERSION = "1.7.1";
 
 /** ISO date of this release (YYYY-MM-DD). */
 export const APP_RELEASED_AT = "2026-08-07";
@@ -8,10 +8,10 @@ export const APP_RELEASE_LABEL = `v${APP_VERSION} · ${APP_RELEASED_AT}`;
 
 export const APP_RELEASE_NOTES = {
   commandCenter: [
+    "Quote availability-by-date — overbook/tight warnings via ItemFile.NUM join",
     "Quote assembly API — buildQuote → tax/waiver/deposit + ticket + email draft",
     "Madison matches against the full 8,979-item POR catalog (not just snapshot sample)",
     "Mike chat upgraded to Grok 4.3 + clearer applicant photo search links",
-    "Monday weekly recap emails to info@mershonevents.com (SMS still optional)",
   ],
   jobs: [
     "One-tap “How’d you hear about us?” — stays quick, not a slog",

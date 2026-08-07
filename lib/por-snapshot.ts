@@ -31,6 +31,19 @@ export function porInventoryTotals(snapshot: PorSnapshot): {
   availableQuantity: number;
   outQuantity: number;
 } {
+  // Prefer the COMPLETE category rollup (all SKUs grouped) over items[], which the
+  // sync caps at top-300 by qty-out and would badly undercount total stock.
+  const cats = snapshot.inventory.categories.filter((c) => !isFeeCategory(c.name));
+  if (cats.length) {
+    const totalQuantity = cats.reduce((s, c) => s + Math.max(0, c.quantity), 0);
+    const availableQuantity = cats.reduce((s, c) => s + Math.max(0, c.available), 0);
+    return {
+      totalItems: cats.reduce((s, c) => s + Math.max(0, c.itemCount), 0),
+      totalQuantity,
+      availableQuantity,
+      outQuantity: Math.max(0, totalQuantity - availableQuantity),
+    };
+  }
   const items = snapshot.inventory.items;
   if (items?.length) {
     const real = items.filter((i) => !isFeeCategory(i.category));
@@ -38,17 +51,6 @@ export function porInventoryTotals(snapshot: PorSnapshot): {
     const availableQuantity = real.reduce((s, i) => s + Math.max(0, i.available), 0);
     return {
       totalItems: real.length,
-      totalQuantity,
-      availableQuantity,
-      outQuantity: Math.max(0, totalQuantity - availableQuantity),
-    };
-  }
-  const cats = snapshot.inventory.categories.filter((c) => !isFeeCategory(c.name));
-  if (cats.length) {
-    const totalQuantity = cats.reduce((s, c) => s + Math.max(0, c.quantity), 0);
-    const availableQuantity = cats.reduce((s, c) => s + Math.max(0, c.available), 0);
-    return {
-      totalItems: cats.reduce((s, c) => s + Math.max(0, c.itemCount), 0),
       totalQuantity,
       availableQuantity,
       outQuantity: Math.max(0, totalQuantity - availableQuantity),

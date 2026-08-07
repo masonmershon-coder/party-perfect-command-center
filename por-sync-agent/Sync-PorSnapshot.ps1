@@ -107,14 +107,19 @@ $conn = $null
 try {
   $conn = New-SqlConnection $config
 
-  $totalItems = [int](Get-Scalar $conn "SELECT COUNT(*) FROM dbo.ItemFile WHERE ISNULL(Inactive,0)=0")
+  # Exclude POR "FEE - ..." and "DISCOUNT" categories from stock math - they are
+  # service/fee lines (delivery, setup, waivers), NOT rentable inventory, and their
+  # QTY/QYOT hold garbage counters that inflate out-on-rent and low-stock numbers.
+  $notFee = "AND ISNULL(Category,'') NOT LIKE 'FEE%' AND ISNULL(Category,'') NOT LIKE 'DISCOUNT%'"
+
+  $totalItems = [int](Get-Scalar $conn "SELECT COUNT(*) FROM dbo.ItemFile WHERE ISNULL(Inactive,0)=0 $notFee")
   $totalQty = Get-Scalar $conn @"
 SELECT SUM(CASE WHEN ISNULL(QTY,0) > 100000 THEN 0 ELSE ISNULL(QTY,0) END)
-FROM dbo.ItemFile WHERE ISNULL(Inactive,0)=0
+FROM dbo.ItemFile WHERE ISNULL(Inactive,0)=0 $notFee
 "@
   $outQty = Get-Scalar $conn @"
 SELECT SUM(CASE WHEN ISNULL(QYOT,0) > 100000 THEN 0 ELSE ISNULL(QYOT,0) END)
-FROM dbo.ItemFile WHERE ISNULL(Inactive,0)=0
+FROM dbo.ItemFile WHERE ISNULL(Inactive,0)=0 $notFee
 "@
   $availQty = [math]::Max(0, $totalQty - $outQty)
 
@@ -125,7 +130,7 @@ SELECT TOP 165
   SUM(CASE WHEN ISNULL(QTY,0) > 100000 THEN 0 ELSE ISNULL(QTY,0) END) AS Quantity,
   SUM(CASE WHEN ISNULL(QYOT,0) > 100000 THEN 0 ELSE ISNULL(QYOT,0) END) AS QtyOut
 FROM dbo.ItemFile
-WHERE ISNULL(Inactive,0)=0
+WHERE ISNULL(Inactive,0)=0 $notFee
 GROUP BY ISNULL(NULLIF(LTRIM(RTRIM(Category)), ''), N'Uncategorized')
 ORDER BY ItemCount DESC
 "@
@@ -144,7 +149,7 @@ ORDER BY ItemCount DESC
   }
 
   $itemRows = Read-Rows $conn @"
-SELECT TOP 80
+SELECT TOP 300
   CAST([KEY] AS nvarchar(64)) AS ItemKey,
   CAST([Name] AS nvarchar(200)) AS ItemName,
   ISNULL(NULLIF(LTRIM(RTRIM(Category)), ''), N'Uncategorized') AS CategoryName,
@@ -152,7 +157,7 @@ SELECT TOP 80
   CASE WHEN ISNULL(QYOT,0) > 100000 THEN 0 ELSE ISNULL(QYOT,0) END AS QtyOut,
   ISNULL(RATE1, ISNULL(SELL, 0)) AS Rate
 FROM dbo.ItemFile
-WHERE ISNULL(Inactive,0)=0
+WHERE ISNULL(Inactive,0)=0 $notFee
 ORDER BY QtyOut DESC, [Name]
 "@
 

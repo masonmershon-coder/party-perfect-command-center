@@ -25,6 +25,7 @@ import {
   getPorSnapshot,
   getPorSyncMeta,
   inventoryFromPorSnapshot,
+  porInventoryTotals,
 } from "./por-snapshot";
 import type {
   Agent,
@@ -1076,8 +1077,8 @@ export async function getDashboardStats(): Promise<DashboardStats> {
       openContracts: por?.ops.openContracts ?? null,
       deliveriesToday: por?.ops.deliveriesToday ?? null,
       returnsDueToday: por?.ops.returnsDueToday ?? null,
-      inventoryAvailable: por?.inventory.availableQuantity ?? null,
-      inventoryOut: por?.inventory.outQuantity ?? null,
+      inventoryAvailable: por ? porInventoryTotals(por).availableQuantity : null,
+      inventoryOut: por ? porInventoryTotals(por).outQuantity : null,
       paymentsLast24hVolume: por?.money.paymentsLast24h.volume ?? null,
     },
   };

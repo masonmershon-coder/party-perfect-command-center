@@ -9,6 +9,60 @@ import type {
 export const POR_SNAPSHOT_KEY = "por-snapshot.json";
 export const POR_SYNC_STALE_MS = 30 * 60 * 1000;
 
+/**
+ * POR "FEE - …" and "DISCOUNT" categories are service/fee lines (delivery, setup,
+ * labor, waivers), NOT rentable stock. Their QTY/QYOT fields hold garbage counters
+ * (e.g. "Delivery Fee $3.50/mi" reports 51,146 in stock), so counting them as
+ * inventory inflates out-on-rent and low-stock numbers. Exclude them from stock.
+ */
+export function isFeeCategory(category: string | undefined | null): boolean {
+  const c = (category || "").toUpperCase();
+  return c.startsWith("FEE") || c.startsWith("DISCOUNT");
+}
+
+/**
+ * Real (non-fee) inventory totals recomputed from the snapshot's per-item data so
+ * dashboard "out on rent" / "available" reflect rentable stock only. Falls back to
+ * non-fee category rollups, then to the stored totals when items aren't present.
+ */
+export function porInventoryTotals(snapshot: PorSnapshot): {
+  totalItems: number;
+  totalQuantity: number;
+  availableQuantity: number;
+  outQuantity: number;
+} {
+  const items = snapshot.inventory.items;
+  if (items?.length) {
+    const real = items.filter((i) => !isFeeCategory(i.category));
+    const totalQuantity = real.reduce((s, i) => s + Math.max(0, i.quantity), 0);
+    const availableQuantity = real.reduce((s, i) => s + Math.max(0, i.available), 0);
+    return {
+      totalItems: real.length,
+      totalQuantity,
+      availableQuantity,
+      outQuantity: Math.max(0, totalQuantity - availableQuantity),
+    };
+  }
+  const cats = snapshot.inventory.categories.filter((c) => !isFeeCategory(c.name));
+  if (cats.length) {
+    const totalQuantity = cats.reduce((s, c) => s + Math.max(0, c.quantity), 0);
+    const availableQuantity = cats.reduce((s, c) => s + Math.max(0, c.available), 0);
+    return {
+      totalItems: cats.reduce((s, c) => s + Math.max(0, c.itemCount), 0),
+      totalQuantity,
+      availableQuantity,
+      outQuantity: Math.max(0, totalQuantity - availableQuantity),
+    };
+  }
+  const inv = snapshot.inventory;
+  return {
+    totalItems: inv.totalItems,
+    totalQuantity: inv.totalQuantity,
+    availableQuantity: inv.availableQuantity,
+    outQuantity: inv.outQuantity,
+  };
+}
+
 export function isPorSyncConfigured() {
   return Boolean(process.env.POR_SYNC_SECRET?.trim());
 }
@@ -55,20 +109,24 @@ export function inventoryFromPorSnapshot(
   snapshot: PorSnapshot,
 ): InventoryItem[] {
   if (snapshot.inventory.items?.length) {
-    return snapshot.inventory.items.map((item) => ({
-      id: item.id,
-      name: item.name,
-      category: item.category,
-      quantity: item.quantity,
-      available: item.available,
-      pricePerDay: item.pricePerDay ?? 0,
-      status: item.status,
-      notes: item.notes ?? "Live from Point of Rental (read-only)",
-      updatedAt: snapshot.syncedAt,
-    }));
+    return snapshot.inventory.items
+      .filter((item) => !isFeeCategory(item.category))
+      .map((item) => ({
+        id: item.id,
+        name: item.name,
+        category: item.category,
+        quantity: item.quantity,
+        available: item.available,
+        pricePerDay: item.pricePerDay ?? 0,
+        status: item.status,
+        notes: item.notes ?? "Live from Point of Rental (read-only)",
+        updatedAt: snapshot.syncedAt,
+      }));
   }
 
-  return snapshot.inventory.categories.map((category, index) => {
+  return snapshot.inventory.categories
+    .filter((category) => !isFeeCategory(category.name))
+    .map((category, index) => {
     const quantity = Math.max(0, Math.round(category.quantity));
     const available = Math.max(0, Math.round(category.available));
     const out = Math.max(0, quantity - available);
@@ -177,12 +235,14 @@ export function formatPorContextForAgents(
     ? "WARNING: POR sync is STALE — prefer last-known numbers and say they may be outdated."
     : "POR sync is fresh (within 30 minutes).";
 
+  const invTotals = porInventoryTotals(snapshot);
   const lines = [
     "Live Point of Rental snapshot (read-only copy — never claim you can change POR):",
     staleNote,
     `Synced at: ${snapshot.syncedAt} from ${snapshot.sourceHost}`,
-    `Inventory: ${snapshot.inventory.totalItems} items · qty ${snapshot.inventory.totalQuantity} · available ${snapshot.inventory.availableQuantity} · out ${snapshot.inventory.outQuantity}`,
+    `Inventory (rentable stock, excludes fee/service lines): ${invTotals.totalItems} items · qty ${invTotals.totalQuantity} · available ${invTotals.availableQuantity} · out ${invTotals.outQuantity}`,
     `Top categories: ${snapshot.inventory.categories
+      .filter((c) => !isFeeCategory(c.name))
       .slice(0, 8)
       .map((c) => `${c.name} (${c.available}/${c.quantity})`)
       .join("; ") || "n/a"}`,

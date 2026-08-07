@@ -11,18 +11,27 @@
 | `partyperfectcommand.app` | Legacy long name — same as above |
 | `partyperfectjobs.com` | Public jobs site (unchanged) |
 
-Turn **auto-renew off** on the two legacy command domains in Vercel → Domains (keep renewing `partyperfect.app` + jobs).
-
 ## Cutover checklist
 
 - [x] Buy / attach `partyperfect.app` on the Command Center project
 - [x] Code default + middleware redirect legacy hosts → `partyperfect.app`
-- [x] Keep `/api/*` on legacy hosts (Twilio, POR, OAuth callbacks)
-- [ ] Vercel env: `NEXT_PUBLIC_APP_URL` + `APP_URL` = `https://partyperfect.app`
-- [ ] Meta Valid OAuth Redirect URI add: `https://partyperfect.app/api/auth/meta/callback` (then flip `META_OAUTH_REDIRECT_URI`)
-- [ ] Google Ads redirect URI (if used) → new host
-- [ ] Twilio SMS webhook → `https://partyperfect.app/api/sms/inbound` (optional; old URL still works)
-- [ ] ENTERPRISE POR `config.json` → `CommandCenterUrl`: `https://partyperfect.app`
-- [ ] Disable auto-renew on `partyperfectcomand.app` + `partyperfectcommand.app`
+- [x] Keep `/api/*` on legacy hosts during transition
+- [x] Vercel env: `NEXT_PUBLIC_APP_URL` + `APP_URL` = `https://partyperfect.app`
+- [x] Vercel env: `META_OAUTH_REDIRECT_URI` = `https://partyperfect.app/api/auth/meta/callback`
+- [x] Auto-renew off on legacy command domains; on for `partyperfect.app`
+- [ ] **Meta Developer Console** — add Valid OAuth Redirect URI:  
+      `https://partyperfect.app/api/auth/meta/callback`  
+      (keep old URI until reconnect works)
+- [ ] **Twilio Console** — Phone number (+1 866 545-6364) A MESSAGE COMES IN webhook:  
+      `https://partyperfect.app/api/sms/inbound` (HTTP POST)  
+      Or run: `node --env-file=.env.local scripts/point-twilio-webhook.mjs`
+- [ ] **ENTERPRISE POR** `config.json` → `"CommandCenterUrl": "https://partyperfect.app"`
+- [ ] Google Ads redirect URI (if used) → `https://partyperfect.app/api/auth/google-ads/callback`
 
-Until external services are updated, nothing should break: pages redirect, APIs remain on old hosts.
+## Verify
+
+```bash
+curl -sI https://partyperfectcomand.app/ | head -5   # expect 308 → partyperfect.app
+curl -s https://partyperfect.app/api/health | python3 -m json.tool
+curl -sI https://partyperfect.app/legal/sms-opt-in | head -5
+```

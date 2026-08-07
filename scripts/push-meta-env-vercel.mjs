@@ -44,7 +44,7 @@ const values = {
     "",
   META_OAUTH_REDIRECT_URI:
     process.env.META_OAUTH_REDIRECT_URI?.trim() ||
-    "https://partyperfectcomand.app/api/auth/meta/callback",
+    "https://partyperfect.app/api/auth/meta/callback",
   CRON_SECRET: process.env.CRON_SECRET?.trim() || "",
 };
 

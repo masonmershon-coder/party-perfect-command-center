@@ -2,7 +2,7 @@
 /**
  * Quick check: Redis + POR sync readiness on production Command Center.
  */
-const url = process.env.HEALTH_URL || "https://partyperfectcomand.app/api/health";
+const url = process.env.HEALTH_URL || "https://partyperfect.app/api/health";
 
 async function main() {
   const res = await fetch(url, { cache: "no-store" });

@@ -1,6 +1,9 @@
 # partyperfectjobs.com → Vercel (same app as Command Center)
 
-Applications on **partyperfectjobs.com** and Hiring on **partyperfectcomand.app** share one backend. There is no manual transfer — durable Redis + backup email is the source of truth.
+Applications on **partyperfectjobs.com** and Hiring on **partyperfect.app** share one backend. There is no manual transfer — durable Redis + backup email is the source of truth.
+
+**Applicant goal:** 1–5 apps/day — outreach copy + cadence in [HIRING_OUTREACH.md](./HIRING_OUTREACH.md).  
+**How Mike chooses:** [HIRING_SELECTION.md](./HIRING_SELECTION.md) (tents first, physical truth). Hiring UI shows Today vs goal (Tulsa time).
 
 Redis setup details: [REDIS_SETUP.md](./REDIS_SETUP.md)
 
@@ -22,7 +25,7 @@ npx vercel integration add upstash/upstash-kv --plan free -m primaryRegion=iad1 
    - `UPSTASH_REDIS_REST_URL`
    - `UPSTASH_REDIS_REST_TOKEN`
 5. Redeploy Production.
-6. Check health: `https://partyperfectcomand.app/api/health`
+6. Check health: `https://partyperfectcommand.app/api/health`
    - `durableStoreMode` must be `"redis"`
    - `jobsStoreOk` must be `true`
 7. Migrate any old Blob apps once (if any survive):
@@ -71,7 +74,7 @@ Health field `jobsBackupEmailConfigured` should become `true`.
 
 Use the same form at:
 
-`https://partyperfectcomand.app/jobs`
+`https://partyperfectcommand.app/jobs`
 
 Same API, same Redis, same Hiring list.
 

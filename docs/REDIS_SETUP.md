@@ -5,7 +5,7 @@ Production Blob is **suspended**. Hiring apps and live POR snapshots need Redis.
 ## Confirm current status
 
 ```bash
-curl -sS https://partyperfectcomand.app/api/health | python3 -m json.tool
+curl -sS https://partyperfect.app/api/health | python3 -m json.tool
 ```
 
 Success looks like:

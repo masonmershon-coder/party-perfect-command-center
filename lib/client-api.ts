@@ -859,6 +859,72 @@ export async function fetchSavedQuotes() {
   return payload.quotes;
 }
 
+export type QuoteGuardPayload = {
+  ok: boolean;
+  date: string;
+  conflicts: Array<{
+    sku: string;
+    name: string;
+    requested: number;
+    available: number;
+    shortBy: number;
+    kind: "overbooked" | "tight";
+  }>;
+  warnings: Array<{
+    sku: string;
+    name: string;
+    requested: number;
+    available: number;
+    shortBy: number;
+    kind: "overbooked" | "tight";
+  }>;
+  summary: string;
+};
+
+export class QuoteOverbookedError extends Error {
+  guard: QuoteGuardPayload;
+  constructor(guard: QuoteGuardPayload) {
+    super(guard.summary || "overbooked");
+    this.name = "QuoteOverbookedError";
+    this.guard = guard;
+  }
+}
+
+type QuoteMutationPayload = {
+  error?: string;
+  quote?: SavedQuote;
+  guard?: QuoteGuardPayload;
+};
+
+async function parseQuoteMutation(response: Response) {
+  const text = await response.text();
+  let payload: QuoteMutationPayload | null = null;
+  if (text.trim()) {
+    try {
+      payload = JSON.parse(text) as QuoteMutationPayload;
+    } catch {
+      payload = null;
+    }
+  }
+  if (response.status === 409 && payload?.guard) {
+    throw new QuoteOverbookedError(payload.guard);
+  }
+  if (!response.ok) {
+    throw new Error(
+      typeof payload?.error === "string"
+        ? payload.error
+        : `Request failed (${response.status}).`,
+    );
+  }
+  if (!payload?.quote) {
+    throw new Error("Empty response from server.");
+  }
+  return {
+    quote: payload.quote,
+    guard: payload.guard,
+  };
+}
+
 export async function saveQuoteToQueue(input: {
   createdBy?: string;
   status?: QuoteQueueStatus;
@@ -867,14 +933,13 @@ export async function saveQuoteToQueue(input: {
   emailDraft: string;
   ticketText: string;
 }) {
-  const payload = await parseJson<{ quote: SavedQuote }>(
+  return parseQuoteMutation(
     await fetch("/api/quotes", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(input),
     }),
   );
-  return payload.quote;
 }
 
 export async function updateSavedQuoteApi(
@@ -888,14 +953,13 @@ export async function updateSavedQuoteApi(
     createdBy?: string;
   },
 ) {
-  const payload = await parseJson<{ quote: SavedQuote }>(
+  return parseQuoteMutation(
     await fetch(`/api/quotes/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(patch),
     }),
   );
-  return payload.quote;
 }
 
 export async function deleteSavedQuoteApi(id: string) {

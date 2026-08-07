@@ -9,10 +9,12 @@ import {
   fetchQuoteCandidates,
   fetchSavedQuotes,
   matchQuotePhoto,
+  QuoteOverbookedError,
   saveQuoteToQueue,
   searchPorCatalogApi,
   updateSavedQuoteApi,
   type QuoteCandidateLine,
+  type QuoteGuardPayload,
 } from "@/lib/client-api";
 import { useSpeechToText } from "@/lib/speech-to-text";
 import type {
@@ -134,6 +136,7 @@ export function QuotingSection({
     results: QuoteAvailabilityLineResult[];
   } | null>(null);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
+  const [guardInfo, setGuardInfo] = useState<QuoteGuardPayload | null>(null);
 
   const speech = useSpeechToText({
     continuous: true,
@@ -173,6 +176,7 @@ export function QuotingSection({
     setAvailability(null);
     setError(null);
     setSaveMsg(null);
+    setGuardInfo(null);
     setBusy(false);
   }
 
@@ -191,6 +195,7 @@ export function QuotingSection({
     setAvailability(null);
     setError(null);
     setSaveMsg(null);
+    setGuardInfo(null);
     setStep("quote");
     setScreen("builder");
   }
@@ -520,6 +525,7 @@ export function QuotingSection({
     setBusy(true);
     setError(null);
     setSaveMsg(null);
+    setGuardInfo(null);
     try {
       // Refresh totals/email from current edited lines before save
       const built = await buildQuoteApi({
@@ -535,7 +541,7 @@ export function QuotingSection({
       setTicketText(built.ticketText);
 
       if (editingId) {
-        await updateSavedQuoteApi(editingId, {
+        const result = await updateSavedQuoteApi(editingId, {
           status,
           customer,
           quote: built.quote,
@@ -543,9 +549,15 @@ export function QuotingSection({
           ticketText: built.ticketText,
           createdBy: customer.salesRep || createdBy,
         });
-        setSaveMsg("Updated in shared queue.");
+        setEditingId(result.quote.id);
+        if (result.guard) setGuardInfo(result.guard);
+        setSaveMsg(
+          result.guard?.warnings?.length
+            ? `Updated — ${result.guard.summary}`
+            : "Updated in shared queue.",
+        );
       } else {
-        const saved = await saveQuoteToQueue({
+        const result = await saveQuoteToQueue({
           createdBy: customer.salesRep || createdBy,
           status,
           customer,
@@ -553,12 +565,22 @@ export function QuotingSection({
           emailDraft: built.emailDraft,
           ticketText: built.ticketText,
         });
-        setEditingId(saved.id);
-        setSaveMsg("Saved to shared queue.");
+        setEditingId(result.quote.id);
+        if (result.guard) setGuardInfo(result.guard);
+        setSaveMsg(
+          result.guard?.warnings?.length
+            ? `Saved — ${result.guard.summary}`
+            : "Saved to shared queue.",
+        );
       }
       await refreshQueue();
     } catch (err) {
-      setError((err as Error).message);
+      if (err instanceof QuoteOverbookedError) {
+        setGuardInfo(err.guard);
+        setError(err.guard.summary);
+      } else {
+        setError((err as Error).message);
+      }
     } finally {
       setBusy(false);
     }
@@ -634,8 +656,21 @@ export function QuotingSection({
             await refreshQueue();
           }}
           onStatus={async (id, status) => {
-            await updateSavedQuoteApi(id, { status });
-            await refreshQueue();
+            try {
+              const result = await updateSavedQuoteApi(id, { status });
+              if (result.guard?.warnings?.length) {
+                setSaveMsg(result.guard.summary);
+                setGuardInfo(result.guard);
+              }
+              await refreshQueue();
+            } catch (err) {
+              if (err instanceof QuoteOverbookedError) {
+                setGuardInfo(err.guard);
+                setQueueError(err.guard.summary);
+              } else {
+                setQueueError((err as Error).message);
+              }
+            }
           }}
         />
       ) : (
@@ -670,6 +705,34 @@ export function QuotingSection({
             <p className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-600">
               {error}
             </p>
+          ) : null}
+          {guardInfo && !guardInfo.ok ? (
+            <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-700">
+              <p className="font-semibold">Blocked — overbooked</p>
+              <p className="mt-1">{guardInfo.summary}</p>
+              <ul className="mt-2 list-disc pl-4 text-xs">
+                {guardInfo.conflicts.map((c) => (
+                  <li key={c.sku}>
+                    {c.name}: need {c.requested}, only {c.available} free (short{" "}
+                    {c.shortBy})
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+          {guardInfo?.ok && guardInfo.warnings.length > 0 ? (
+            <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-800">
+              <p className="font-semibold">Approve with eyes open</p>
+              <p className="mt-1">{guardInfo.summary}</p>
+              <ul className="mt-2 list-disc pl-4 text-xs">
+                {guardInfo.warnings.map((c) => (
+                  <li key={c.sku}>
+                    {c.name}: {c.requested} requested, {c.available} firm-free,{" "}
+                    soft holds overlap
+                  </li>
+                ))}
+              </ul>
+            </div>
           ) : null}
           {saveMsg ? (
             <p className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700">
@@ -794,7 +857,7 @@ function QueueView({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-[var(--pp-text-muted)]">
           Shared review queue — Shelly, Divine, Cayden, and the whole showroom
-          see the same list.
+          see the same list. Marking reviewed/sent runs the overbooking guard.
         </p>
         <button
           type="button"
@@ -805,7 +868,9 @@ function QueueView({
         </button>
       </div>
       {error ? (
-        <p className="text-sm text-red-600">{error}</p>
+        <p className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-600">
+          {error}
+        </p>
       ) : null}
       {loading ? (
         <p className="text-sm text-[var(--pp-text-muted)]">Loading queue…</p>

@@ -2,6 +2,7 @@ import {
   createSavedQuote,
   listSavedQuotes,
 } from "@/lib/quote-queue";
+import { guardIfApproving } from "@/lib/quote-guard";
 import type { Quote, QuoteCustomerEvent, QuoteQueueStatus } from "@/lib/types";
 import { NextResponse } from "next/server";
 
@@ -29,6 +30,20 @@ export async function POST(request: Request) {
         { status: 400 },
       );
     }
+
+    const eventDate = String(body.customer?.eventDate || "");
+    const guard = await guardIfApproving({
+      status: body.status,
+      quote: body.quote,
+      eventDate,
+    });
+    if (guard && !guard.ok) {
+      return NextResponse.json(
+        { error: "overbooked", guard },
+        { status: 409 },
+      );
+    }
+
     const saved = await createSavedQuote({
       createdBy: body.createdBy,
       status: body.status,
@@ -37,7 +52,7 @@ export async function POST(request: Request) {
       emailDraft: body.emailDraft || "",
       ticketText: body.ticketText || "",
     });
-    return NextResponse.json({ quote: saved });
+    return NextResponse.json({ quote: saved, guard: guard ?? undefined });
   } catch (err) {
     return NextResponse.json(
       { error: (err as Error).message },

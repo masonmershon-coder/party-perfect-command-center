@@ -105,3 +105,25 @@ export async function guardQuote(
 
   return { ok, date, conflicts, warnings, summary };
 }
+
+/** Lines the approve path feeds into guardQuote (SKU + qty). */
+export function productLinesForGuard(
+  quote: { productLines?: Array<{ porItemId?: string; qty: number }> },
+) {
+  return (quote.productLines || [])
+    .filter((l) => l.porItemId)
+    .map((l) => ({ itemKey: String(l.porItemId), qty: l.qty }));
+}
+
+/**
+ * Run the overbooking guard when status is reviewed/sent.
+ * Returns null for draft saves (no block).
+ */
+export async function guardIfApproving(input: {
+  status?: string;
+  quote: { productLines?: Array<{ porItemId?: string; qty: number }> };
+  eventDate: string;
+}): Promise<GuardResult | null> {
+  if (input.status !== "reviewed" && input.status !== "sent") return null;
+  return guardQuote(productLinesForGuard(input.quote), input.eventDate);
+}

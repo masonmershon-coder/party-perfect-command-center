@@ -23,6 +23,8 @@ export async function POST(request: Request) {
       quote?: Quote;
       emailDraft?: string;
       ticketText?: string;
+      forceOverride?: boolean;
+      overrideReason?: string;
     };
     if (!body?.quote || !Array.isArray(body.quote.productLines)) {
       return NextResponse.json(
@@ -37,11 +39,22 @@ export async function POST(request: Request) {
       quote: body.quote,
       eventDate,
     });
+
+    let overbookOverride: import("@/lib/types").SavedQuote["overbookOverride"];
     if (guard && !guard.ok) {
-      return NextResponse.json(
-        { error: "overbooked", guard },
-        { status: 409 },
-      );
+      const reason = String(body.overrideReason || "").trim();
+      if (!body.forceOverride || reason.length < 8) {
+        return NextResponse.json(
+          { error: "overbooked", guard },
+          { status: 409 },
+        );
+      }
+      overbookOverride = {
+        reason: reason.slice(0, 400),
+        by: (body.createdBy || "showroom").slice(0, 80),
+        at: new Date().toISOString(),
+        summary: guard.summary,
+      };
     }
 
     const saved = await createSavedQuote({
@@ -51,6 +64,7 @@ export async function POST(request: Request) {
       quote: body.quote,
       emailDraft: body.emailDraft || "",
       ticketText: body.ticketText || "",
+      overbookOverride,
     });
     return NextResponse.json({ quote: saved, guard: guard ?? undefined });
   } catch (err) {

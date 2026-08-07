@@ -10,6 +10,7 @@ import {
   fetchSavedQuotes,
   matchQuotePhoto,
   QuoteOverbookedError,
+  rememberQuoteMatchApi,
   saveQuoteToQueue,
   searchPorCatalogApi,
   updateSavedQuoteApi,
@@ -32,6 +33,7 @@ import { formatCurrency, formatTime } from "@/lib/ui";
 import { useCallback, useEffect, useState } from "react";
 
 type CaptureMode = "type" | "photo" | "browse";
+type PhotoKind = "tablescape" | "handwriting";
 type BuilderStep = "capture" | "pick" | "customer" | "quote";
 type Screen = "queue" | "builder";
 
@@ -43,7 +45,7 @@ type PickRow = {
   selectedSku: string | null;
   customName: string;
   customRate: number;
-  candidates: Array<PorCatalogItem & { score: number }>;
+  candidates: Array<PorCatalogItem & { score: number; learned?: boolean }>;
   /** When from photo matcher */
   match?: DesignMatchedItem;
 };
@@ -117,9 +119,13 @@ export function QuotingSection({
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const [captureMode, setCaptureMode] = useState<CaptureMode>("type");
+  const [photoKind, setPhotoKind] = useState<PhotoKind>("tablescape");
+  const [photoFiles, setPhotoFiles] = useState<File[]>([]);
   const [command, setCommand] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [overrideReason, setOverrideReason] = useState("");
+  const [showOverride, setShowOverride] = useState(false);
 
   const [picks, setPicks] = useState<PickRow[]>([]);
   const [browseQuery, setBrowseQuery] = useState("");
@@ -165,6 +171,8 @@ export function QuotingSection({
     setEditingId(null);
     setStep("capture");
     setCaptureMode("type");
+    setPhotoKind("tablescape");
+    setPhotoFiles([]);
     setCommand("");
     setPicks([]);
     setBrowseQuery("");
@@ -177,6 +185,8 @@ export function QuotingSection({
     setError(null);
     setSaveMsg(null);
     setGuardInfo(null);
+    setOverrideReason("");
+    setShowOverride(false);
     setBusy(false);
   }
 
@@ -223,39 +233,44 @@ export function QuotingSection({
       id: rowId(),
       term: line.term,
       qty: line.qty,
-      selectedSku: line.candidates[0]?.sku ?? null,
+      // One clear hit → preselect; otherwise girl must choose (this vs that).
+      selectedSku:
+        line.candidates.length === 1 ? (line.candidates[0]?.sku ?? null) : null,
       customName: line.term,
       customRate: 0,
       candidates: line.candidates,
     }));
   }
 
-  async function runPhoto(file: File) {
+  async function runPhoto(files?: File[]) {
+    const list = files?.length ? files : photoFiles;
+    if (!list.length) {
+      setError(
+        photoKind === "handwriting"
+          ? "Upload a photo of the handwritten ticket first."
+          : "Upload at least one tablescape / inventory photo first.",
+      );
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
-      const result = await matchQuotePhoto(
-        file,
-        command.trim() || undefined,
-      );
-      if (!result.matchedItems.length) {
+      const result = await matchQuotePhoto(list, {
+        command: command.trim() || undefined,
+        mode: photoKind,
+      });
+      if (!result.lines.length) {
         setError(
-          "Madison couldn’t match inventory from that photo. Try a clearer shot or switch to Type.",
+          photoKind === "handwriting"
+            ? "Madison couldn’t read line items from that ticket. Try a clearer photo or type them."
+            : "Madison couldn’t match inventory from those photos. Try clearer shots or switch to Type.",
         );
         return;
       }
-      setPicks(
-        result.matchedItems.map((m) => ({
-          id: rowId(),
-          term: m.name,
-          qty: 1,
-          selectedSku: m.porItemId || m.key,
-          customName: m.name,
-          customRate: m.porPricePerDay ?? 0,
-          candidates: [],
-          match: m,
-        })),
-      );
+      if (result.transcribed) {
+        setCommand(result.transcribed);
+      }
+      setPicks(linesToPicks(result.lines));
       setStep("pick");
     } catch (err) {
       setError((err as Error).message);
@@ -310,7 +325,29 @@ export function QuotingSection({
 
   function updatePick(id: string, patch: Partial<PickRow>) {
     setPicks((prev) =>
-      prev.map((row) => (row.id === id ? { ...row, ...patch } : row)),
+      prev.map((row) => {
+        if (row.id !== id) return row;
+        const next = { ...row, ...patch };
+        // Girl confirmed a SKU → Madison learns for next time
+        if (
+          patch.selectedSku &&
+          patch.selectedSku !== row.selectedSku &&
+          patch.selectedSku !== null
+        ) {
+          const chosen = next.candidates.find((c) => c.sku === patch.selectedSku);
+          if (chosen) {
+            void rememberQuoteMatchApi({
+              term: next.term,
+              sku: chosen.sku,
+              name: chosen.name,
+              createdBy,
+            }).catch(() => {
+              // learning is best-effort
+            });
+          }
+        }
+        return next;
+      }),
     );
   }
 
@@ -520,12 +557,15 @@ export function QuotingSection({
     });
   }
 
-  async function saveToQueue(status: QuoteQueueStatus = "draft") {
+  async function saveToQueue(
+    status: QuoteQueueStatus = "draft",
+    opts?: { forceOverride?: boolean },
+  ) {
     if (!quote) return;
     setBusy(true);
     setError(null);
     setSaveMsg(null);
-    setGuardInfo(null);
+    if (!opts?.forceOverride) setGuardInfo(null);
     try {
       // Refresh totals/email from current edited lines before save
       const built = await buildQuoteApi({
@@ -540,6 +580,14 @@ export function QuotingSection({
       setEmailDraft(built.emailDraft);
       setTicketText(built.ticketText);
 
+      const overridePayload =
+        opts?.forceOverride && overrideReason.trim().length >= 8
+          ? {
+              forceOverride: true,
+              overrideReason: overrideReason.trim(),
+            }
+          : {};
+
       if (editingId) {
         const result = await updateSavedQuoteApi(editingId, {
           status,
@@ -548,13 +596,17 @@ export function QuotingSection({
           emailDraft: built.emailDraft,
           ticketText: built.ticketText,
           createdBy: customer.salesRep || createdBy,
+          ...overridePayload,
         });
         setEditingId(result.quote.id);
         if (result.guard) setGuardInfo(result.guard);
+        setShowOverride(false);
         setSaveMsg(
-          result.guard?.warnings?.length
-            ? `Updated — ${result.guard.summary}`
-            : "Updated in shared queue.",
+          result.quote.overbookOverride
+            ? `Saved with overbook override — still NOT in POR. Status: ${status}.`
+            : result.guard?.warnings?.length
+              ? `Updated — ${result.guard.summary}`
+              : `Updated in shared queue (${status}). Not written to POR.`,
         );
       } else {
         const result = await saveQuoteToQueue({
@@ -564,13 +616,17 @@ export function QuotingSection({
           quote: built.quote,
           emailDraft: built.emailDraft,
           ticketText: built.ticketText,
+          ...overridePayload,
         });
         setEditingId(result.quote.id);
         if (result.guard) setGuardInfo(result.guard);
+        setShowOverride(false);
         setSaveMsg(
-          result.guard?.warnings?.length
-            ? `Saved — ${result.guard.summary}`
-            : "Saved to shared queue.",
+          result.quote.overbookOverride
+            ? `Saved with overbook override — still NOT in POR. Status: ${status}.`
+            : result.guard?.warnings?.length
+              ? `Saved — ${result.guard.summary}`
+              : `Saved to shared queue (${status}). Not written to POR.`,
         );
       }
       await refreshQueue();
@@ -578,6 +634,7 @@ export function QuotingSection({
       if (err instanceof QuoteOverbookedError) {
         setGuardInfo(err.guard);
         setError(err.guard.summary);
+        setShowOverride(true);
       } else {
         setError((err as Error).message);
       }
@@ -619,7 +676,7 @@ export function QuotingSection({
       <PageHeader
         eyebrow="Showroom"
         title="Quoting"
-        description="Build a client quote from voice, photo, or catalog — check availability, email, and save to the shared review queue. Does not write to POR."
+        description="Build a client quote from voice, photos, or catalog. Saves to the shared queue for review — does NOT write into Point of Rental yet (ticket + email only)."
         action={
           screen === "queue" ? (
             <button
@@ -643,6 +700,21 @@ export function QuotingSection({
           )
         }
       />
+
+      {screen === "queue" ? (
+        <div className="mb-4 rounded-xl border border-[var(--pp-border)] bg-[var(--pp-accent-muted)] px-4 py-3 text-sm text-[var(--pp-text)]">
+          <p className="font-medium">Where quotes go today</p>
+          <p className="mt-1 text-[var(--pp-text-muted)]">
+            <strong className="text-[var(--pp-text)]">Draft</strong> = saved for
+            the girls to finish ·{" "}
+            <strong className="text-[var(--pp-text)]">Reviewed</strong> = checked
+            (overbook guard runs) ·{" "}
+            <strong className="text-[var(--pp-text)]">Sent</strong> = email/ticket
+            went to the client. Nothing here enters POR automatically — use the
+            printable ticket until Phase C.
+          </p>
+        </div>
+      ) : null}
 
       {screen === "queue" ? (
         <QueueView
@@ -708,16 +780,42 @@ export function QuotingSection({
           ) : null}
           {guardInfo && !guardInfo.ok ? (
             <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-700">
-              <p className="font-semibold">Blocked — overbooked</p>
+              <p className="font-semibold">Blocked — overbooked on these items</p>
               <p className="mt-1">{guardInfo.summary}</p>
               <ul className="mt-2 list-disc pl-4 text-xs">
                 {guardInfo.conflicts.map((c) => (
                   <li key={c.sku}>
-                    {c.name}: need {c.requested}, only {c.available} free (short{" "}
-                    {c.shortBy})
+                    <strong>{c.name}</strong>: need {c.requested}, only{" "}
+                    {c.available} free on {guardInfo.date} (short {c.shortBy})
                   </li>
                 ))}
               </ul>
+              {showOverride ? (
+                <div className="mt-3 space-y-2 border-t border-red-500/20 pt-3">
+                  <p className="text-xs font-medium text-red-800">
+                    Override only if a lead/owner says it’s OK (e.g. subbing stock
+                    or canceling another quote). Reason required — still does{" "}
+                    <em>not</em> write to POR.
+                  </p>
+                  <textarea
+                    value={overrideReason}
+                    onChange={(e) => setOverrideReason(e.target.value)}
+                    rows={2}
+                    placeholder="Why are we allowing this overbook? Who approved?"
+                    className="pp-input w-full px-3 py-2 text-sm"
+                  />
+                  <button
+                    type="button"
+                    disabled={busy || overrideReason.trim().length < 8}
+                    className="pp-btn-primary px-4 py-2 text-xs"
+                    onClick={() =>
+                      void saveToQueue("reviewed", { forceOverride: true })
+                    }
+                  >
+                    Save as reviewed with override
+                  </button>
+                </div>
+              ) : null}
             </div>
           ) : null}
           {guardInfo?.ok && guardInfo.warnings.length > 0 ? (
@@ -744,6 +842,10 @@ export function QuotingSection({
             <CapturePanel
               mode={captureMode}
               onMode={setCaptureMode}
+              photoKind={photoKind}
+              onPhotoKind={setPhotoKind}
+              photoFiles={photoFiles}
+              onPhotoFiles={setPhotoFiles}
               command={command}
               onCommand={setCommand}
               busy={busy}
@@ -754,7 +856,7 @@ export function QuotingSection({
               onMicStart={speech.start}
               onMicStop={speech.stop}
               onParse={runCandidates}
-              onPhoto={runPhoto}
+              onPhoto={() => void runPhoto()}
               browseQuery={browseQuery}
               onBrowseQuery={setBrowseQuery}
               browseHits={browseHits}
@@ -922,6 +1024,11 @@ function QueueView({
                     >
                       {statusLabel(row.status)}
                     </span>
+                    {row.overbookOverride ? (
+                      <p className="mt-1 text-[10px] font-semibold uppercase tracking-wider text-amber-700">
+                        Overbook override
+                      </p>
+                    ) : null}
                   </td>
                   <td className="px-5 py-4 text-[var(--pp-text-muted)]">
                     {row.createdBy}
@@ -982,6 +1089,10 @@ function QueueView({
 function CapturePanel({
   mode,
   onMode,
+  photoKind,
+  onPhotoKind,
+  photoFiles,
+  onPhotoFiles,
   command,
   onCommand,
   busy,
@@ -1003,6 +1114,10 @@ function CapturePanel({
 }: {
   mode: CaptureMode;
   onMode: (m: CaptureMode) => void;
+  photoKind: PhotoKind;
+  onPhotoKind: (k: PhotoKind) => void;
+  photoFiles: File[];
+  onPhotoFiles: (files: File[]) => void;
   command: string;
   onCommand: (v: string) => void;
   busy: boolean;
@@ -1013,7 +1128,7 @@ function CapturePanel({
   onMicStart: () => void;
   onMicStop: () => void;
   onParse: () => void;
-  onPhoto: (file: File) => void;
+  onPhoto: () => void;
   browseQuery: string;
   onBrowseQuery: (v: string) => void;
   browseHits: Array<PorCatalogItem & { score: number }>;
@@ -1101,32 +1216,101 @@ function CapturePanel({
 
       {mode === "photo" ? (
         <div className="space-y-3">
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${
+                photoKind === "tablescape"
+                  ? "border-[var(--pp-accent)] bg-[var(--pp-accent-soft)] text-[var(--pp-accent)]"
+                  : "border-[var(--pp-border)] text-[var(--pp-text-muted)]"
+              }`}
+              onClick={() => onPhotoKind("tablescape")}
+            >
+              Tablescape / product photos
+            </button>
+            <button
+              type="button"
+              className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${
+                photoKind === "handwriting"
+                  ? "border-[var(--pp-accent)] bg-[var(--pp-accent-soft)] text-[var(--pp-accent)]"
+                  : "border-[var(--pp-border)] text-[var(--pp-text-muted)]"
+              }`}
+              onClick={() => onPhotoKind("handwriting")}
+            >
+              Handwritten ticket
+            </button>
+          </div>
           <p className="text-sm text-[var(--pp-text-muted)]">
-            Photograph the tablescape. Madison matches pieces to real Party
-            Perfect SKUs — you confirm quantities next.
+            {photoKind === "handwriting"
+              ? "Photo the paper Rental Proposal. Madison reads qty + items and asks you to confirm each SKU."
+              : "Add multiple photos — whole tablescape, then chairs, glasses, linens, etc. Madison lists pieces and offers 2 SKU choices each (she learns when you tap the right one)."}
           </p>
           <textarea
             value={command}
             onChange={(e) => onCommand(e.target.value)}
             rows={2}
-            placeholder="Optional hint: gold chargers, champagne flutes…"
+            placeholder={
+              photoKind === "handwriting"
+                ? "Optional hint if handwriting is messy…"
+                : "Optional hint: gold chargers, champagne flutes…"
+            }
             className="pp-input w-full px-4 py-3 text-sm"
           />
-          <label className="pp-btn-primary inline-flex cursor-pointer px-5 py-2.5 text-sm">
-            {busy ? "Matching…" : "Upload tablescape photo"}
+          <label className="pp-btn-secondary inline-flex cursor-pointer px-5 py-2.5 text-sm">
+            {photoKind === "handwriting"
+              ? "Add ticket photo(s)"
+              : "Add photo(s)"}
             <input
               type="file"
               accept="image/*"
               capture="environment"
+              multiple={photoKind === "tablescape"}
               className="hidden"
               disabled={busy}
               onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) onPhoto(file);
+                const next = Array.from(e.target.files || []);
+                if (!next.length) return;
+                onPhotoFiles(
+                  photoKind === "handwriting"
+                    ? next.slice(0, 3)
+                    : [...photoFiles, ...next].slice(0, 8),
+                );
                 e.target.value = "";
               }}
             />
           </label>
+          {photoFiles.length ? (
+            <ul className="space-y-1 text-xs text-[var(--pp-text-muted)]">
+              {photoFiles.map((f, i) => (
+                <li key={`${f.name}-${i}`} className="flex items-center gap-2">
+                  <span className="truncate">{f.name}</span>
+                  <button
+                    type="button"
+                    className="font-semibold text-red-500"
+                    onClick={() =>
+                      onPhotoFiles(photoFiles.filter((_, j) => j !== i))
+                    }
+                  >
+                    Remove
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          <button
+            type="button"
+            disabled={busy || photoFiles.length === 0}
+            className="pp-btn-primary px-5 py-2.5 text-sm"
+            onClick={onPhoto}
+          >
+            {busy
+              ? photoKind === "handwriting"
+                ? "Reading ticket…"
+                : "Matching photos…"
+              : photoKind === "handwriting"
+                ? "Read ticket → pick SKUs"
+                : "Match photos → pick SKUs"}
+          </button>
         </div>
       ) : null}
 
@@ -1212,8 +1396,8 @@ function PickPanel({
   return (
     <div className="space-y-4">
       <p className="text-sm text-[var(--pp-text-muted)]">
-        Tap the right SKU for each item. Leave unmatched as a custom line (Amazon
-        / made-to-order) — don’t guess.
+        Tap the right SKU for each item (usually 2 choices). Madison remembers
+        your picks for next time. Leave unmatched as a custom line — don’t guess.
       </p>
       {picks.map((row) => (
         <div key={row.id} className="pp-panel rounded-2xl p-4 lg:p-5">
@@ -1262,6 +1446,11 @@ function PickPanel({
                   >
                     <p className="text-sm font-medium text-[var(--pp-text)]">
                       {c.name}
+                      {c.learned ? (
+                        <span className="ml-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--pp-accent)]">
+                          Learned
+                        </span>
+                      ) : null}
                     </p>
                     <p className="mt-1 text-xs text-[var(--pp-text-muted)]">
                       {money(c.ratePerDay)}/day · {c.available} avail
@@ -1587,10 +1776,38 @@ function QuoteReviewPanel({
   return (
     <div className="space-y-5">
       {availability?.anyOverbooked ? (
-        <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm font-medium text-red-700">
-          Overbooking on {customer.eventDate || "event date"} — at least one
-          line requests more than available (firm R/O holds). Advisory only —
-          does not write to POR.
+        <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-700">
+          <p className="font-semibold">
+            Overbooking on {customer.eventDate || "event date"} — fix qty or
+            swap items before marking reviewed/sent
+          </p>
+          <p className="mt-1 text-xs font-normal opacity-90">
+            Advisory for now (does not write to POR). These lines are short:
+          </p>
+          <ul className="mt-2 list-disc pl-4 text-xs font-normal">
+            {quote.productLines.map((line, i) => {
+              const a = availFor(line.porItemId);
+              if (!a?.overbooked) return null;
+              return (
+                <li key={`ob-${i}`}>
+                  <strong>{line.description}</strong>: need {a.requested}, only{" "}
+                  {a.available} free (short {Math.max(0, a.requested - a.available)})
+                </li>
+              );
+            })}
+          </ul>
+          {availability.results.some((r) => r.tight && !r.overbooked) ? (
+            <p className="mt-2 text-xs font-medium text-amber-700">
+              Also tight (soft quote holds):{" "}
+              {quote.productLines
+                .filter((l) => {
+                  const a = availFor(l.porItemId);
+                  return a?.tight && !a.overbooked;
+                })
+                .map((l) => l.description)
+                .join(", ") || "—"}
+            </p>
+          ) : null}
         </div>
       ) : null}
 

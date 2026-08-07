@@ -39,6 +39,8 @@ export async function PATCH(
       emailDraft?: string;
       ticketText?: string;
       createdBy?: string;
+      forceOverride?: boolean;
+      overrideReason?: string;
     };
 
     const nextQuote = body.quote ?? existing.quote;
@@ -48,14 +50,28 @@ export async function PATCH(
       quote: nextQuote,
       eventDate: String(nextCustomer.eventDate || ""),
     });
+
+    let overbookOverride: import("@/lib/types").SavedQuote["overbookOverride"];
     if (guard && !guard.ok) {
-      return NextResponse.json(
-        { error: "overbooked", guard },
-        { status: 409 },
-      );
+      const reason = String(body.overrideReason || "").trim();
+      if (!body.forceOverride || reason.length < 8) {
+        return NextResponse.json(
+          { error: "overbooked", guard },
+          { status: 409 },
+        );
+      }
+      overbookOverride = {
+        reason: reason.slice(0, 400),
+        by: (body.createdBy || existing.createdBy || "showroom").slice(0, 80),
+        at: new Date().toISOString(),
+        summary: guard.summary,
+      };
     }
 
-    const updated = await updateSavedQuote(id, body);
+    const updated = await updateSavedQuote(id, {
+      ...body,
+      overbookOverride,
+    });
     if (!updated) {
       return NextResponse.json({ error: "Quote not found." }, { status: 404 });
     }

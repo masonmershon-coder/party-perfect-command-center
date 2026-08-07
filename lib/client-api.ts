@@ -757,7 +757,7 @@ export async function generateWeeklyRecapReport() {
 export type QuoteCandidateLine = {
   qty: number;
   term: string;
-  candidates: Array<PorCatalogItem & { score: number }>;
+  candidates: Array<PorCatalogItem & { score: number; learned?: boolean }>;
 };
 
 export async function fetchQuoteCandidates(command: string, perItem = 3) {
@@ -829,17 +829,39 @@ export async function checkQuoteAvailabilityApi(input: {
   );
 }
 
-export async function matchQuotePhoto(file: File, command?: string) {
+export async function matchQuotePhoto(
+  files: File | File[],
+  options?: { command?: string; mode?: "tablescape" | "handwriting" },
+) {
+  const list = Array.isArray(files) ? files : [files];
   const form = new FormData();
-  form.append("image", file);
-  if (command?.trim()) form.append("command", command.trim());
+  form.append("mode", options?.mode || "tablescape");
+  if (options?.command?.trim()) form.append("command", options.command.trim());
+  for (const file of list) {
+    form.append("images", file);
+  }
   return parseJson<{
-    matchedItems: DesignMatchedItem[];
+    mode: "tablescape" | "handwriting";
+    lines: QuoteCandidateLine[];
     searchTerms: string[];
+    transcribed?: string;
     usedVision: boolean;
-    catalogReady: boolean;
-    catalogTotal: number;
   }>(await fetch("/api/quote/match-photo", { method: "POST", body: form }));
+}
+
+export async function rememberQuoteMatchApi(input: {
+  term: string;
+  sku: string;
+  name?: string;
+  createdBy?: string;
+}) {
+  return parseJson<{ entry: { term: string; sku: string; hits: number } }>(
+    await fetch("/api/quote/remember-match", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    }),
+  );
 }
 
 export async function searchPorCatalogApi(q: string, limit = 8) {
@@ -932,6 +954,8 @@ export async function saveQuoteToQueue(input: {
   quote: Quote;
   emailDraft: string;
   ticketText: string;
+  forceOverride?: boolean;
+  overrideReason?: string;
 }) {
   return parseQuoteMutation(
     await fetch("/api/quotes", {
@@ -951,6 +975,8 @@ export async function updateSavedQuoteApi(
     emailDraft?: string;
     ticketText?: string;
     createdBy?: string;
+    forceOverride?: boolean;
+    overrideReason?: string;
   },
 ) {
   return parseQuoteMutation(

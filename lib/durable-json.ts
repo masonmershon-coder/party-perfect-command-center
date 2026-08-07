@@ -569,4 +569,5 @@ export const DURABLE_ROOT_KEYS = [
   "por-catalog.json",
   "por-reservations.json",
   "quotes.json",
+  "quote-match-memory.json",
 ] as const;

@@ -41,6 +41,7 @@ export async function createSavedQuote(input: {
   quote: Quote;
   emailDraft: string;
   ticketText: string;
+  overbookOverride?: SavedQuote["overbookOverride"];
 }): Promise<SavedQuote> {
   const now = new Date().toISOString();
   const row: SavedQuote = {
@@ -53,6 +54,7 @@ export async function createSavedQuote(input: {
     quote: input.quote,
     emailDraft: input.emailDraft || "",
     ticketText: input.ticketText || "",
+    overbookOverride: input.overbookOverride,
   };
   const rows = await listSavedQuotes();
   rows.unshift(row);
@@ -69,6 +71,7 @@ export async function updateSavedQuote(
     emailDraft?: string;
     ticketText?: string;
     createdBy?: string;
+    overbookOverride?: SavedQuote["overbookOverride"] | null;
   },
 ): Promise<SavedQuote | null> {
   const rows = await listSavedQuotes();
@@ -88,6 +91,10 @@ export async function updateSavedQuote(
     createdBy: patch.createdBy?.trim()
       ? patch.createdBy.trim().slice(0, 80)
       : prev.createdBy,
+    overbookOverride:
+      patch.overbookOverride === null
+        ? undefined
+        : (patch.overbookOverride ?? prev.overbookOverride),
   };
   rows[idx] = next;
   await writeDurableJson(KEY, rows);

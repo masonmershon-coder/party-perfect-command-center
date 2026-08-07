@@ -621,6 +621,13 @@ export interface SavedQuote {
   quote: Quote;
   emailDraft: string;
   ticketText: string;
+  /** When staff forced reviewed/sent despite hard overbook */
+  overbookOverride?: {
+    reason: string;
+    by: string;
+    at: string;
+    summary: string;
+  };
 }
 
 export interface QuoteAvailabilityLineResult {

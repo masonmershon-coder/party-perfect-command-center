@@ -1,5 +1,5 @@
 /** Single source of truth for Command Center + Jobs release metadata. */
-export const APP_VERSION = "1.8.1";
+export const APP_VERSION = "1.8.2";
 
 /** ISO date of this release (YYYY-MM-DD). */
 export const APP_RELEASED_AT = "2026-08-07";
@@ -8,10 +8,10 @@ export const APP_RELEASE_LABEL = `v${APP_VERSION} · ${APP_RELEASED_AT}`;
 
 export const APP_RELEASE_NOTES = {
   commandCenter: [
-    "Overbooking guard on quote approve — reviewed/sent blocked when firm stock short",
-    "Quoting tab — type/voice, photo, or catalog → pick SKUs → quote + availability + email/ticket + shared queue",
-    "Quote candidates API — top-N SKU options per mention for showroom confirm",
-    "POR sync pushes live full catalog (NUM) + reservations every 10 min",
+    "Quoting photos: multi tablescape + handwritten ticket OCR; Madison offers 2 SKUs and learns picks",
+    "Overbook banner lists which items are short; reviewed/sent override with required reason",
+    "Shared queue copy clarifies draft→reviewed→sent — still no POR write",
+    "Overbooking guard on approve — hard overbooks return 409 unless overridden",
   ],
   jobs: [
     "One-tap “How’d you hear about us?” — stays quick, not a slog",

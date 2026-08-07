@@ -549,3 +549,39 @@ export interface PorCatalogState {
   source: string;
   syncedAt: string;
 }
+
+/** A single line to price in a quote (rental product or service/fee). */
+export interface QuoteLineInput {
+  qty: number;
+  description: string;
+  unitRate: number;
+  porItemName?: string;
+  porItemId?: string;
+  category?: string;
+  size?: string;
+  color?: string;
+  kind?: "product" | "service";
+}
+
+export interface QuoteLine extends QuoteLineInput {
+  kind: "product" | "service";
+  lineTotal: number;
+  lineNote?: string;
+}
+
+export interface QuoteTotals {
+  productSubtotal: number;
+  serviceSubtotal: number;
+  subtotal: number;
+  salesTax: number;
+  damageWaiver: number;
+  total: number;
+  deposit: number;
+}
+
+export interface Quote {
+  productLines: QuoteLine[];
+  serviceLines: QuoteLine[];
+  totals: QuoteTotals;
+  notes: string[];
+}

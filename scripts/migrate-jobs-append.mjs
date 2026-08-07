@@ -102,5 +102,5 @@ for (const app of legacy) {
 
 console.log(`\nDone. migrated=${migrated} skipped=${skipped}`);
 console.log(
-  "Next: confirm https://partyperfectcomand.app/api/health shows durableStoreMode=redis and jobsStoreOk=true",
+  "Next: confirm https://partyperfectcommand.app/api/health shows durableStoreMode=redis and jobsStoreOk=true",
 );

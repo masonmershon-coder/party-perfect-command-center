@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "./components/theme-provider";
 import "./globals.css";
@@ -21,6 +21,22 @@ export const metadata: Metadata = {
     icon: "/party-perfect-logo.png",
     apple: "/party-perfect-logo.png",
   },
+  appleWebApp: {
+    capable: true,
+    title: "Command Center",
+    statusBarStyle: "default",
+  },
+};
+
+/** Phone-first viewport — full width on iPhone Safari, safe-area aware. */
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#0a1018" },
+  ],
 };
 
 export default function RootLayout({

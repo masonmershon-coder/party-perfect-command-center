@@ -207,6 +207,109 @@ SELECT COUNT(*) FROM dbo.CustomerFile
 WHERE LastActive IS NOT NULL AND CAST(LastActive AS date) = CAST(GETDATE() AS date)
 "@)
 
+  # --- Sales pipeline + catalog for Mike ticket completion (best-effort; never fail sync) ---
+  $openQuotes = 0
+  $openReservations = 0
+  $quotesWithin14 = 0
+  try {
+    $openQuotes = [int](Get-Scalar $conn @"
+SELECT COUNT(*) FROM dbo.ContractFile
+WHERE UPPER(LTRIM(RTRIM(CAST(Status AS nvarchar(10))))) IN (N'Q')
+"@)
+    $openReservations = [int](Get-Scalar $conn @"
+SELECT COUNT(*) FROM dbo.ContractFile
+WHERE UPPER(LTRIM(RTRIM(CAST(Status AS nvarchar(10))))) IN (N'R')
+"@)
+    $quotesWithin14 = [int](Get-Scalar $conn @"
+SELECT COUNT(*) FROM dbo.ContractFile
+WHERE UPPER(LTRIM(RTRIM(CAST(Status AS nvarchar(10))))) IN (N'Q')
+  AND BegDate IS NOT NULL
+  AND CAST(BegDate AS date) >= CAST(GETDATE() AS date)
+  AND CAST(BegDate AS date) <= DATEADD(day, 14, CAST(GETDATE() AS date))
+"@)
+    Write-Log ("ContractFile quotes={0} reservations={1} quotes<=14d={2}" -f $openQuotes, $openReservations, $quotesWithin14)
+  } catch {
+    Write-Log ("ContractFile quote counts unavailable: {0}" -f $_.Exception.Message) "WARN"
+  }
+
+  $serviceItems = @()
+  try {
+    $serviceRows = Read-Rows $conn @"
+SELECT TOP 40
+  CAST([KEY] AS nvarchar(64)) AS ItemKey,
+  CAST([Name] AS nvarchar(200)) AS ItemName,
+  ISNULL(NULLIF(LTRIM(RTRIM(Category)), ''), N'Uncategorized') AS CategoryName,
+  CASE WHEN ISNULL(QTY,0) > 100000 THEN 0 ELSE ISNULL(QTY,0) END AS Quantity,
+  CASE WHEN ISNULL(QYOT,0) > 100000 THEN 0 ELSE ISNULL(QYOT,0) END AS QtyOut,
+  ISNULL(RATE1, ISNULL(SELL, 0)) AS Rate
+FROM dbo.ItemFile
+WHERE ISNULL(Inactive,0)=0
+  AND (
+    [Name] LIKE N'%Delivery%'
+    OR [Name] LIKE N'%Pick%Up%'
+    OR [Name] LIKE N'%Pickup%'
+    OR [Name] LIKE N'%Linen Bag%'
+    OR [Name] LIKE N'%Room Flip%'
+    OR [Name] LIKE N'%Flip%'
+    OR [Name] LIKE N'%Labor%'
+    OR [Name] LIKE N'%Convenience%'
+    OR Category LIKE N'%Service%'
+    OR Category LIKE N'%Fee%'
+    OR Category LIKE N'%Labor%'
+  )
+ORDER BY [Name]
+"@
+    foreach ($row in $serviceRows) {
+      $q = [double]$row.Quantity
+      $o = [double]$row.QtyOut
+      $a = [math]::Max(0, $q - $o)
+      $serviceItems += @{
+        id = "por-svc-$($row.ItemKey)"
+        name = [string]$row.ItemName
+        category = [string]$row.CategoryName
+        quantity = [math]::Round($q, 2)
+        available = [math]::Round($a, 2)
+        pricePerDay = [math]::Round([double]$row.Rate, 2)
+        kind = "service"
+      }
+    }
+  } catch {
+    Write-Log ("Service SKU pull failed: {0}" -f $_.Exception.Message) "WARN"
+  }
+
+  $catalogItems = @()
+  try {
+    $catalogRows = Read-Rows $conn @"
+SELECT TOP 300
+  CAST([KEY] AS nvarchar(64)) AS ItemKey,
+  CAST([Name] AS nvarchar(200)) AS ItemName,
+  ISNULL(NULLIF(LTRIM(RTRIM(Category)), ''), N'Uncategorized') AS CategoryName,
+  CASE WHEN ISNULL(QTY,0) > 100000 THEN 0 ELSE ISNULL(QTY,0) END AS Quantity,
+  CASE WHEN ISNULL(QYOT,0) > 100000 THEN 0 ELSE ISNULL(QYOT,0) END AS QtyOut,
+  ISNULL(RATE1, ISNULL(SELL, 0)) AS Rate
+FROM dbo.ItemFile
+WHERE ISNULL(Inactive,0)=0
+  AND LTRIM(RTRIM(ISNULL([Name], N''))) <> N''
+ORDER BY CategoryName, [Name]
+"@
+    foreach ($row in $catalogRows) {
+      $q = [double]$row.Quantity
+      $o = [double]$row.QtyOut
+      $a = [math]::Max(0, $q - $o)
+      $catalogItems += @{
+        id = "por-cat-$($row.ItemKey)"
+        name = [string]$row.ItemName
+        category = [string]$row.CategoryName
+        quantity = [math]::Round($q, 2)
+        available = [math]::Round($a, 2)
+        pricePerDay = [math]::Round([double]$row.Rate, 2)
+        kind = "product"
+      }
+    }
+  } catch {
+    Write-Log ("Catalog pull failed: {0}" -f $_.Exception.Message) "WARN"
+  }
+
   $snapshot = [ordered]@{
     version = 1
     syncedAt = (Get-Date).ToUniversalTime().ToString("o")
@@ -240,6 +343,13 @@ WHERE LastActive IS NOT NULL AND CAST(LastActive AS date) = CAST(GETDATE() AS da
       deliveriesToday = $deliveriesToday
       returnsDueToday = 0
     }
+    sales = [ordered]@{
+      openQuotes = $openQuotes
+      openReservations = $openReservations
+      quotesEventWithin14Days = $quotesWithin14
+      serviceItems = $serviceItems
+      catalogItems = $catalogItems
+    }
   }
 
   $json = $snapshot | ConvertTo-Json -Depth 8 -Compress
@@ -250,7 +360,7 @@ WHERE LastActive IS NOT NULL AND CAST(LastActive AS date) = CAST(GETDATE() AS da
   }
 
   $response = Invoke-RestMethod -Method Post -Uri $uri -Headers $headers -Body $json -TimeoutSec 90
-  Write-Log ("Push OK. items={0} AR={1} out={2} pay24h={3}" -f $totalItems, $arOpen, $outQty, $payCount)
+  Write-Log ("Push OK. items={0} AR={1} out={2} pay24h={3} catalog={4} services={5} quotes={6}" -f $totalItems, $arOpen, $outQty, $payCount, $catalogItems.Count, $serviceItems.Count, $openQuotes)
   ($response | ConvertTo-Json -Depth 4 -Compress) | ForEach-Object { Write-Log $_ }
 }
 catch {

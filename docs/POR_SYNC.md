@@ -26,6 +26,8 @@ POR SQL (localhost\SQLEXP)
 
 Payload shape: `PorSnapshot` (`version: 1`) — see `lib/types.ts`.
 
+Optional `sales` block (newer agent): open quote/reservation counts, quotes with event in next 14 days, service SKUs + catalog sample for Mike ticket completion. Missing `sales` is OK — older snapshots still validate.
+
 If sync fails, Command Center keeps the last good snapshot and UI shows **POR sync stale** after 30 minutes.
 
 ## ENTERPRISE agent

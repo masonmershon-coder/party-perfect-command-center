@@ -53,6 +53,7 @@ export async function POST(request: Request, context: RouteContext) {
     const body = (await request.json()) as {
       message?: string;
       taskId?: string;
+      financialAccess?: boolean;
     };
 
     if (!body.message?.trim()) {
@@ -95,7 +96,9 @@ export async function POST(request: Request, context: RouteContext) {
 
     const stream = await streamGrokResponse({
       model: agent.model,
-      systemPrompt: await buildAgentSystemPrompt(agent),
+      systemPrompt: await buildAgentSystemPrompt(agent, {
+        financialAccess: body.financialAccess === true,
+      }),
       messages: priorMessages,
     });
 

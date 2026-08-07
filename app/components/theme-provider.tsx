@@ -23,7 +23,6 @@ function applyTheme(theme: ThemeMode) {
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<ThemeMode>("light");
-  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     const stored = localStorage.getItem(THEME_STORAGE_KEY) as ThemeMode | null;
@@ -36,7 +35,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
     setThemeState(initial);
     applyTheme(initial);
-    setReady(true);
   }, []);
 
   const setTheme = useCallback((next: ThemeMode) => {
@@ -54,14 +52,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
-  if (!ready) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-[var(--pp-bg)] text-[var(--pp-text-muted)]">
-        Loading…
-      </div>
-    );
-  }
-
+  // Render children immediately so Jobs/Command Center HTML is crawlable
+  // (Safari Suggestions / search need real content, not a Loading… shell).
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme, setTheme }}>
       {children}

@@ -9,6 +9,10 @@ import {
 } from "@/lib/durable-json";
 import { isMetaLiveConfigured } from "@/lib/meta-graph";
 import {
+  publicGoogleAdsStatus,
+  readGoogleAdsCredentials,
+} from "@/lib/google-ads-credentials";
+import {
   getPorSnapshot,
   getPorSyncMeta,
   isPorSyncConfigured,
@@ -68,6 +72,9 @@ export async function GET(request: Request) {
   const version = getAppVersionPayload();
   const porSnapshot = await getPorSnapshot();
   const porMeta = getPorSyncMeta(porSnapshot);
+  const googleAdsStatus = publicGoogleAdsStatus(
+    await readGoogleAdsCredentials(),
+  );
 
   const compliance = deep ? await fetchTwilioCompliance() : null;
   const jobsStore = deep
@@ -108,6 +115,9 @@ export async function GET(request: Request) {
     twilioCompliance: compliance,
     metaConfigured: await isMetaLiveConfigured(),
     madisonLive: await isMetaLiveConfigured(),
+    googleAdsConfigured: googleAdsStatus.canSync,
+    googleAdsOAuth: googleAdsStatus.hasRefreshToken,
+    googleAdsAccount: googleAdsStatus.accountEmail,
     managerPhone: twilio.toDisplay,
     checkedAt: new Date().toISOString(),
   });

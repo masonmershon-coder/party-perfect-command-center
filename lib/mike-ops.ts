@@ -1,6 +1,10 @@
 import { syncAllEmailInboxes } from "@/lib/imap-sync";
 import { isBusinessPriority } from "@/lib/email-priority";
-import { formatPhoneDisplay, getManagerPhone, sendSms } from "@/lib/twilio";
+import {
+  formatPhoneDisplay,
+  getAuthorizedManagerPhones,
+  sendSmsToManagers,
+} from "@/lib/twilio";
 import { readDurableJson, writeDurableJson } from "./durable-json";
 
 const ALERT_STATE_KEY = "mike-alert-state.json";
@@ -60,10 +64,7 @@ export async function runMikeInboxCheck(options?: {
         .slice(0, 1500);
 
       try {
-        const result = await sendSms({
-          to: getManagerPhone(),
-          body,
-        });
+        const result = await sendSmsToManagers(body);
         for (const email of fresh) alerted.add(email.id);
         await writeAlertState({
           alertedIds: Array.from(alerted).slice(-200),
@@ -71,8 +72,13 @@ export async function runMikeInboxCheck(options?: {
         });
         sms = {
           attempted: true,
-          sent: true,
-          sid: result.sid,
+          sent: result.sentCount > 0,
+          sid: result.results.find((r) => r.ok)?.sid,
+          error:
+            result.sentCount === 0
+              ? result.results.map((r) => r.error).filter(Boolean).join("; ") ||
+                "SMS failed for all managers"
+              : undefined,
         };
       } catch (error) {
         sms = {
@@ -89,6 +95,8 @@ export async function runMikeInboxCheck(options?: {
   return {
     sync,
     sms,
-    managerPhoneDisplay: formatPhoneDisplay(getManagerPhone()),
+    managerPhoneDisplay: getAuthorizedManagerPhones()
+      .map(formatPhoneDisplay)
+      .join(", "),
   };
 }

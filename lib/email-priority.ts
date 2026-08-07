@@ -22,7 +22,7 @@ export function inferEmailPriority(subject: string, preview: string): EmailPrior
   const text = `${subject} ${preview}`.toLowerCase();
 
   if (
-    /\burgent\b|\basap\b|\bdeadline\b|\bimmediately\b|\btoday\b|\btime.?sensitive\b/.test(
+    /\burgent\b|\basap\b|\bdeadline\b|\bimmediately\b|\btoday\b|\btime.?sensitive\b|\bprhosting\b|\bhosting\.net\b|\bdo not reply\b|\bdonotreply\b|\bweb quote\b/.test(
       text,
     )
   ) {
@@ -30,7 +30,7 @@ export function inferEmailPriority(subject: string, preview: string): EmailPrior
   }
 
   if (
-    /\bquote\b|\binquiry\b|\bcontract\b|\binsurance\b|\bcoi\b|\bpayment\b|\bbooking\b|\breservation\b|\bpartnership\b|\bgala\b|\bwedding\b|\bcorporate\b|\bdelivery\b|\bvendor\b/.test(
+    /\bquote\b|\binquiry\b|\bcontract\b|\binsurance\b|\bcoi\b|\bpayment\b|\bbooking\b|\breservation\b|\bpartnership\b|\bgala\b|\bwedding\b|\bcorporate\b|\bdelivery\b|\bvendor\b|\bticket\b|\btiffany\b/.test(
       text,
     )
   ) {

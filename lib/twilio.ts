@@ -1,6 +1,9 @@
 const E164_PATTERN = /^\+[1-9]\d{6,14}$/;
 const MAX_SMS_LENGTH = 1600;
+/** Josh — primary manager phone for Mike SMS. */
 const DEFAULT_MANAGER_PHONE = "+19188084311";
+/** Extra owners/managers who always get Mike alerts + can text back. */
+const DEFAULT_EXTRA_MANAGER_PHONES = ["+19182895588"];
 
 function digitsOnly(phone: string) {
   return phone.replace(/\D/g, "");
@@ -20,15 +23,15 @@ export function getManagerPhone() {
   return phone;
 }
 
-/** Josh + any extra authorized numbers (comma-separated MANAGER_PHONES). */
+/** Josh + extras (MANAGER_PHONES env) + hard-coded owner numbers. */
 export function getAuthorizedManagerPhones() {
   const primary = getManagerPhone();
-  const extras = (process.env.MANAGER_PHONES ?? "")
+  const fromEnv = (process.env.MANAGER_PHONES ?? "")
     .split(",")
     .map((p) => p.trim())
     .filter(Boolean)
     .map(normalizeUsPhone);
-  const all = [primary, ...extras];
+  const all = [...DEFAULT_EXTRA_MANAGER_PHONES, primary, ...fromEnv];
   const seen = new Set<string>();
   const unique: string[] = [];
   for (const phone of all) {
@@ -192,5 +195,44 @@ export async function sendSms(input: { to: string; body: string }) {
     status: payload.status ?? "queued",
     from: payload.from ?? config.phoneNumber,
     to,
+  };
+}
+
+export type ManagerSmsResult = {
+  to: string;
+  ok: boolean;
+  sid?: string;
+  from?: string;
+  error?: string;
+};
+
+/** Fan-out one Mike alert to Josh + all authorized manager phones. */
+export async function sendSmsToManagers(body: string): Promise<{
+  results: ManagerSmsResult[];
+  sentCount: number;
+  from: string | null;
+}> {
+  const phones = getAuthorizedManagerPhones();
+  const results: ManagerSmsResult[] = [];
+  let from: string | null = null;
+
+  for (const to of phones) {
+    try {
+      const result = await sendSms({ to, body });
+      from = result.from;
+      results.push({ to, ok: true, sid: result.sid, from: result.from });
+    } catch (error) {
+      results.push({
+        to,
+        ok: false,
+        error: error instanceof Error ? error.message : "SMS failed",
+      });
+    }
+  }
+
+  return {
+    results,
+    sentCount: results.filter((r) => r.ok).length,
+    from,
   };
 }

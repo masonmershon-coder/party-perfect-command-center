@@ -1,6 +1,8 @@
 import { createHmac, timingSafeEqual } from "crypto";
 import { assertGrokConfigured, grokClient } from "@/lib/grok";
 import { MIKE_VOICE } from "@/lib/agent-voices";
+import { SALES_CHECKOUT_PLAYBOOK } from "@/lib/sales-checkout-playbook";
+import { SALES_TICKET_COMPLETION_GUIDE } from "@/lib/sales-ticket";
 import { MIKE_OPERATIONS_AGENT_ID } from "@/lib/seed";
 import {
   createReport,
@@ -9,6 +11,11 @@ import {
   listTasks,
 } from "@/lib/storage";
 import { listJobApplications } from "@/lib/job-applications";
+import {
+  countAppsOnTulsaDay,
+  HIRING_DAILY_GOAL_MAX,
+  HIRING_DAILY_GOAL_MIN,
+} from "@/lib/hiring-goals";
 import {
   getPorSnapshot,
   getPorSyncMeta,
@@ -123,7 +130,7 @@ function helpText() {
     "• hiring — top candidates",
     "• recap — weekly ops SMS",
     "• create task: <title> — add a Command Center task",
-    "Or just tell me what you need.",
+    "Or just tell me what you need. Reply STOP to cancel.",
   ].join("\n");
 }
 
@@ -158,6 +165,8 @@ async function buildStatusReply() {
 
 async function buildHiringReply() {
   const apps = await listJobApplications();
+  const today = countAppsOnTulsaDay(apps.map((a) => a.submittedAt));
+  const goalLine = `Today ${today}/${HIRING_DAILY_GOAL_MIN}–${HIRING_DAILY_GOAL_MAX} apps (Tulsa).`;
   const flagged = apps
     .filter((a) => a.mike.flagForJosh)
     .sort((a, b) => b.mike.score - a.mike.score)
@@ -166,10 +175,10 @@ async function buildHiringReply() {
   if (flagged.length === 0) {
     const top = [...apps].sort((a, b) => b.mike.score - a.mike.score).slice(0, 3);
     if (top.length === 0) {
-      return "Mike · hiring: no applications yet. New apps land in Command Center → Hiring.";
+      return `Mike · hiring: ${goalLine} No applications yet. New apps → partyperfectjobs.com / Command Center Hiring.`;
     }
     return [
-      "Mike · hiring (no 70+ flags yet). Top scores:",
+      `Mike · hiring: ${goalLine} No 70+ flags yet. Top scores:`,
       ...top.map(
         (a) =>
           `• ${a.fullName} ${a.mike.score} — ${a.mike.primaryFit}`,
@@ -180,7 +189,8 @@ async function buildHiringReply() {
   }
 
   return [
-    `Mike · ${flagged.length} top candidate${flagged.length === 1 ? "" : "s"} for you:`,
+    `Mike · hiring: ${goalLine}`,
+    `${flagged.length} top candidate${flagged.length === 1 ? "" : "s"}:`,
     ...flagged.map(
       (a) =>
         `• ${a.fullName} ${a.mike.score} — ${a.mike.primaryFit} · ${a.phone}`,
@@ -210,6 +220,14 @@ async function runWeeklyRecap() {
 function heuristicIntent(body: string): ParsedIntent | null {
   const text = body.trim().toLowerCase();
   if (!text) return { action: "help", reply: helpText() };
+
+  if (/^(start|unstop|yes)\b/.test(text)) {
+    return {
+      action: "help",
+      reply:
+        "You're opted in to Mike ops texts (Party Perfect). Msg frequency varies. Msg & data rates may apply. Reply HELP for commands, STOP to cancel.",
+    };
+  }
 
   if (/^(help|\?|commands|menu)\b/.test(text)) {
     return { action: "help", reply: helpText() };
@@ -254,13 +272,15 @@ async function parseWithGrok(body: string, history: SmsTurn[]): Promise<ParsedIn
         role: "system",
         content: [
           MIKE_VOICE,
+          SALES_CHECKOUT_PLAYBOOK,
+          SALES_TICKET_COMPLETION_GUIDE,
           "Josh (owner) texts you commands and questions by SMS.",
           "Return ONLY valid JSON with keys:",
           'action: one of reply | help | status | hiring | weekly_recap | create_task',
           "reply: string (required for action=reply; SMS-length, under 300 chars preferred)",
           "taskTitle, taskDescription, taskPriority (low|medium|high) when action=create_task",
           "If Josh asks you to do something operational that maps to status/hiring/recap/create_task, use that action.",
-          "For general questions, use action=reply with a direct helpful answer.",
+          "For general questions (including sales/checkout coaching), use action=reply with a direct helpful answer.",
           "Never invent private data you do not have.",
         ].join("\n"),
       },

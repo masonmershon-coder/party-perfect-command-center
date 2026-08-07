@@ -559,8 +559,11 @@ export const DURABLE_ROOT_KEYS = [
   "bookkeeping.json",
   "reports.json",
   "job-applications.json",
+  "hiring-reject-feedback.json",
   "mike-sms-thread.json",
   "mike-alert-state.json",
+  "google-ads-credentials.json",
+  "google-ads-snapshot.json",
   "meta-credentials.json",
   "connections.json",
 ] as const;

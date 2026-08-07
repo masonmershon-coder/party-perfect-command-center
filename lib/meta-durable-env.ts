@@ -1,4 +1,5 @@
 import { resolveMetaConfig } from "./meta-graph";
+import { appUrl } from "./app-url";
 import {
   publicMetaCredentialStatus,
   readMetaCredentials,
@@ -29,7 +30,7 @@ export function buildMetaDurableEnvRows(creds: MetaStoredCredentials | null) {
     "";
   const redirect =
     process.env.META_OAUTH_REDIRECT_URI?.trim() ||
-    "https://partyperfectcomand.app/api/auth/meta/callback";
+    appUrl("/api/auth/meta/callback");
   const cron = process.env.CRON_SECRET?.trim() || "";
 
   return [

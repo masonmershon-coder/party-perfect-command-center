@@ -238,6 +238,7 @@ export function formatPorContextForAgents(
   const invTotals = porInventoryTotals(snapshot);
   const lines = [
     "Live Point of Rental snapshot (read-only copy — never claim you can change POR):",
+    "IMPORTANT: The numbers in THIS snapshot are the only current truth. If earlier messages in this chat show different figures, they are OUTDATED — always answer from these values and never repeat a number from earlier in the conversation.",
     staleNote,
     `Synced at: ${snapshot.syncedAt} from ${snapshot.sourceHost}`,
     `Inventory (rentable stock, excludes fee/service lines): ${invTotals.totalItems} items · qty ${invTotals.totalQuantity} · available ${invTotals.availableQuantity} · out ${invTotals.outQuantity}`,

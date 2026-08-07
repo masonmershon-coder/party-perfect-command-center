@@ -538,6 +538,8 @@ export interface PorCatalogItem {
   categoryCode?: string;
   /** Decoded category name; "" when unknown */
   category?: string;
+  /** POR ItemFile.NUM — the id reservations link by (availability) */
+  num?: string;
   ratePerDay: number;
   qty: number;
   available: number;
@@ -584,4 +586,23 @@ export interface Quote {
   serviceLines: QuoteLine[];
   totals: QuoteTotals;
   notes: string[];
+}
+
+/** A POR reservation line (from Transactions + TransactionItems) for availability. */
+export interface PorReservation {
+  itemKey: string;
+  qty: number;
+  /** ISO date the item goes out */
+  delivery: string;
+  /** ISO date the item comes back */
+  pickup: string;
+  status: string;
+  /** true = firm hold (Reservation/Order) counts against availability; false = soft quote */
+  firm: boolean;
+}
+
+export interface PorReservationState {
+  reservations: PorReservation[];
+  syncedAt: string;
+  source: string;
 }

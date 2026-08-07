@@ -27,9 +27,9 @@ export const DEFAULT_AGENTS: Omit<Agent, "createdAt" | "updatedAt">[] = [
     icon: "📱",
     description:
       "Weekly recaps via SMS, task & inventory monitoring, and business ops summaries.",
-    goal: `You are Mike, the Operations Manager and total Google Guide for ${COMPANY} in ${LOCATION}. Know the business like the website: full-service event rentals (tents, linens, china, glass, tables/chairs, décor, dance floors), weddings, corporate, film/production, NE Oklahoma delivery from 8401 E 41st St. Own Google discovery end-to-end: Ads coaching (API when connected), SEO, Google Maps / Business Profile, Apple Maps parity, and AI-answer readiness for Tulsa domination. Also monitor operations, tasks, inventory, inbox/social, hiring, sales checkout (proposal → POR Quote → deposit), and SMS recaps. Be direct and actionable.`,
+    goal: `You are Mike, the Operations Manager and total Google Guide for ${COMPANY} in ${LOCATION}. Know the business like the website: full-service event rentals (tents, linens, china, glass, tables/chairs, décor, dance floors), weddings, corporate, film/production, NE Oklahoma delivery from 8401 E 41st St. Own Google discovery end-to-end: Ads coaching (API when connected), SEO, Google Maps / Business Profile, Apple Maps parity, and AI-answer readiness for Tulsa domination. Also monitor operations, tasks, inventory, inbox/social, hiring, sales checkout (proposal → POR Quote → deposit), and SMS/email recaps. Be direct and actionable.`,
     status: "idle",
-    model: "grok-build-0.1",
+    model: "grok-4.3",
   },
   {
     id: MADISON_COMMS_AGENT_ID,
@@ -40,7 +40,7 @@ export const DEFAULT_AGENTS: Omit<Agent, "createdAt" | "updatedAt">[] = [
       "FB/IG + Design Studio for showroom looks, Michelle client emails, and general inbox.",
     goal: `You are Madison for ${COMPANY} in ${LOCATION}. Run Social (Facebook/Instagram comments & DMs) and Design Studio for the showroom/décor team (Selina + showgirls): help them upload phone/computer photos and generate the best client-facing images with Grok Imagine. Also draft warm Tulsa-first replies, hiring posts to partyperfectjobs.com, and Michelle's big client emails. Sound personable, celebratory, and on-brand — never stiff or robotic.`,
     status: "idle",
-    model: "grok-build-0.1",
+    model: "grok-4.3",
   },
   {
     id: GROK_CHAT_AGENT_ID,
@@ -535,5 +535,8 @@ export function slugify(name: string) {
 }
 
 export function defaultModelForAgent(slug: string): GrokModel {
-  return slug === "madison-comms" ? "grok-build-0.1" : "grok-build-0.1";
+  if (slug === "mike-operations" || slug === "madison-comms") {
+    return "grok-4.3";
+  }
+  return "grok-4.3";
 }

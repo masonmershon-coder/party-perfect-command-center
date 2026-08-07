@@ -214,6 +214,15 @@ async function runWeeklyRecap() {
     sentViaSms: true,
     generatedBy: "mike-operations",
   });
+
+  // Always also email Josh — SMS delivery can fail / not be opted in.
+  try {
+    const { sendWeeklyRecapEmail } = await import("@/lib/weekly-recap-mail");
+    await sendWeeklyRecapEmail({ smsBody: content });
+  } catch {
+    // email is best-effort alongside SMS
+  }
+
   return content.slice(0, MAX_REPLY);
 }
 

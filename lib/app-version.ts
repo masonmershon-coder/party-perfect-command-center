@@ -1,5 +1,5 @@
 /** Single source of truth for Command Center + Jobs release metadata. */
-export const APP_VERSION = "1.6.7";
+export const APP_VERSION = "1.6.8";
 
 /** ISO date of this release (YYYY-MM-DD). */
 export const APP_RELEASED_AT = "2026-08-07";
@@ -8,10 +8,10 @@ export const APP_RELEASE_LABEL = `v${APP_VERSION} · ${APP_RELEASED_AT}`;
 
 export const APP_RELEASE_NOTES = {
   commandCenter: [
+    "Mike chat upgraded to Grok 4.3 + clearer applicant photo search links",
+    "Monday weekly recap emails to info@mershonevents.com (SMS still optional)",
     "Madison scene placement — put this table in a garden/warehouse, not a filter",
     "Hiring shows how each applicant heard about Party Perfect",
-    "Design Studio simplified — Madison matches inventory in the background",
-    "Primary host is partyperfect.app — old command domains redirect safely",
   ],
   jobs: [
     "One-tap “How’d you hear about us?” — stays quick, not a slog",

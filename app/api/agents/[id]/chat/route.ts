@@ -10,7 +10,8 @@ import {
   createTextStream,
   streamGrokResponse,
 } from "@/lib/grok";
-import type { Message } from "@/lib/types";
+import { MIKE_OPERATIONS_AGENT_ID, MADISON_COMMS_AGENT_ID } from "@/lib/seed";
+import type { GrokModel, Message } from "@/lib/types";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
@@ -94,8 +95,22 @@ export async function POST(request: Request, context: RouteContext) {
       .slice(-30)
       .map(({ role, content }) => ({ role, content }));
 
+    // Mike/Madison chat uses Grok 4.3 even if Redis still has the old build model.
+    const chatModel: GrokModel =
+      id === MIKE_OPERATIONS_AGENT_ID || id === MADISON_COMMS_AGENT_ID
+        ? "grok-4.3"
+        : agent.model;
+
+    if (chatModel !== agent.model) {
+      try {
+        await updateAgent(id, { model: chatModel });
+      } catch {
+        // ignore — stream still uses chatModel
+      }
+    }
+
     const stream = await streamGrokResponse({
-      model: agent.model,
+      model: chatModel,
       systemPrompt: await buildAgentSystemPrompt(agent, {
         financialAccess: body.financialAccess === true,
       }),

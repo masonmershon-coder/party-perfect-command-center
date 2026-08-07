@@ -119,6 +119,18 @@ export async function POST(request: Request) {
 
     const recap = await generateWeeklyRecapMessage();
 
+    // Email Josh even when SMS succeeds — Monday cron is primary; this is the manual path.
+    let emailSent = false;
+    let emailError: string | undefined;
+    try {
+      const { sendWeeklyRecapEmail } = await import("@/lib/weekly-recap-mail");
+      const mail = await sendWeeklyRecapEmail({ smsBody: recap });
+      emailSent = mail.sent;
+      emailError = mail.error;
+    } catch (err) {
+      emailError = err instanceof Error ? err.message : "Email failed";
+    }
+
     if (singleTo) {
       const result = await sendSms({ to: singleTo, body: recap });
       await createReport({
@@ -141,6 +153,8 @@ export async function POST(request: Request) {
         recap,
         twilioSid: result.sid,
         reportSaved: true,
+        emailSent,
+        emailError: emailError || null,
       });
     }
 
@@ -157,11 +171,13 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json({
-      success: fanout.sentCount > 0,
+      success: fanout.sentCount > 0 || emailSent,
       message:
         fanout.sentCount > 0
           ? `✅ Recap sent to ${fanout.sentCount} manager phone(s) from ${formatPhoneDisplay(fanout.from || "")}`
-          : "Failed to send recap to any manager phone",
+          : emailSent
+            ? "✅ Recap emailed to Josh (SMS failed or skipped)"
+            : "Failed to send recap to any manager phone",
       from: fanout.from,
       fromDisplay: fanout.from ? formatPhoneDisplay(fanout.from) : null,
       results: fanout.results.map((r) => ({
@@ -171,6 +187,8 @@ export async function POST(request: Request) {
       recap,
       twilioSid: firstSid,
       reportSaved: true,
+      emailSent,
+      emailError: emailError || null,
     });
   } catch (error) {
     const message =

@@ -55,19 +55,29 @@ export function formatHiringAppsForMike(applications: JobApplication[]): string 
 
   const lines: string[] = [
     "Hiring applicants (from partyperfectjobs.com — live Command Center list):",
-    "When Josh asks about a candidate by name, use this data + the hiring selection playbook.",
+    `Total in store: ${applications.length}. When Josh asks about a name, fuzzy-match here (first name OK).`,
+    "PHOTO PROTOCOL: paste the social search URLs below — never claim you cannot find images.",
     "Rank for CURRENT need: tents/delivery physical grit first; desk/showroom secondary.",
-    "You cannot open private Facebook/Instagram logins. To help with a visual/photo:",
-    "1) Give a short fit recap (call today vs park) from the application + score.",
-    "2) Return the search URLs below for that person (never invent a profile photo or claim a match without Josh confirming).",
-    "3) Note common name collisions — city + work history is how Josh verifies.",
+    "You cannot open private Facebook/Instagram logins. Common-name collisions → use city + work history.",
     "",
   ];
 
-  for (const app of sorted.slice(0, 40)) {
+  // Full roster (compact) so name lookups don't miss people past the detail window.
+  lines.push("Quick index (name → score · city · phone):");
+  for (const app of sorted) {
+    lines.push(
+      `  ${app.fullName} · ${app.mike.score}${app.mike.flagForJosh ? "*" : ""} · ${app.city || "—"} · ${app.phone || "—"}`,
+    );
+  }
+  lines.push("");
+
+  // Rich detail for top / flagged first (cap keeps prompt sane).
+  const detail = sorted.slice(0, 60);
+  lines.push(`Detail cards (top ${detail.length} by flag/score):`);
+  for (const app of detail) {
     const links = candidateSocialSearchLinks(app)
       .map((l) => `${l.label}: ${l.url}`)
-      .join(" | ");
+      .join("\n    ");
     const jobs = (app.workHistory || [])
       .slice(0, 3)
       .map(
@@ -84,7 +94,8 @@ export function formatHiringAppsForMike(applications: JobApplication[]): string 
         `  avail: ${(app.availability || "—").slice(0, 120)}`,
         `  work: ${jobs || "—"}`,
         `  mike: ${app.mike.summary}`,
-        `  social search: ${links}`,
+        `  PHOTO / SOCIAL SEARCH (paste these for Josh):`,
+        `    ${links}`,
       ].join("\n"),
     );
   }

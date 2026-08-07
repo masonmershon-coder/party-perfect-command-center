@@ -525,3 +525,27 @@ export interface DashboardStats {
     paymentsLast24hVolume: number | null;
   };
 }
+
+/**
+ * Full POR item catalog (all active SKUs from the ItemFile export) — the complete
+ * inventory Madison matches against, beyond the ~300-item live snapshot sample.
+ */
+export interface PorCatalogItem {
+  /** POR ItemFile [KEY] */
+  sku: string;
+  name: string;
+  /** POR numeric category code */
+  categoryCode?: string;
+  /** Decoded category name; "" when unknown */
+  category?: string;
+  ratePerDay: number;
+  qty: number;
+  available: number;
+}
+
+export interface PorCatalogState {
+  items: PorCatalogItem[];
+  activeItems: number;
+  source: string;
+  syncedAt: string;
+}

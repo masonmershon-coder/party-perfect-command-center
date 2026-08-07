@@ -1,4 +1,5 @@
 import { readDurableJson, writeDurableJson } from "@/lib/durable-json";
+import { findPorCatalogItemByName } from "@/lib/por-catalog";
 import { getPorSnapshot } from "@/lib/por-snapshot";
 import type {
   DesignMatchedItem,
@@ -271,21 +272,28 @@ export async function toMatchedDesignItems(
 ): Promise<DesignMatchedItem[]> {
   const snapshot = await getPorSnapshot();
   const porItems = snapshot?.inventory.items || [];
-  return catalogItems.map((item) => {
-    const por = porItems.length ? bestPorMatch(item, porItems) : null;
-    return {
-      key: item.key,
-      name: item.name,
-      imageUrl: item.imageUrl,
-      pageUrl: item.pageUrl,
-      categoryName: item.categoryName,
-      porItemId: por?.id,
-      porAvailable: por?.available,
-      porPricePerDay: por?.pricePerDay,
-      source: por ? "both" : "website",
-      score: item.score ?? 100,
-    };
-  });
+  return Promise.all(
+    catalogItems.map(async (item) => {
+      // Prefer the FULL POR catalog for rate/availability; fall back to the
+      // live snapshot sample (~300 items) when the full catalog has no match.
+      const full = await findPorCatalogItemByName(item.name);
+      const por = porItems.length ? bestPorMatch(item, porItems) : null;
+      const porPricePerDay =
+        full && full.ratePerDay > 0 ? full.ratePerDay : por?.pricePerDay;
+      return {
+        key: item.key,
+        name: item.name,
+        imageUrl: item.imageUrl,
+        pageUrl: item.pageUrl,
+        categoryName: item.categoryName,
+        porItemId: por?.id ?? full?.sku,
+        porAvailable: full?.available ?? por?.available,
+        porPricePerDay,
+        source: full || por ? "both" : "website",
+        score: item.score ?? 100,
+      };
+    }),
+  );
 }
 
 /** Fuzzy-match a design command against website catalog (+ POR when available). */

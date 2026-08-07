@@ -442,6 +442,13 @@ export interface PorMoneySnapshot {
     count: number;
     volume: number;
   };
+  /** Collected revenue over time (from PaymentFile). Optional until ENTERPRISE agent updated. */
+  revenue?: {
+    last7Days: number;
+    monthToDate: number;
+    last30Days: number;
+    yearToDate: number;
+  };
 }
 
 export interface PorOpsSnapshot {

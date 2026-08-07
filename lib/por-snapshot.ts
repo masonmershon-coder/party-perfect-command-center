@@ -291,6 +291,16 @@ export function formatPorContextForAgents(
       `Aging: current $${snapshot.money.aging.current.toFixed(2)} · 30 $${snapshot.money.aging.days30.toFixed(2)} · 60 $${snapshot.money.aging.days60.toFixed(2)} · 90 $${snapshot.money.aging.days90.toFixed(2)} · 120+ $${snapshot.money.aging.days120Plus.toFixed(2)}`,
       `Payments last 24h: ${snapshot.money.paymentsLast24h.count} / $${snapshot.money.paymentsLast24h.volume.toFixed(2)}`,
     );
+    if (snapshot.money.revenue) {
+      const r = snapshot.money.revenue;
+      lines.push(
+        `Revenue collected (from POR payments): this week $${r.last7Days.toFixed(2)} · month-to-date $${r.monthToDate.toFixed(2)} · last 30 days $${r.last30Days.toFixed(2)} · year-to-date $${r.yearToDate.toFixed(2)}`,
+      );
+    } else {
+      lines.push(
+        "Revenue-over-time: not in this snapshot yet (ENTERPRISE sync agent needs the revenue update). Say it's not available rather than guessing.",
+      );
+    }
   } else {
     lines.push(
       "Financials (AR, aging, payments, revenue, rates): HIDDEN — employee session. Catalog item names/availability still OK for ticket building.",

@@ -206,6 +206,12 @@ WHERE ISNULL(CurrentBalance,0) <> 0
   $payCount = [int](Get-Scalar $conn "SELECT COUNT(*) FROM dbo.PaymentFile WHERE [Date] >= DATEADD(hour, -24, GETDATE())")
   $payVolume = Get-Scalar $conn "SELECT SUM(ISNULL(Amount,0)) FROM dbo.PaymentFile WHERE [Date] >= DATEADD(hour, -24, GETDATE())"
 
+  # Revenue over time (real collected payments) so Mike can answer "how did we do this week/month/year".
+  $revWeek = Get-Scalar $conn "SELECT SUM(ISNULL(Amount,0)) FROM dbo.PaymentFile WHERE [Date] >= DATEADD(day, -7, GETDATE())"
+  $revMonthToDate = Get-Scalar $conn "SELECT SUM(ISNULL(Amount,0)) FROM dbo.PaymentFile WHERE [Date] >= DATEADD(day, 1-DAY(GETDATE()), CAST(CAST(GETDATE() AS date) AS datetime))"
+  $rev30 = Get-Scalar $conn "SELECT SUM(ISNULL(Amount,0)) FROM dbo.PaymentFile WHERE [Date] >= DATEADD(day, -30, GETDATE())"
+  $revYearToDate = Get-Scalar $conn "SELECT SUM(ISNULL(Amount,0)) FROM dbo.PaymentFile WHERE [Date] >= DATEFROMPARTS(YEAR(GETDATE()),1,1)"
+
   $openContracts = [int](Get-Scalar $conn "SELECT COUNT(*) FROM dbo.CustomerFile WHERE ISNULL(QtyOut,0) > 0")
   $deliveriesToday = [int](Get-Scalar $conn @"
 SELECT COUNT(*) FROM dbo.CustomerFile
@@ -435,6 +441,12 @@ WHERE ISNULL(ti.Archived,0)=0
       paymentsLast24h = [ordered]@{
         count = $payCount
         volume = [math]::Round($payVolume, 2)
+      }
+      revenue = [ordered]@{
+        last7Days = [math]::Round($revWeek, 2)
+        monthToDate = [math]::Round($revMonthToDate, 2)
+        last30Days = [math]::Round($rev30, 2)
+        yearToDate = [math]::Round($revYearToDate, 2)
       }
     }
     ops = [ordered]@{

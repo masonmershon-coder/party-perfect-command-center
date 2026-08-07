@@ -1,5 +1,6 @@
 import { grokClient } from "@/lib/grok";
-import type { DesignMatchedItem } from "@/lib/types";
+import { searchPorCatalog } from "@/lib/por-catalog";
+import type { DesignMatchedItem, PorCatalogItem } from "@/lib/types";
 import {
   ensureWebsiteCatalogFresh,
   getWebsiteCatalog,
@@ -91,12 +92,49 @@ export async function madisonLinkInventoryForLook(input: {
     }
   }
 
+  // 4) Full POR catalog: surface items we own even if they aren't on the website
+  //    (no product photo, but real name + rate + availability for the quote).
+  if (byKey.size < limit) {
+    const seenNames = new Set(
+      [...byKey.values()].map((m) => m.name.toLowerCase()),
+    );
+    const queries = [...searchTerms, input.command].filter(
+      (q) => q && q.trim().length >= 3,
+    );
+    for (const q of queries) {
+      const hits = await searchPorCatalog(q, 4);
+      for (const hit of hits) {
+        const key = `por:${hit.sku}`;
+        if (byKey.has(key) || seenNames.has(hit.name.toLowerCase())) continue;
+        byKey.set(key, porCatalogToMatched(hit));
+        seenNames.add(hit.name.toLowerCase());
+        if (byKey.size >= limit) break;
+      }
+      if (byKey.size >= limit) break;
+    }
+  }
+
   return {
     matchedItems: [...byKey.values()].slice(0, limit),
     catalogReady: catalog.items.length > 0,
     catalogTotal: catalog.items.length,
     usedVision,
     searchTerms,
+  };
+}
+
+function porCatalogToMatched(
+  item: PorCatalogItem & { score?: number },
+): DesignMatchedItem {
+  return {
+    key: `por:${item.sku}`,
+    name: item.name,
+    categoryName: item.category || undefined,
+    porItemId: item.sku,
+    porAvailable: item.available,
+    porPricePerDay: item.ratePerDay > 0 ? item.ratePerDay : undefined,
+    source: "por",
+    score: item.score ?? 60,
   };
 }
 

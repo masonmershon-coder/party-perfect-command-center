@@ -6,8 +6,8 @@ import type { PorCatalogItem, PorCatalogState } from "@/lib/types";
  * design/photo against every real rental — not just the ~300-item live snapshot sample.
  *
  * Data lives under durable key `por-catalog.json` (data/por-catalog.json in dev; seed
- * into Redis for prod via scripts/seed-por-catalog.mjs). Changes rarely (only when POR
- * items/rates change), so a periodic re-seed is enough.
+ * into Redis for prod via `node --env-file=.env.local scripts/seed-por-catalog.mjs`).
+ * Changes rarely (only when POR items/rates change), so a periodic re-seed is enough.
  */
 const CATALOG_KEY = "por-catalog.json";
 const CACHE_MS = 5 * 60 * 1000;

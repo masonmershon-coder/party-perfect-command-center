@@ -566,4 +566,5 @@ export const DURABLE_ROOT_KEYS = [
   "google-ads-snapshot.json",
   "meta-credentials.json",
   "connections.json",
+  "por-catalog.json",
 ] as const;

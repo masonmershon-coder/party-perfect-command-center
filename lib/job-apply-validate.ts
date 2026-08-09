@@ -1,8 +1,4 @@
 import {
-  normalizeEmailKey,
-  normalizePhoneDigits,
-} from "@/lib/job-apply-rate-limit";
-import {
   wantsCrewTrack,
   type AvailabilitySlot,
   type EligibilityAnswer,
@@ -16,6 +12,16 @@ const DUPLICATE_LOOKBACK_DAYS = 30;
 export const WHY_MIN = 40;
 export const AVAIL_TEXT_MIN = 15;
 export const PHYSICAL_STORY_MIN = 25;
+
+export function normalizePhoneDigits(phone: string): string {
+  const d = phone.replace(/\D/g, "");
+  if (d.length === 11 && d.startsWith("1")) return d.slice(1);
+  return d;
+}
+
+export function normalizeEmailKey(email: string): string {
+  return email.trim().toLowerCase();
+}
 
 export function isValidUsPhone(phone: string): boolean {
   const d = normalizePhoneDigits(phone);

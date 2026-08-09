@@ -1,5 +1,9 @@
 import { Ratelimit } from "@upstash/ratelimit";
 import { getDurableRedis, isDurableRedisConfigured } from "@/lib/durable-json";
+import {
+  normalizeEmailKey,
+  normalizePhoneDigits,
+} from "@/lib/job-apply-validate";
 
 /**
  * Spam doors for POST /api/jobs/apply — public paid endpoint (Grok + email + SMS).
@@ -48,16 +52,6 @@ function getLimiters() {
     });
   }
   return { ipHourly, identityDaily };
-}
-
-export function normalizePhoneDigits(phone: string): string {
-  const d = phone.replace(/\D/g, "");
-  if (d.length === 11 && d.startsWith("1")) return d.slice(1);
-  return d;
-}
-
-export function normalizeEmailKey(email: string): string {
-  return email.trim().toLowerCase();
 }
 
 /** Returns an error message when blocked; null when allowed. */

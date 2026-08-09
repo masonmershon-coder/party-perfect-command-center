@@ -1,9 +1,26 @@
-import { createJobApplication, JobApplicationSaveError } from "@/lib/job-applications";
+import { enforceJobApplyRateLimits } from "@/lib/job-apply-rate-limit";
+import {
+  availabilityLabelFromSlots,
+  cleanAvailabilitySlots,
+  findRecentDuplicate,
+  sanitizeVideoUrl,
+  validateJobApplicationInput,
+} from "@/lib/job-apply-validate";
+import { normalizeJobLeadSource } from "@/lib/job-lead-sources";
+import {
+  createJobApplication,
+  enrichJobApplication,
+  getJobApplication,
+  JobApplicationSaveError,
+  listJobApplications,
+} from "@/lib/job-applications";
+import { extractResumeText } from "@/lib/job-resume-text";
 import { storeJobResume } from "@/lib/job-resume";
 import {
   JOB_REFERRAL_SOURCES,
   JOB_ROLES,
   type CollegeStatus,
+  type DaysMissedBucket,
   type JobApplicationInput,
   type JobReferralSourceId,
   type JobRoleId,
@@ -13,6 +30,14 @@ import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
+
+function clientIp(request: Request): string {
+  return (
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    request.headers.get("x-real-ip") ||
+    "unknown"
+  );
+}
 
 const ROLE_IDS = new Set(JOB_ROLES.map((role) => role.id));
 const COLLEGE = new Set<CollegeStatus>([
@@ -72,16 +97,18 @@ function parseBodyRoles(raw: unknown): JobRoleId[] {
 }
 
 async function parseApplyRequest(request: Request): Promise<{
-  body: Partial<JobApplicationInput>;
+  body: Partial<JobApplicationInput> & { company_website?: string };
   resumeFile: File | null;
 }> {
   const contentType = request.headers.get("content-type") || "";
   if (contentType.includes("multipart/form-data")) {
     const form = await request.formData();
     const payloadRaw = form.get("payload");
-    let body: Partial<JobApplicationInput> = {};
+    let body: Partial<JobApplicationInput> & { company_website?: string } = {};
     if (typeof payloadRaw === "string" && payloadRaw.trim()) {
-      body = JSON.parse(payloadRaw) as Partial<JobApplicationInput>;
+      body = JSON.parse(payloadRaw) as Partial<JobApplicationInput> & {
+        company_website?: string;
+      };
     } else {
       // Flat form fields fallback
       const rolesRaw = form.get("roles");
@@ -109,7 +136,13 @@ async function parseApplyRequest(request: Request): Promise<{
             : [],
         ),
         videoUrl: String(form.get("videoUrl") || "") || undefined,
+        source: String(form.get("source") || "") || undefined,
+        company_website: String(form.get("company_website") || ""),
       };
+    }
+    // Honeypot may also be a top-level form field
+    if (!body.company_website && form.get("company_website")) {
+      body.company_website = String(form.get("company_website") || "");
     }
     const resume = form.get("resume");
     return {
@@ -118,9 +151,9 @@ async function parseApplyRequest(request: Request): Promise<{
     };
   }
 
-  const body = (await request.json().catch(() => null)) as Partial<
-    JobApplicationInput
-  > | null;
+  const body = (await request.json().catch(() => null)) as
+    | (Partial<JobApplicationInput> & { company_website?: string })
+    | null;
   if (!body) {
     throw new Error("Invalid application payload.");
   }
@@ -128,8 +161,13 @@ async function parseApplyRequest(request: Request): Promise<{
 }
 
 export async function POST(request: Request) {
+  const ip = clientIp(request);
+
   try {
-    let parsed: { body: Partial<JobApplicationInput>; resumeFile: File | null };
+    let parsed: {
+      body: Partial<JobApplicationInput> & { company_website?: string };
+      resumeFile: File | null;
+    };
     try {
       parsed = await parseApplyRequest(request);
     } catch {
@@ -137,6 +175,16 @@ export async function POST(request: Request) {
         { error: "Invalid application payload." },
         { status: 400 },
       );
+    }
+
+    // Honeypot — bots fill hidden company_website; humans never see it.
+    if (String(parsed.body.company_website || "").trim()) {
+      return NextResponse.json({
+        success: true,
+        id: crypto.randomUUID(),
+        message:
+          "Thank you for applying to Party Perfect Event Rentals. We’ve received your application and will be in touch.",
+      });
     }
 
     const { body, resumeFile } = parsed;
@@ -149,21 +197,53 @@ export async function POST(request: Request) {
       );
     }
 
-    const applicationId = crypto.randomUUID();
+    const rateError = await enforceJobApplyRateLimits({
+      ip,
+      email: String(body.email || ""),
+      phone: String(body.phone || ""),
+    });
+    if (rateError) {
+      return NextResponse.json({ error: rateError }, { status: 429 });
+    }
+
+    const enrichId = cleanText(
+      (body as { applicationId?: string }).applicationId,
+      80,
+    );
+    const applyModeRaw = String(
+      (body as { applyMode?: string }).applyMode || "",
+    ).trim();
+    const applyMode =
+      applyModeRaw === "quick" ||
+      applyModeRaw === "enrich" ||
+      applyModeRaw === "full"
+        ? applyModeRaw
+        : enrichId
+          ? "enrich"
+          : "full";
+
+    const applicationId = enrichId || crypto.randomUUID();
     let resumeFields: Partial<JobApplicationInput> = {};
     if (resumeFile) {
       try {
+        const bytes = Buffer.from(await resumeFile.arrayBuffer());
         const stored = await storeJobResume({
-          bytes: Buffer.from(await resumeFile.arrayBuffer()),
+          bytes,
           mimeType: resumeFile.type || "application/octet-stream",
           fileName: resumeFile.name || "resume.pdf",
           applicationId,
+        });
+        const resumeText = await extractResumeText({
+          bytes,
+          mimeType: stored.mimeType || resumeFile.type,
+          fileName: stored.fileName || resumeFile.name,
         });
         resumeFields = {
           resumeFileName: stored.fileName,
           resumeMimeType: stored.mimeType,
           resumeBlobPathname: stored.blobPathname,
           resumeDataUrl: stored.dataUrl,
+          ...(resumeText ? { resumeText } : {}),
         };
       } catch (err) {
         return NextResponse.json(
@@ -178,12 +258,27 @@ export async function POST(request: Request) {
       }
     }
 
+    const availabilitySlots = cleanAvailabilitySlots(body.availabilitySlots);
+    const availability =
+      availabilityLabelFromSlots(availabilitySlots) ||
+      cleanText(body.availability, 400);
+
+    const daysMissedRaw = String(body.daysMissedLast3Months || "").trim();
+    const daysMissedLast3Months = (
+      daysMissedRaw === "0" ||
+      daysMissedRaw === "1-2" ||
+      daysMissedRaw === "3+"
+        ? daysMissedRaw
+        : ""
+    ) as DaysMissedBucket;
+
     const input: JobApplicationInput = {
       roles,
       fullName: cleanText(body.fullName, 120),
       phone: cleanText(body.phone, 40),
       email: cleanText(body.email, 160).toLowerCase(),
       city: cleanText(body.city, 80),
+      applyMode,
       eligibleToWork: cleanYesNo(body.eligibleToWork),
       over18: cleanYesNo(body.over18),
       validDriverLicense: cleanYesNo(body.validDriverLicense),
@@ -192,109 +287,56 @@ export async function POST(request: Request) {
       schoolingNotes: cleanText(body.schoolingNotes, 200) || undefined,
       referralSource: cleanReferralSource(body.referralSource),
       referralName: cleanText(body.referralName, 80) || undefined,
-      availability: cleanText(body.availability, 400),
+      hasReliableTransport: cleanYesNo(body.hasReliableTransport),
+      physicalOutdoorOk: cleanYesNo(body.physicalOutdoorOk),
+      earliestStartDate: cleanText(body.earliestStartDate, 40),
+      daysMissedLast3Months,
+      availabilitySlots,
+      availability,
       physicalAbility: cleanText(body.physicalAbility, 400),
+      physicalStory: cleanText(body.physicalStory, 800),
       whyPartyPerfect: cleanText(body.whyPartyPerfect, 500),
       experience: cleanText(body.experience, 600),
       workHistory: cleanWorkHistory(body.workHistory),
-      videoUrl: cleanText(body.videoUrl, 400) || undefined,
+      videoUrl: sanitizeVideoUrl(cleanText(body.videoUrl, 400) || undefined),
+      source: normalizeJobLeadSource(body.source),
       ...resumeFields,
     };
 
-    if (!input.fullName || !input.phone || !input.email) {
-      return NextResponse.json(
-        { error: "Name, phone, and email are required." },
-        { status: 400 },
-      );
+    const validationError = validateJobApplicationInput(input, {
+      mode: applyMode,
+    });
+    if (validationError) {
+      return NextResponse.json({ error: validationError }, { status: 400 });
     }
 
-    if (!input.email.includes("@")) {
-      return NextResponse.json({ error: "Enter a valid email." }, { status: 400 });
+    if (enrichId) {
+      const prior = await getJobApplication(enrichId);
+      if (!prior) {
+        return NextResponse.json(
+          { error: "Application not found — start a new Quick Apply." },
+          { status: 404 },
+        );
+      }
+      const enriched = await enrichJobApplication(enrichId, input);
+      return NextResponse.json({
+        success: true,
+        id: enriched?.id || enrichId,
+        message:
+          "Thanks — we saved your extra details. Watch your phone; we’ll be in touch.",
+      });
     }
 
-    if (input.eligibleToWork !== "yes" || input.over18 !== "yes") {
-      return NextResponse.json(
-        {
-          error:
-            "Applicants must be 18+ and eligible to work in the U.S. to continue.",
-        },
-        { status: 400 },
-      );
-    }
-
-    if (
-      input.validDriverLicense !== "yes" &&
-      input.validDriverLicense !== "no"
-    ) {
-      return NextResponse.json(
-        { error: "Please answer whether you have a valid driver’s license." },
-        { status: 400 },
-      );
-    }
-
-    if (
-      input.highSchoolGraduated !== "yes" &&
-      input.highSchoolGraduated !== "no"
-    ) {
-      return NextResponse.json(
-        { error: "Please answer high school / GED in the Schooling box on step 1." },
-        { status: 400 },
-      );
-    }
-
-    if (!input.collegeStatus) {
-      return NextResponse.json(
-        { error: "Please pick a college option in the Schooling box on step 1 (No college is fine)." },
-        { status: 400 },
-      );
-    }
-
-    if (!input.referralSource) {
-      return NextResponse.json(
-        { error: "Quick tap — how’d you hear about us?" },
-        { status: 400 },
-      );
-    }
-
-    if (
-      input.referralSource === "friend" &&
-      !(input.referralName || "").trim()
-    ) {
-      return NextResponse.json(
-        { error: "Who referred you? First name is perfect." },
-        { status: 400 },
-      );
-    }
-
-    if (
-      !input.availability ||
-      !input.physicalAbility ||
-      !input.whyPartyPerfect
-    ) {
+    const existing = await listJobApplications();
+    const duplicate = findRecentDuplicate(existing, input.phone, input.email);
+    if (duplicate) {
       return NextResponse.json(
         {
           error:
-            "Please complete availability, physical ability, and why Party Perfect.",
+            "Looks like you already applied recently with this phone or email. We’ll be in touch — no need to re-apply.",
+          reasonId: "duplicate",
         },
-        { status: 400 },
-      );
-    }
-
-    const incompleteHistory = input.workHistory.find(
-      (entry) =>
-        !entry.employer ||
-        !entry.startDate ||
-        !entry.startPay ||
-        (!entry.stillEmployed && (!entry.endDate || !entry.endPay)) ||
-        (entry.stillEmployed && !entry.endPay),
-    );
-    if (input.workHistory.length === 0 || incompleteHistory) {
-      return NextResponse.json(
-        {
-          error:
-            "Add at least one job from the last 3 years with employer, dates, and start/end pay.",
-        },
-        { status: 400 },
+        { status: 409 },
       );
     }
 

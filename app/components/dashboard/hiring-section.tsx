@@ -16,6 +16,10 @@ import {
 } from "@/lib/hiring-goals";
 import type { JobApplication } from "@/lib/jobs";
 import { JOB_ROLES, referralSourceLabel, roleLabel } from "@/lib/jobs";
+import {
+  jobLeadSourceLabel,
+  normalizeJobLeadSource,
+} from "@/lib/job-lead-sources";
 import { formatTime } from "@/lib/ui";
 import { useEffect, useMemo, useState } from "react";
 
@@ -108,6 +112,17 @@ export function HiringSection({
   );
   const goalStatus = hiringGoalStatus(appsToday);
   const goalHint = hiringGoalLabel(appsToday);
+
+  const sourceBreakdown = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const app of applications) {
+      const key = normalizeJobLeadSource(app.source);
+      counts.set(key, (counts.get(key) || 0) + 1);
+    }
+    return [...counts.entries()]
+      .map(([id, count]) => ({ id, count, label: jobLeadSourceLabel(id) }))
+      .sort((a, b) => b.count - a.count);
+  }, [applications]);
 
   const selected =
     filtered.find((app) => app.id === selectedId) ?? filtered[0] ?? null;
@@ -287,6 +302,25 @@ export function HiringSection({
         </div>
       </div>
 
+      {sourceBreakdown.length > 0 ? (
+        <div className="mb-4 rounded-2xl border border-[var(--pp-border)] bg-[var(--pp-panel)] px-4 py-3">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--pp-text-muted)]">
+            Applicant sources (?src=)
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {sourceBreakdown.map((row) => (
+              <span
+                key={row.id}
+                className="rounded-full border border-[var(--pp-border)] px-3 py-1 text-xs text-[var(--pp-text)]"
+              >
+                {row.label}{" "}
+                <strong className="pp-accent-text">{row.count}</strong>
+              </span>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
       <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
         <input
           value={query}
@@ -375,7 +409,8 @@ export function HiringSection({
                         {app.fullName}
                       </p>
                       <p className="mt-0.5 text-xs text-[var(--pp-text-muted)]">
-                        {app.mike.primaryFit} · {app.city || "Tulsa area"}
+                        {app.mike.primaryFit} · {app.city || "Tulsa area"} ·{" "}
+                        {jobLeadSourceLabel(normalizeJobLeadSource(app.source))}
                       </p>
                     </div>
                     <div className="text-right">
@@ -423,6 +458,12 @@ export function HiringSection({
                   <p className="mt-1 break-all text-sm text-[var(--pp-text-muted)]">
                     {selected.email} · {selected.phone}
                   </p>
+                  <p className="mt-1 text-xs text-[var(--pp-text-muted)]">
+                    Source: {jobLeadSourceLabel(normalizeJobLeadSource(selected.source))}
+                    {selected.referralSource
+                      ? ` · Heard via ${referralSourceLabel(selected.referralSource)}`
+                      : ""}
+                  </p>
                 </div>
                 <div className="rounded-2xl border border-[var(--pp-accent)]/30 bg-[var(--pp-accent-soft)]/40 px-4 py-2 text-center">
                   <p className="text-[10px] uppercase tracking-wider text-[var(--pp-text-muted)]">
@@ -430,6 +471,10 @@ export function HiringSection({
                   </p>
                   <p className="text-3xl font-semibold pp-accent-text">
                     {selected.mike.score}
+                  </p>
+                  <p className="text-[10px] text-[var(--pp-text-muted)]">
+                    {selected.mike.scoredBy === "grok" ? "Grok" : "Heuristic"}
+                    {selected.mike.flagForJosh ? " · flagged" : ""}
                   </p>
                 </div>
               </div>
@@ -731,10 +776,32 @@ export function HiringSection({
                     Availability
                   </p>
                   <p className="mt-1 text-[var(--pp-text)]">
-                    {selected.availability}
+                    {selected.availability || "—"}
                   </p>
                 </div>
-                {selected.videoUrl && (
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--pp-text-muted)]">
+                    Transport · Physical · Start
+                  </p>
+                  <p className="mt-1 text-[var(--pp-text)]">
+                    Transport: {selected.hasReliableTransport || "—"} · Outdoor/50lb:{" "}
+                    {selected.physicalOutdoorOk || "—"} · Start:{" "}
+                    {selected.earliestStartDate || "—"} · Missed 3mo:{" "}
+                    {selected.daysMissedLast3Months || "—"}
+                  </p>
+                </div>
+                {selected.physicalStory ? (
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--pp-text-muted)]">
+                      Physical / pace story
+                    </p>
+                    <p className="mt-1 text-[var(--pp-text)]">
+                      {selected.physicalStory}
+                    </p>
+                  </div>
+                ) : null}
+                {selected.videoUrl &&
+                /^https?:\/\//i.test(selected.videoUrl) ? (
                   <div>
                     <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--pp-text-muted)]">
                       Video
@@ -748,7 +815,7 @@ export function HiringSection({
                       Open video link
                     </a>
                   </div>
-                )}
+                ) : null}
               </div>
             </div>
           )}

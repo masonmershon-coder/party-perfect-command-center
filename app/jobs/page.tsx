@@ -1,5 +1,6 @@
 import { JobsApplication } from "@/app/components/jobs/jobs-application";
 import { JOB_ROLES } from "@/lib/jobs";
+import { Suspense } from "react";
 
 /** Server shell + JobPosting JSON-LD so Safari/Google can find Party Perfect Jobs. */
 export default function JobsPage() {
@@ -65,7 +66,15 @@ export default function JobsPage() {
       <h1 className="sr-only">
         Party Perfect Jobs — Tulsa event rental careers
       </h1>
-      <JobsApplication />
+      <Suspense
+        fallback={
+          <div className="flex min-h-[40vh] items-center justify-center text-sm text-[var(--jobs-muted)]">
+            Loading application…
+          </div>
+        }
+      >
+        <JobsApplication />
+      </Suspense>
     </>
   );
 }

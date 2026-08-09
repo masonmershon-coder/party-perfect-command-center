@@ -13,7 +13,7 @@ const LEGACY_KEY = "job-applications.json";
 /** Append-only Redis keys — one application per key. */
 const APP_KEY_PREFIX = "pp:job-app:";
 const APP_INDEX = "pp:job-app-index";
-const MAX_APPLICATIONS = 500;
+const MAX_APPLICATIONS = 5000;
 
 function appRedisKey(id: string) {
   return `${APP_KEY_PREFIX}${id}`;
@@ -29,7 +29,33 @@ function coerceApplication(value: unknown): JobApplication | null {
   const row = value as Partial<JobApplication>;
   if (typeof row.id !== "string" || !row.id.trim()) return null;
   if (typeof row.fullName !== "string") return null;
-  return row as JobApplication;
+  // Backfill knockout fields for apps saved before the hiring form upgrade.
+  const mike = row.mike
+    ? {
+        ...row.mike,
+        scoredBy:
+          row.mike.scoredBy === "grok" || row.mike.scoredBy === "heuristic"
+            ? row.mike.scoredBy
+            : ("heuristic" as const),
+        // Legacy apps without scoredBy must not SMS-flag from stale flagForJosh alone.
+        flagForJosh:
+          row.mike.scoredBy === "grok" ? Boolean(row.mike.flagForJosh) : false,
+      }
+    : undefined;
+  return {
+    ...(row as JobApplication),
+    hasReliableTransport: row.hasReliableTransport || "",
+    physicalOutdoorOk: row.physicalOutdoorOk || "",
+    earliestStartDate: row.earliestStartDate || "",
+    daysMissedLast3Months: row.daysMissedLast3Months || "",
+    availabilitySlots: Array.isArray(row.availabilitySlots)
+      ? row.availabilitySlots
+      : [],
+    physicalStory: row.physicalStory || "",
+    availability: row.availability || "",
+    physicalAbility: row.physicalAbility || "",
+    ...(mike ? { mike } : {}),
+  };
 }
 
 async function readLegacyArray(): Promise<JobApplication[]> {

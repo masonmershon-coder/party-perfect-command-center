@@ -3,17 +3,41 @@
 import { PartyPerfectLogo } from "@/app/components/dashboard/party-perfect-logo";
 import { BRAND } from "@/lib/brand";
 import {
+  WHY_MIN,
+  PHYSICAL_STORY_MIN,
+  availabilityLabelFromSlots,
+  isValidUsPhone,
+  isValidEmail,
+} from "@/lib/job-apply-validate";
+import { normalizeJobLeadSource } from "@/lib/job-lead-sources";
+import {
   JOB_REFERRAL_SOURCES,
   JOB_ROLES,
+  type AvailabilitySlot,
   type CollegeStatus,
+  type DaysMissedBucket,
   type JobReferralSourceId,
   type JobRoleId,
   type WorkHistoryEntry,
 } from "@/lib/jobs";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 
-type Stage = "hero" | "roles" | "form" | "success";
+type Stage = "quick" | "enrich" | "success";
 type FormStep = 1 | 2 | 3;
+
+const AVAILABILITY_OPTIONS: { id: AvailabilitySlot; label: string }[] = [
+  { id: "weekday_am", label: "Weekday mornings" },
+  { id: "weekends", label: "Weekends" },
+  { id: "early_am", label: "Early mornings" },
+];
+
+const DAYS_MISSED_OPTIONS: { id: Exclude<DaysMissedBucket, "">; label: string }[] =
+  [
+    { id: "0", label: "0" },
+    { id: "1-2", label: "1–2" },
+    { id: "3+", label: "3+" },
+  ];
 
 interface FormState {
   fullName: string;
@@ -28,8 +52,14 @@ interface FormState {
   schoolingNotes: string;
   referralSource: JobReferralSourceId;
   referralName: string;
+  hasReliableTransport: "yes" | "no" | "";
+  physicalOutdoorOk: "yes" | "no" | "";
+  earliestStartDate: string;
+  daysMissedLast3Months: DaysMissedBucket;
+  availabilitySlots: AvailabilitySlot[];
   availability: string;
   physicalAbility: string;
+  physicalStory: string;
   whyPartyPerfect: string;
   experience: string;
   workHistory: WorkHistoryEntry[];
@@ -59,8 +89,14 @@ const EMPTY_FORM: FormState = {
   schoolingNotes: "",
   referralSource: "",
   referralName: "",
+  hasReliableTransport: "",
+  physicalOutdoorOk: "",
+  earliestStartDate: "",
+  daysMissedLast3Months: "",
+  availabilitySlots: [],
   availability: "",
   physicalAbility: "",
+  physicalStory: "",
   whyPartyPerfect: "",
   experience: "",
   workHistory: [{ ...EMPTY_JOB }],
@@ -68,23 +104,38 @@ const EMPTY_FORM: FormState = {
 };
 
 export function JobsApplication() {
-  const [stage, setStage] = useState<Stage>("hero");
+  const searchParams = useSearchParams();
+  const leadSource = useMemo(
+    () => normalizeJobLeadSource(searchParams.get("src")),
+    [searchParams],
+  );
+  const [stage, setStage] = useState<Stage>("quick");
   const [roles, setRoles] = useState<JobRoleId[]>([]);
   const [formStep, setFormStep] = useState<FormStep>(1);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resumeFile, setResumeFile] = useState<File | null>(null);
+  const [honeypot, setHoneypot] = useState("");
+  const [applicationId, setApplicationId] = useState<string | null>(null);
+  const [weekendEarlyOk, setWeekendEarlyOk] = useState<"yes" | "no" | "">("");
   const resumeRef = useRef<HTMLInputElement>(null);
 
   const progress = useMemo(() => {
-    if (stage !== "form") return 0;
+    if (stage !== "enrich") return 0;
     return (formStep / 3) * 100;
   }, [stage, formStep]);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [stage, formStep]);
+
+  useEffect(() => {
+    const raw = searchParams.get("role");
+    if (!raw) return;
+    const match = JOB_ROLES.find((role) => role.id === raw);
+    if (match) setRoles([match.id]);
+  }, [searchParams]);
 
   function toggleRole(id: JobRoleId) {
     setRoles((current) => {
@@ -96,6 +147,21 @@ export function JobsApplication() {
         ? withoutOpen.filter((role) => role !== id)
         : [...withoutOpen, id];
     });
+  }
+
+  function toggleAvailabilitySlot(slot: AvailabilitySlot) {
+    setForm((current) => {
+      const has = current.availabilitySlots.includes(slot);
+      const availabilitySlots = has
+        ? current.availabilitySlots.filter((s) => s !== slot)
+        : [...current.availabilitySlots, slot];
+      return {
+        ...current,
+        availabilitySlots,
+        availability: availabilityLabelFromSlots(availabilitySlots),
+      };
+    });
+    setError(null);
   }
 
   function updateField<K extends keyof FormState>(key: K, value: FormState[K]) {
@@ -138,62 +204,28 @@ export function JobsApplication() {
     setError(null);
   }
 
-  function focusSchooling() {
-    window.requestAnimationFrame(() => {
-      document
-        .getElementById("jobs-schooling")
-        ?.scrollIntoView({ behavior: "smooth", block: "center" });
-    });
-  }
-
   function validateStep(step: FormStep) {
+    // Enrich path is optional — only block incomplete sections the user started.
     if (step === 1) {
-      if (!form.fullName.trim() || !form.phone.trim() || !form.email.trim()) {
-        return "Add your name, phone, and email to keep going.";
-      }
-      if (!form.email.includes("@")) return "That email doesn’t look right yet.";
-      if (form.eligibleToWork !== "yes" || form.over18 !== "yes") {
-        return "You need to be 18+ and eligible to work in the U.S.";
-      }
-      if (form.validDriverLicense !== "yes" && form.validDriverLicense !== "no") {
-        return "Tell us if you have a valid driver’s license.";
-      }
-      if (
-        form.highSchoolGraduated !== "yes" &&
-        form.highSchoolGraduated !== "no"
-      ) {
-        focusSchooling();
-        return "Please answer whether you graduated high school (or GED) in the Schooling box below.";
-      }
-      if (!form.collegeStatus) {
-        focusSchooling();
-        return "Pick a college option in the Schooling box (No college is fine).";
-      }
-      if (!form.referralSource) {
-        window.requestAnimationFrame(() => {
-          document
-            .getElementById("jobs-referral")
-            ?.scrollIntoView({ behavior: "smooth", block: "center" });
-        });
-        return "Quick tap — how’d you hear about us?";
-      }
-      if (
-        form.referralSource === "friend" &&
-        form.referralName.trim().length < 2
-      ) {
-        return "Who referred you? First name is perfect.";
+      if (form.email.trim() && !isValidEmail(form.email)) {
+        return "Enter a valid email (or leave it blank).";
       }
     }
     if (step === 2) {
-      if (!form.availability.trim() || !form.physicalAbility.trim()) {
-        return "Tell us about availability and physical ability.";
+      const why = form.whyPartyPerfect.trim();
+      if (why && why.length < WHY_MIN) {
+        return `Why Party Perfect needs ~${WHY_MIN}+ characters, or clear it to skip.`;
       }
-      if (form.whyPartyPerfect.trim().length < 8) {
-        return "Give us a quick “Why Party Perfect?” (even one sentence works).";
+      const story = form.physicalStory.trim();
+      if (story && story.length < PHYSICAL_STORY_MIN) {
+        return "Add a bit more to your physical/fast-paced story, or clear it to skip.";
       }
     }
     if (step === 3) {
-      const incomplete = form.workHistory.find((entry) => {
+      const started = form.workHistory.filter(
+        (e) => e.employer || e.roleTitle || e.startDate || e.startPay,
+      );
+      const incomplete = started.find((entry) => {
         if (!entry.employer.trim() || !entry.startDate.trim() || !entry.startPay.trim()) {
           return true;
         }
@@ -201,21 +233,66 @@ export function JobsApplication() {
         return !entry.endDate.trim() || !entry.endPay.trim();
       });
       if (incomplete) {
-        return "For each job, add employer, start date, start pay, and end pay (or current pay if still there).";
+        return "Finish each job you started — or clear those rows to skip.";
       }
     }
     return null;
   }
 
-  async function submitApplication() {
+  function validateQuickApply() {
+    if (!form.fullName.trim()) return "First name is required.";
+    if (!isValidUsPhone(form.phone)) {
+      return "Enter a valid 10-digit U.S. phone number.";
+    }
+    if (!form.city.trim()) return "City is required.";
+    if (roles.length === 0) return "Pick at least one role.";
+    return null;
+  }
+
+  async function submitApplication(mode: "quick" | "enrich") {
+    if (mode === "quick") {
+      const quickError = validateQuickApply();
+      if (quickError) {
+        setError(quickError);
+        return;
+      }
+    } else {
+      const stepError = validateStep(formStep);
+      if (stepError) {
+        setError(stepError);
+        return;
+      }
+    }
+
     setSubmitting(true);
     setError(null);
     try {
+      let availabilitySlots = form.availabilitySlots;
+      if (mode === "quick" && weekendEarlyOk === "yes") {
+        availabilitySlots = ["weekends", "early_am"];
+      } else if (mode === "quick" && weekendEarlyOk === "no") {
+        availabilitySlots = [];
+      }
+
       const payload = {
         roles,
         ...form,
+        availabilitySlots,
+        availability: availabilityLabelFromSlots(availabilitySlots),
         videoUrl: form.videoUrl.trim() || undefined,
         schoolingNotes: form.schoolingNotes.trim() || undefined,
+        source: leadSource,
+        company_website: honeypot,
+        applyMode: mode,
+        ...(mode === "enrich" && applicationId
+          ? { applicationId }
+          : {}),
+        workHistory:
+          mode === "quick"
+            ? []
+            : form.workHistory.filter(
+                (e) => e.employer || e.roleTitle || e.startDate || e.startPay,
+              ),
       };
       const body = new FormData();
       body.set("payload", JSON.stringify(payload));
@@ -232,6 +309,16 @@ export function JobsApplication() {
             ? result.error
             : "Could not submit. Try again.",
         );
+      }
+      if (typeof result?.id === "string") {
+        setApplicationId(result.id);
+      }
+      if (mode === "quick") {
+        setForm((current) => ({
+          ...current,
+          availabilitySlots,
+          availability: availabilityLabelFromSlots(availabilitySlots),
+        }));
       }
       setStage("success");
     } catch (err) {
@@ -250,139 +337,135 @@ export function JobsApplication() {
         </p>
       </header>
 
-      {stage === "hero" && (
-        <section className="relative mx-auto flex min-h-[calc(100dvh-88px)] max-w-5xl flex-col justify-center px-5 pb-16 pt-6 sm:px-8">
-          <div
-            className="pointer-events-none absolute inset-x-0 top-8 -z-10 mx-auto h-[420px] max-w-3xl rounded-full opacity-70 blur-3xl"
-            style={{
-              background:
-                "radial-gradient(circle, rgba(0,191,165,0.28), transparent 68%)",
-            }}
-            aria-hidden
-          />
-
-          <p className="jobs-rise jobs-display text-sm font-bold uppercase tracking-[0.28em] text-[var(--jobs-teal-deep)]">
-            Party Perfect Jobs
+      {stage === "quick" && (
+        <section className="jobs-panel-enter mx-auto flex min-h-[calc(100dvh-88px)] max-w-xl flex-col px-5 pb-16 pt-4 sm:px-8">
+          <p className="jobs-display text-sm font-bold uppercase tracking-[0.28em] text-[var(--jobs-teal-deep)]">
+            Quick Apply · under 60 seconds
           </p>
-          <h1 className="jobs-rise jobs-rise-delay-1 jobs-display mt-4 max-w-3xl text-4xl font-extrabold leading-[1.05] text-[var(--jobs-ink)] sm:text-6xl">
-            Bring the energy.
-            <span className="block bg-gradient-to-r from-[var(--jobs-teal)] to-[var(--jobs-teal-deep)] bg-clip-text text-transparent">
-              Build the party.
+          <h1 className="jobs-display mt-3 text-3xl font-extrabold leading-tight text-[var(--jobs-ink)] sm:text-4xl">
+            Start here —{" "}
+            <span className="bg-gradient-to-r from-[var(--jobs-teal)] to-[var(--jobs-teal-deep)] bg-clip-text text-transparent">
+              we’ll text you
             </span>
           </h1>
-          <p className="jobs-rise jobs-rise-delay-2 mt-5 max-w-xl text-base leading-7 text-[var(--jobs-muted)] sm:text-lg">
-            {BRAND.name} Event Rentals is hiring in {BRAND.location}. Apply in
-            under 4 minutes — no marathon forms, just the good stuff.
+          <p className="mt-3 text-sm leading-6 text-[var(--jobs-muted)]">
+            Four required fields. Optional yes/no below. Essays &amp; resume are
+            optional after you submit.
           </p>
 
-          <div className="jobs-rise jobs-rise-delay-3 mt-10 flex flex-col gap-3 sm:flex-row sm:items-center">
-            <button
-              type="button"
-              onClick={() => setStage("roles")}
-              className="jobs-cta rounded-2xl bg-[var(--jobs-teal)] px-8 py-4 text-base font-extrabold text-white shadow-[0_12px_28px_rgba(0,191,165,0.35)]"
-              style={{ animation: "jobs-pulse-ring 1.8s ease-out infinite" }}
-            >
-              Start Application
-            </button>
-            <p className="text-sm font-semibold text-[var(--jobs-muted)]">
-              ~3 minutes · Mobile friendly · Tulsa crew
+          {error && (
+            <p className="mt-4 rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {error}
             </p>
+          )}
+
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute -left-[9999px] h-0 w-0 overflow-hidden opacity-0"
+          >
+            <label htmlFor="company_website">Company website</label>
+            <input
+              id="company_website"
+              name="company_website"
+              type="text"
+              tabIndex={-1}
+              autoComplete="off"
+              value={honeypot}
+              onChange={(e) => setHoneypot(e.target.value)}
+            />
           </div>
 
-          <div className="jobs-float mt-14 hidden max-w-md rounded-[2rem] border border-[var(--jobs-teal)]/20 bg-white/70 p-5 backdrop-blur sm:block">
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-[var(--jobs-teal-deep)]">
-              What you get
-            </p>
-            <p className="mt-2 text-sm leading-6 text-[var(--jobs-muted)]">
-              Fast apply · Mike reviews your fit · Top candidates go straight to
-              Josh
-            </p>
-          </div>
-        </section>
-      )}
+          <div className="mt-8 space-y-4">
+            <Field
+              label="First name *"
+              value={form.fullName}
+              onChange={(value) => updateField("fullName", value)}
+              placeholder="Alex"
+              autoComplete="given-name"
+            />
+            <Field
+              label="Phone *"
+              value={form.phone}
+              onChange={(value) => updateField("phone", value)}
+              placeholder="(918) 555-0100"
+              autoComplete="tel"
+              inputMode="tel"
+            />
+            <Field
+              label="City *"
+              value={form.city}
+              onChange={(value) => updateField("city", value)}
+              placeholder="Tulsa"
+              autoComplete="address-level2"
+            />
 
-      {stage === "roles" && (
-        <section className="jobs-panel-enter mx-auto max-w-5xl px-5 pb-20 pt-4 sm:px-8">
-          <p className="text-xs font-bold uppercase tracking-[0.24em] text-[var(--jobs-teal-deep)]">
-            Step 0 · Interests
-          </p>
-          <h2 className="jobs-display mt-3 text-3xl font-extrabold sm:text-4xl">
-            Where could you shine?
-          </h2>
-          <p className="mt-2 max-w-xl text-sm text-[var(--jobs-muted)] sm:text-base">
-            Tap as many as you like — Mike will recommend the best fit later.
-          </p>
-
-          <div className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {JOB_ROLES.map((role) => {
-              const selected = roles.includes(role.id);
-              return (
-                <button
-                  key={role.id}
-                  type="button"
-                  data-selected={selected}
-                  onClick={() => toggleRole(role.id)}
-                  className={`jobs-role-card rounded-2xl border px-4 py-5 text-left ${
-                    selected
-                      ? "border-[var(--jobs-teal)] bg-[var(--jobs-teal-soft)] shadow-[0_10px_24px_rgba(0,191,165,0.18)]"
-                      : "border-black/8 bg-white/80 hover:border-[var(--jobs-teal)]/40"
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <span className="text-2xl" aria-hidden>
-                      {role.icon}
-                    </span>
-                    <span
-                      className={`mt-1 flex h-5 w-5 items-center justify-center rounded-full border text-[10px] font-bold ${
+            <div>
+              <p className="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-[var(--jobs-muted)]">
+                Role interested in *
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {JOB_ROLES.map((role) => {
+                  const selected = roles.includes(role.id);
+                  return (
+                    <button
+                      key={role.id}
+                      type="button"
+                      onClick={() => toggleRole(role.id)}
+                      className={`rounded-full border px-3.5 py-2 text-sm font-bold transition ${
                         selected
                           ? "border-[var(--jobs-teal)] bg-[var(--jobs-teal)] text-white"
-                          : "border-black/15 text-transparent"
+                          : "border-black/10 bg-white text-[var(--jobs-ink)]"
                       }`}
                     >
-                      ✓
-                    </span>
-                  </div>
-                  <p className="jobs-display mt-3 text-lg font-bold">
-                    {role.label}
-                  </p>
-                  <p className="mt-1 text-sm text-[var(--jobs-muted)]">
-                    {role.blurb}
-                  </p>
-                </button>
-              );
-            })}
+                      {role.icon} {role.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-[var(--jobs-teal)]/25 bg-[var(--jobs-teal-soft)]/35 p-4">
+              <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-[var(--jobs-teal-deep)]">
+                Optional · helps Mike prioritize
+              </p>
+              <div className="mt-3 space-y-3">
+                <YesNo
+                  label="Can you work weekends / early mornings?"
+                  value={weekendEarlyOk}
+                  onChange={setWeekendEarlyOk}
+                />
+                <YesNo
+                  label="Comfortable lifting ~50 lbs / outdoor work?"
+                  value={form.physicalOutdoorOk}
+                  onChange={(value) => updateField("physicalOutdoorOk", value)}
+                />
+              </div>
+            </div>
           </div>
 
-          <div className="mt-10 flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setStage("hero")}
-              className="rounded-xl px-4 py-3 text-sm font-bold text-[var(--jobs-muted)]"
-            >
-              Back
-            </button>
-            <button
-              type="button"
-              disabled={roles.length === 0}
-              onClick={() => {
-                setFormStep(1);
-                setStage("form");
-              }}
-              className="jobs-cta rounded-2xl bg-[var(--jobs-teal)] px-7 py-3.5 text-sm font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              Continue
-            </button>
-          </div>
+          <button
+            type="button"
+            disabled={submitting}
+            onClick={() => void submitApplication("quick")}
+            className="jobs-cta mt-8 w-full rounded-2xl bg-[var(--jobs-teal)] px-8 py-4 text-base font-extrabold text-white shadow-[0_12px_28px_rgba(0,191,165,0.35)] disabled:opacity-50"
+            style={{ animation: "jobs-pulse-ring 1.8s ease-out infinite" }}
+          >
+            {submitting ? "Sending…" : "Submit Quick Apply"}
+          </button>
+          <p className="mt-3 text-center text-xs font-semibold text-[var(--jobs-muted)]">
+            {BRAND.name} · {BRAND.location} · Mobile friendly
+          </p>
         </section>
       )}
 
-      {stage === "form" && (
+      {stage === "enrich" && (
         <section className="jobs-panel-enter mx-auto max-w-2xl px-5 pb-24 pt-4 sm:px-8">
           <div className="mb-6">
-            <div className="flex items-center justify-between text-xs font-bold uppercase tracking-[0.18em] text-[var(--jobs-muted)]">
-              <span>
-                Step {formStep} of 3
-              </span>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--jobs-teal-deep)]">
+              Optional · stand out
+            </p>
+            <div className="mt-2 flex items-center justify-between text-xs font-bold uppercase tracking-[0.18em] text-[var(--jobs-muted)]">
+              <span>Extras {formStep} of 3</span>
               <span>{Math.round(progress)}%</span>
             </div>
             <div className="mt-2 h-2 overflow-hidden rounded-full bg-black/5">
@@ -391,13 +474,35 @@ export function JobsApplication() {
                 style={{ width: `${progress}%` }}
               />
             </div>
+            <p className="mt-2 text-sm text-[var(--jobs-muted)]">
+              Your Quick Apply is already in — add anything you want, or skip.
+            </p>
           </div>
 
           {formStep === 1 && (
-            <div className="space-y-4">
+            <div className="relative space-y-4">
+              {/* Honeypot — hidden from humans, bots often autofill */}
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute -left-[9999px] h-0 w-0 overflow-hidden opacity-0"
+              >
+                <label htmlFor="company_website">Company website</label>
+                <input
+                  id="company_website"
+                  name="company_website"
+                  type="text"
+                  tabIndex={-1}
+                  autoComplete="off"
+                  value={honeypot}
+                  onChange={(e) => setHoneypot(e.target.value)}
+                />
+              </div>
               <h2 className="jobs-display text-3xl font-extrabold">
-                Let’s get your basics
+                Add more details
               </h2>
+              <p className="text-sm text-[var(--jobs-muted)]">
+                Email, schooling, and eligibility help — all optional.
+              </p>
               {error && (
                 <p className="rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">
                   {error}
@@ -450,6 +555,16 @@ export function JobsApplication() {
                 value={form.validDriverLicense}
                 onChange={(value) => updateField("validDriverLicense", value)}
               />
+              <YesNo
+                label="Reliable transportation to 8401 E 41st St, Tulsa?"
+                value={form.hasReliableTransport}
+                onChange={(value) => updateField("hasReliableTransport", value)}
+              />
+              <YesNo
+                label="OK with outdoor heat and lifting 50+ lbs (tents/delivery)?"
+                value={form.physicalOutdoorOk}
+                onChange={(value) => updateField("physicalOutdoorOk", value)}
+              />
 
               <div
                 id="jobs-schooling"
@@ -457,7 +572,7 @@ export function JobsApplication() {
               >
                 <div>
                   <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[var(--jobs-teal-deep)]">
-                    Schooling · required
+                    Schooling · optional
                   </p>
                   <h3 className="jobs-display mt-1 text-xl font-extrabold text-[var(--jobs-ink)]">
                     High school &amp; college
@@ -561,24 +676,96 @@ export function JobsApplication() {
               <h2 className="jobs-display text-3xl font-extrabold">
                 Schedule & spark
               </h2>
-              <Area
-                label="Availability"
-                value={form.availability}
-                onChange={(value) => updateField("availability", value)}
-                placeholder="Weekdays, weekends, mornings… whatever’s true for you"
+
+              <div>
+                <p className="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-[var(--jobs-muted)]">
+                  Availability (pick all that fit)
+                </p>
+                <div className="flex flex-col gap-2">
+                  {AVAILABILITY_OPTIONS.map((option) => {
+                    const selected = form.availabilitySlots.includes(option.id);
+                    return (
+                      <label
+                        key={option.id}
+                        className={`flex cursor-pointer items-center gap-3 rounded-2xl border px-4 py-3.5 text-sm font-bold transition ${
+                          selected
+                            ? "border-[var(--jobs-teal)] bg-[var(--jobs-teal-soft)] text-[var(--jobs-ink)]"
+                            : "border-black/10 bg-white text-[var(--jobs-ink)] hover:border-[var(--jobs-teal)]/40"
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selected}
+                          onChange={() => toggleAvailabilitySlot(option.id)}
+                          className="h-4 w-4 rounded border-black/20"
+                        />
+                        {option.label}
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <Field
+                label="Earliest start date"
+                value={form.earliestStartDate}
+                onChange={(value) => updateField("earliestStartDate", value)}
+                type="date"
               />
+
+              <div>
+                <p className="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-[var(--jobs-muted)]">
+                  Days of work missed in the last 3 months
+                </p>
+                <div className="grid grid-cols-3 gap-2">
+                  {DAYS_MISSED_OPTIONS.map((option) => {
+                    const active = form.daysMissedLast3Months === option.id;
+                    return (
+                      <button
+                        key={option.id}
+                        type="button"
+                        onClick={() =>
+                          updateField("daysMissedLast3Months", option.id)
+                        }
+                        className={`rounded-2xl border px-3 py-3 text-sm font-extrabold ${
+                          active
+                            ? "border-[var(--jobs-teal)] bg-[var(--jobs-teal)] text-white"
+                            : "border-black/10 bg-white text-[var(--jobs-ink)]"
+                        }`}
+                      >
+                        {option.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               <Area
-                label="Physical ability"
+                label="Physical ability (brief note)"
                 value={form.physicalAbility}
                 onChange={(value) => updateField("physicalAbility", value)}
                 placeholder="Comfortable lifting, standing, outdoor work, etc."
               />
               <Area
-                label="Why Party Perfect?"
-                value={form.whyPartyPerfect}
-                onChange={(value) => updateField("whyPartyPerfect", value)}
-                placeholder="One fun sentence is perfect"
+                label="Describe a time you did physical or fast-paced work"
+                value={form.physicalStory}
+                onChange={(value) => updateField("physicalStory", value)}
+                placeholder="A few sentences — what you did, how hard it was, how you handled it"
               />
+              <div>
+                <Area
+                  label="Why Party Perfect?"
+                  value={form.whyPartyPerfect}
+                  onChange={(value) => updateField("whyPartyPerfect", value)}
+                  placeholder="What draws you to this crew? A real sentence or two."
+                />
+                <p className="mt-1.5 text-xs text-[var(--jobs-muted)]">
+                  At least {WHY_MIN} characters
+                  {form.whyPartyPerfect.trim().length > 0
+                    ? ` · ${form.whyPartyPerfect.trim().length}/${WHY_MIN}`
+                    : ""}
+                </p>
+              </div>
             </div>
           )}
 
@@ -774,7 +961,7 @@ export function JobsApplication() {
               type="button"
               onClick={() => {
                 if (formStep === 1) {
-                  setStage("roles");
+                  setStage("success");
                   return;
                 }
                 setFormStep((step) => (step - 1) as FormStep);
@@ -782,6 +969,20 @@ export function JobsApplication() {
               className="rounded-xl px-4 py-3 text-sm font-bold text-[var(--jobs-muted)]"
             >
               Back
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (formStep < 3) {
+                  setFormStep((step) => (step + 1) as FormStep);
+                  setError(null);
+                  return;
+                }
+                setStage("success");
+              }}
+              className="rounded-xl px-4 py-3 text-sm font-bold text-[var(--jobs-muted)]"
+            >
+              Skip
             </button>
             {formStep < 3 ? (
               <button
@@ -793,7 +994,6 @@ export function JobsApplication() {
                     return;
                   }
                   if (formStep === 2) {
-                    // Ensure at least one work-history row exists before step 3.
                     setForm((current) =>
                       current.workHistory.length
                         ? current
@@ -810,17 +1010,10 @@ export function JobsApplication() {
               <button
                 type="button"
                 disabled={submitting}
-                onClick={() => {
-                  const message = validateStep(3);
-                  if (message) {
-                    setError(message);
-                    return;
-                  }
-                  void submitApplication();
-                }}
+                onClick={() => void submitApplication("enrich")}
                 className="jobs-cta rounded-2xl bg-[var(--jobs-teal)] px-7 py-3.5 text-sm font-extrabold text-white disabled:opacity-50"
               >
-                {submitting ? "Sending to Mike…" : "Submit application"}
+                {submitting ? "Saving…" : "Save extras"}
               </button>
             )}
           </div>
@@ -860,17 +1053,33 @@ export function JobsApplication() {
           <button
             type="button"
             onClick={() => {
-              setStage("hero");
+              setFormStep(1);
+              setError(null);
+              setStage("enrich");
+            }}
+            className="jobs-cta mt-8 w-full max-w-sm rounded-2xl bg-[var(--jobs-teal)] px-6 py-3.5 text-sm font-extrabold text-white shadow-[0_10px_24px_rgba(0,191,165,0.28)]"
+          >
+            Add more to stand out
+          </button>
+          <p className="mt-2 text-xs text-[var(--jobs-muted)]">
+            Optional — resume, work history, why Party Perfect
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              setStage("quick");
               setRoles([]);
               setForm(EMPTY_FORM);
               setFormStep(1);
+              setApplicationId(null);
+              setWeekendEarlyOk("");
               setResumeFile(null);
               if (resumeRef.current) resumeRef.current.value = "";
               setError(null);
             }}
-            className="jobs-cta mt-10 rounded-2xl border border-[var(--jobs-teal)]/40 bg-white px-6 py-3 text-sm font-extrabold text-[var(--jobs-teal-deep)]"
+            className="jobs-cta mt-6 rounded-2xl border border-[var(--jobs-teal)]/40 bg-white px-6 py-3 text-sm font-extrabold text-[var(--jobs-teal-deep)]"
           >
-            Back to home
+            Done
           </button>
         </section>
       )}
@@ -889,6 +1098,7 @@ function Field({
   placeholder,
   autoComplete,
   inputMode,
+  type = "text",
 }: {
   label: string;
   value: string;
@@ -896,6 +1106,7 @@ function Field({
   placeholder?: string;
   autoComplete?: string;
   inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
+  type?: React.HTMLInputTypeAttribute;
 }) {
   return (
     <label className="block text-left">
@@ -903,6 +1114,7 @@ function Field({
         {label}
       </span>
       <input
+        type={type}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}

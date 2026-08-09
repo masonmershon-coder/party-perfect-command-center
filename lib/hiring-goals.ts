@@ -1,7 +1,7 @@
 /** Daily applicant intake goals for partyperfectjobs.com (Tulsa / America/Chicago). */
 
-export const HIRING_DAILY_GOAL_MIN = 1;
-export const HIRING_DAILY_GOAL_MAX = 5;
+export const HIRING_DAILY_GOAL_MIN = 5;
+export const HIRING_DAILY_GOAL_MAX = 25;
 export const HIRING_TIME_ZONE = "America/Chicago";
 
 /** Calendar date key YYYY-MM-DD in Tulsa time. */

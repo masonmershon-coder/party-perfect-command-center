@@ -1,3 +1,4 @@
+import { isAuthError, requireOwner } from "@/lib/server-auth";
 import { createReport, listReports } from "@/lib/storage";
 import { generateWeeklyRecapMessage } from "@/lib/weekly-recap";
 import { NextResponse } from "next/server";
@@ -6,11 +7,15 @@ export const runtime = "nodejs";
 export const maxDuration = 60;
 
 export async function GET() {
+  const gate = await requireOwner();
+  if (isAuthError(gate)) return gate;
   const reports = await listReports();
   return NextResponse.json({ reports });
 }
 
 export async function POST(request: Request) {
+  const gate = await requireOwner();
+  if (isAuthError(gate)) return gate;
   try {
     const body = (await request.json().catch(() => ({}))) as {
       action?: string;

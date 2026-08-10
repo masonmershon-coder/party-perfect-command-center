@@ -1,11 +1,14 @@
 "use client";
 
 import { PageHeader } from "@/app/components/dashboard/page-header";
+import { ConfirmDialog } from "@/app/components/dashboard/confirm-dialog";
+import { PorSyncBanner } from "@/app/components/dashboard/por-sync-banner";
 import {
   buildQuoteApi,
   buildQuoteFromMatchesApi,
   checkQuoteAvailabilityApi,
   deleteSavedQuoteApi,
+  fetchPorCatalogStatus,
   fetchQuoteCandidates,
   fetchSavedQuotes,
   matchQuotePhoto,
@@ -21,6 +24,7 @@ import { useSpeechToText } from "@/lib/speech-to-text";
 import type {
   DesignMatchedItem,
   PorCatalogItem,
+  PorSyncMeta,
   Quote,
   QuoteAvailabilityLineResult,
   QuoteCustomerEvent,
@@ -108,8 +112,10 @@ function statusClass(s: QuoteQueueStatus) {
 
 export function QuotingSection({
   createdBy = "showroom",
+  porMeta = null,
 }: {
   createdBy?: string;
+  porMeta?: PorSyncMeta | null;
 }) {
   const [screen, setScreen] = useState<Screen>("queue");
   const [step, setStep] = useState<BuilderStep>("capture");
@@ -132,6 +138,8 @@ export function QuotingSection({
   const [browseHits, setBrowseHits] = useState<
     Array<PorCatalogItem & { score: number }>
   >([]);
+  const [catalogSynced, setCatalogSynced] = useState<boolean | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<SavedQuote | null>(null);
 
   const [customer, setCustomer] = useState<QuoteCustomerEvent>(emptyCustomer());
   const [quote, setQuote] = useState<Quote | null>(null);
@@ -166,6 +174,12 @@ export function QuotingSection({
   useEffect(() => {
     void refreshQueue();
   }, [refreshQueue]);
+
+  useEffect(() => {
+    void fetchPorCatalogStatus()
+      .then((s) => setCatalogSynced(s.synced))
+      .catch(() => setCatalogSynced(false));
+  }, []);
 
   function resetBuilder() {
     setEditingId(null);
@@ -284,8 +298,16 @@ export function QuotingSection({
     setBusy(true);
     setError(null);
     try {
-      const { items } = await searchPorCatalogApi(browseQuery.trim(), 10);
+      const { items, synced } = await searchPorCatalogApi(browseQuery.trim(), 10);
+      setCatalogSynced(synced);
       setBrowseHits(items);
+      if (!synced) {
+        setError(
+          "Catalog not synced yet — run the POR export on ENTERPRISE, or type item names manually.",
+        );
+      } else if (items.length === 0) {
+        setError("No catalog matches — try a different name or add a custom line.");
+      }
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -653,23 +675,69 @@ export function QuotingSection({
   }
 
   function printTicket() {
-    const w = window.open("", "_blank", "noopener,noreferrer,width=720,height=900");
-    if (!w) {
-      setError("Pop-up blocked — allow pop-ups to print the ticket.");
+    const html = `<!DOCTYPE html><html><head><title>Rental Proposal</title>
+<style>
+  body{margin:0;padding:24px;font:14px/1.45 ui-monospace,Menlo,monospace;color:#111}
+  pre{white-space:pre-wrap;margin:0}
+  @media print{body{padding:0}}
+</style></head><body><pre>${ticketText
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")}</pre></body></html>`;
+
+    const iframe = document.createElement("iframe");
+    iframe.setAttribute("aria-hidden", "true");
+    iframe.style.cssText =
+      "position:fixed;right:0;bottom:0;width:0;height:0;border:0;opacity:0;pointer-events:none";
+    document.body.appendChild(iframe);
+    const doc = iframe.contentDocument || iframe.contentWindow?.document;
+    if (!doc) {
+      document.body.removeChild(iframe);
+      setError("Couldn’t open print view — use Copy ticket instead.");
       return;
     }
-    w.document.write(
-      `<pre style="font:14px/1.45 ui-monospace,Menlo,monospace;padding:24px;white-space:pre-wrap">${ticketText
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")}</pre>`,
-    );
-    w.document.close();
-    w.focus();
-    w.print();
+    doc.open();
+    doc.write(html);
+    doc.close();
+    const runPrint = () => {
+      try {
+        iframe.contentWindow?.focus();
+        iframe.contentWindow?.print();
+      } finally {
+        setTimeout(() => {
+          if (iframe.parentNode) document.body.removeChild(iframe);
+        }, 1000);
+      }
+    };
+    // Wait a tick so the iframe paints before print (avoids blank pages).
+    if (iframe.contentWindow?.document.readyState === "complete") {
+      setTimeout(runPrint, 50);
+    } else {
+      iframe.onload = () => setTimeout(runPrint, 50);
+    }
   }
 
   const stepIndex =
     step === "capture" ? 0 : step === "pick" ? 1 : step === "customer" ? 2 : 3;
+  const catalogSource: "por" | "local" =
+    catalogSynced || porMeta?.present ? "por" : "local";
+  const catalogMeta: PorSyncMeta =
+    porMeta ??
+    (catalogSynced
+      ? {
+          present: true,
+          stale: false,
+          syncedAt: null,
+          ageMs: null,
+          sourceHost: null,
+        }
+      : {
+          present: false,
+          stale: false,
+          syncedAt: null,
+          ageMs: null,
+          sourceHost: null,
+        });
 
   return (
     <div>
@@ -701,6 +769,47 @@ export function QuotingSection({
         }
       />
 
+      <PorSyncBanner
+        source={catalogSynced === false ? "local" : catalogSource}
+        porMeta={
+          catalogSynced === false
+            ? {
+                present: false,
+                stale: false,
+                syncedAt: null,
+                ageMs: null,
+                sourceHost: null,
+              }
+            : catalogMeta
+        }
+        label="catalog"
+      />
+      {catalogSynced === false ? (
+        <div className="mb-4 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-900 dark:text-amber-100">
+          Catalog not synced yet — run the POR export on ENTERPRISE, or type item
+          names manually as custom lines.
+        </div>
+      ) : null}
+
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        title="Remove quote?"
+        message={
+          deleteTarget
+            ? `Remove “${deleteTarget.customer.customerName || "Untitled"}” from the shared queue?`
+            : ""
+        }
+        confirmLabel="Remove"
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={() => {
+          const id = deleteTarget?.id;
+          setDeleteTarget(null);
+          if (id) {
+            void deleteSavedQuoteApi(id).then(() => refreshQueue());
+          }
+        }}
+      />
+
       {screen === "queue" ? (
         <div className="mb-4 rounded-xl border border-[var(--pp-border)] bg-[var(--pp-accent-muted)] px-4 py-3 text-sm text-[var(--pp-text)]">
           <p className="font-medium">Where quotes go today</p>
@@ -723,10 +832,7 @@ export function QuotingSection({
           error={queueError}
           onRefresh={refreshQueue}
           onOpen={openSaved}
-          onDelete={async (id) => {
-            await deleteSavedQuoteApi(id);
-            await refreshQueue();
-          }}
+          onDelete={(row) => setDeleteTarget(row)}
           onStatus={async (id, status) => {
             try {
               const result = await updateSavedQuoteApi(id, { status });
@@ -951,7 +1057,7 @@ function QueueView({
   error: string | null;
   onRefresh: () => Promise<void>;
   onOpen: (row: SavedQuote) => void;
-  onDelete: (id: string) => Promise<void>;
+  onDelete: (row: SavedQuote) => void;
   onStatus: (id: string, status: QuoteQueueStatus) => Promise<void>;
 }) {
   return (
@@ -1066,11 +1172,7 @@ function QueueView({
                       <button
                         type="button"
                         className="text-xs font-semibold text-red-500"
-                        onClick={() => {
-                          if (confirm("Remove this quote from the queue?")) {
-                            void onDelete(row.id);
-                          }
-                        }}
+                        onClick={() => onDelete(row)}
                       >
                         Delete
                       </button>
@@ -1348,7 +1450,14 @@ function CapturePanel({
             ) : null}
           </div>
           <ul className="divide-y divide-[var(--pp-border)]">
-            {browseHits.map((item) => (
+            {browseHits.length === 0 ? (
+              <li className="py-6 text-center text-sm text-[var(--pp-text-muted)]">
+                {browseQuery.trim()
+                  ? "No matches — try another name, or add a custom line on the next step."
+                  : "Search the live POR catalog by name."}
+              </li>
+            ) : (
+              browseHits.map((item) => (
               <li
                 key={item.sku}
                 className="flex flex-wrap items-center justify-between gap-3 py-3"
@@ -1368,7 +1477,8 @@ function CapturePanel({
                   Add
                 </button>
               </li>
-            ))}
+              ))
+            )}
           </ul>
         </div>
       ) : null}

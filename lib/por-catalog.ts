@@ -12,6 +12,26 @@ const CATALOG_KEY = "por-catalog.json";
 const CACHE_MS = 5 * 60 * 1000;
 let cache: { state: PorCatalogState; at: number } | null = null;
 
+/** Categories that are structure/hardware — usually wrong for tabletop/linen queries. */
+const HARDWARE_CATS =
+  /tent\s*structure|draping[\s-]*hardware|pipe\s*&?\s*drape|hardware/i;
+
+/** Bidirectional domain synonyms / abbreviations for Party Perfect catalog language. */
+const SYNONYM_GROUPS: string[][] = [
+  ["round", "rd"],
+  ["square", "sq"],
+  ["rectangle", "rect", "rectangular"],
+  ["fork", "forks", "flatware", "silverware"],
+  ["knife", "knives", "flatware", "silverware"],
+  ["spoon", "spoons", "flatware", "silverware"],
+  ["charger", "chargers"],
+  ["napkin", "napkins", "linen", "linens"],
+  ["tablecloth", "tablecloths", "cloth", "linen", "linens"],
+  ["glass", "goblet", "flute", "stemware", "glassware", "tumbler"],
+  ["table", "tables"],
+  ["chair", "chairs"],
+];
+
 function emptyCatalog(): PorCatalogState {
   return { items: [], activeItems: 0, source: "", syncedAt: "" };
 }
@@ -44,29 +64,92 @@ export async function savePorCatalog(state: PorCatalogState): Promise<void> {
   });
 }
 
+/** Stem trailing plural s/es for matching (forks→fork, glasses→glass). */
+export function stemToken(token: string): string {
+  const t = token.toLowerCase();
+  if (t.length <= 3) return t;
+  if (t.endsWith("ies") && t.length > 4) return `${t.slice(0, -3)}y`;
+  if (t.endsWith("ses") || t.endsWith("xes") || t.endsWith("zes")) return t.slice(0, -2);
+  if (t.endsWith("es") && t.length > 4) return t.slice(0, -2);
+  if (t.endsWith("s") && !t.endsWith("ss")) return t.slice(0, -1);
+  return t;
+}
+
 function tokenize(text: string): string[] {
   return text
     .toLowerCase()
     .replace(/[^a-z0-9\s&/-]+/g, " ")
     .split(/\s+/)
-    .filter((t) => t.length > 1);
+    .filter((t) => t.length > 1)
+    .map(stemToken);
 }
 
-function scoreName(query: string, name: string): number {
-  const q = query.trim().toLowerCase();
-  const n = name.toLowerCase();
-  if (!q || !n) return 0;
-  if (n === q) return 100;
-  if (n.includes(q)) return 80 + Math.min(q.length, 15);
-  const qTokens = tokenize(q);
-  const nTokens = new Set(tokenize(n));
-  if (qTokens.length === 0) return 0;
-  let hit = 0;
-  for (const t of qTokens) {
-    if (nTokens.has(t)) hit += 1;
-    else if ([...nTokens].some((nt) => nt.includes(t) || t.includes(nt))) hit += 0.5;
+function expandSynonyms(tokens: string[]): Set<string> {
+  const out = new Set(tokens);
+  for (const t of tokens) {
+    for (const group of SYNONYM_GROUPS) {
+      const stemmedGroup = group.map(stemToken);
+      if (stemmedGroup.includes(t) || group.includes(t)) {
+        for (const g of stemmedGroup) out.add(g);
+      }
+    }
   }
-  return (hit / qTokens.length) * 70;
+  return out;
+}
+
+/** True when the query looks like tabletop / linen / glassware (not tent hardware). */
+function isTabletopQuery(query: string): boolean {
+  return /\b(table|tables|chair|fork|knife|spoon|flatware|charger|napkin|linen|cloth|glass|goblet|flute|plate|placemat|bowl)\b/i.test(
+    query,
+  );
+}
+
+/**
+ * Name similarity for catalog search.
+ * - Exact / contains strong hits
+ * - Stemmed whole-token matches (plurals)
+ * - Prefix match only when both sides length >= 4 (avoids "for"↔"forks")
+ * - Domain synonyms (round↔rd, forks↔flatware, …)
+ */
+export function scoreName(query: string, name: string): number {
+  const qRaw = query.trim().toLowerCase();
+  const nRaw = name.toLowerCase();
+  if (!qRaw || !nRaw) return 0;
+  if (nRaw === qRaw) return 100;
+  if (nRaw.includes(qRaw) && qRaw.length >= 4) return 80 + Math.min(qRaw.length, 15);
+
+  const qTokens = tokenize(qRaw);
+  const nTokens = tokenize(nRaw);
+  if (qTokens.length === 0 || nTokens.length === 0) return 0;
+
+  const nSet = new Set(nTokens);
+  const nExpanded = expandSynonyms(nTokens);
+  const qExpanded = expandSynonyms(qTokens);
+
+  let hit = 0;
+  for (const t of qExpanded) {
+    if (nSet.has(t) || nExpanded.has(t)) {
+      hit += 1;
+      continue;
+    }
+    // Prefix/substring only for meaningful tokens (>=4 chars) — not stopword fragments.
+    if (t.length >= 4) {
+      const soft = [...nExpanded].some(
+        (nt) =>
+          nt.length >= 4 && (nt.startsWith(t) || t.startsWith(nt)),
+      );
+      if (soft) hit += 0.35;
+    }
+  }
+
+  // Prefer denser whole-token overlap from original query tokens.
+  let exactTokenHits = 0;
+  for (const t of qTokens) {
+    if (nSet.has(t) || nExpanded.has(t)) exactTokenHits += 1;
+  }
+  const base = (hit / Math.max(qExpanded.size, 1)) * 70;
+  const exactBoost = (exactTokenHits / qTokens.length) * 25;
+  return Math.min(100, base + exactBoost);
 }
 
 export async function getPorCatalog(): Promise<PorCatalogState> {
@@ -86,6 +169,10 @@ export function porCatalogIsFee(item: PorCatalogItem): boolean {
   return cat.startsWith("FEE") || cat.startsWith("DISCOUNT");
 }
 
+function isHardwareNoise(item: PorCatalogItem): boolean {
+  return HARDWARE_CATS.test(item.category || "") || HARDWARE_CATS.test(item.name || "");
+}
+
 /** Fuzzy-search the full catalog by name/category. Excludes fee/service lines by default. */
 export async function searchPorCatalog(
   query: string,
@@ -94,15 +181,30 @@ export async function searchPorCatalog(
 ): Promise<Array<PorCatalogItem & { score: number }>> {
   const q = query.trim();
   if (!q) return [];
-  const { items } = await getPorCatalog();
+  const tabletop = isTabletopQuery(q);
+  const { items, syncedAt } = await getPorCatalog();
+  void syncedAt;
   return items
     .filter((item) => opts.includeFees || !porCatalogIsFee(item))
-    .map((item) => ({
-      ...item,
-      score: Math.max(scoreName(q, item.name), item.category ? scoreName(q, item.category) : 0),
-    }))
+    .map((item) => {
+      let score = Math.max(
+        scoreName(q, item.name),
+        item.category ? scoreName(q, item.category) * 0.85 : 0,
+      );
+      if (tabletop && isHardwareNoise(item)) score *= 0.25;
+      if (tabletop && item.ratePerDay === 0 && isHardwareNoise(item)) score *= 0.1;
+      return { ...item, score };
+    })
     .filter((row) => row.score >= 30)
-    .sort((a, b) => b.score - a.score || a.name.localeCompare(b.name))
+    .sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      // Prefer shorter merchandise names over "_A.S PURLIN…" style SKUs on ties.
+      const aUgly = /^[^a-z0-9]/i.test(a.name) ? 1 : 0;
+      const bUgly = /^[^a-z0-9]/i.test(b.name) ? 1 : 0;
+      if (aUgly !== bUgly) return aUgly - bUgly;
+      if (a.name.length !== b.name.length) return a.name.length - b.name.length;
+      return (b.qty || 0) - (a.qty || 0);
+    })
     .slice(0, limit);
 }
 
@@ -111,17 +213,13 @@ export async function findPorCatalogItemByName(
   name: string,
   minScore = 60,
 ): Promise<PorCatalogItem | null> {
-  const q = name.trim();
-  if (!q) return null;
-  const { items } = await getPorCatalog();
-  let best: PorCatalogItem | null = null;
-  let bestScore = 0;
-  for (const item of items) {
-    const s = scoreName(q, item.name);
-    if (s > bestScore) {
-      bestScore = s;
-      best = item;
-    }
-  }
-  return bestScore >= minScore ? best : null;
+  const hits = await searchPorCatalog(name, 3);
+  const best = hits[0];
+  return best && best.score >= minScore ? best : null;
+}
+
+/** Whether the durable catalog has been synced (non-empty). */
+export async function porCatalogIsSynced(): Promise<boolean> {
+  const { items, syncedAt } = await getPorCatalog();
+  return items.length > 0 && Boolean(syncedAt);
 }

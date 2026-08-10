@@ -290,9 +290,10 @@ export default function PartyPerfectDashboard() {
   }
 
   function handleSignOut() {
-    clearAuthSession();
-    clearStoredUserRole();
-    window.location.reload();
+    void clearAuthSession().then(() => {
+      clearStoredUserRole();
+      window.location.reload();
+    });
   }
 
   useEffect(() => {
@@ -882,11 +883,18 @@ export default function PartyPerfectDashboard() {
           />
         ) : null;
       case "design":
-        return <DesignSection onAskMadison={openMadisonChat} />;
+        return (
+          <DesignSection
+            onAskMadison={openMadisonChat}
+            porMeta={inventoryPorMeta}
+            catalogSource={inventorySource}
+          />
+        );
       case "quoting":
         return (
           <QuotingSection
             createdBy={userRole === "owner" ? "owner" : "showroom"}
+            porMeta={inventoryPorMeta}
           />
         );
       case "marketing":
@@ -1011,7 +1019,7 @@ export default function PartyPerfectDashboard() {
           notifications={notifications}
           onDismiss={dismissNotification}
         />
-        <main className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain px-3 py-4 pb-28 sm:px-6 sm:py-6 lg:px-8 lg:py-8 lg:pb-6">
+        <main className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain px-3 py-4 pb-[calc(6.5rem+env(safe-area-inset-bottom))] sm:px-6 sm:py-6 lg:px-8 lg:py-8 lg:pb-6">
           {renderMainContent()}
         </main>
       </div>

@@ -15,8 +15,9 @@ Showroom / HQ: **8401 E 41st St, Tulsa OK 74145**
 Showroom & warehouse hours (site): Mon–Fri 9–4 · Sat 9–2 · Sun closed
 Owners / design roots: **Josh & Michelle Mershon** — event industry since **1997**, acquired Party Perfect **2007**. Longest-thriving / first party rental story in Tulsa market (use carefully: “premier” + “decades of style,” not false Super Bowl claims).
 Brand promise: highest quality products, outstanding service, fashion-forward + traditional, boutique showroom specialists daily — **no appointment needed**.
-POR / Get Quote path on site: quote cart / revieworder.asp; catalog-driven rentals.
-Also on site: Design with AI (tryjune) link — optional secondary CTA, primary still call + quote + showroom visit.
+POR / Get Quote path on site: legacy ASP cart (reviewOrder.asp) still on partyperfecteventrental.com — SESSION TIMEOUTS force restarts. Long-term: surface partyperfect.app quoting as the customer quote builder. Until then, showroom uses Command Center Quoting → POR ticket copy/paste.
+Design CTA: **Design Studio / Madison on partyperfect.app** (NOT tryjune.ai or other third-party AI). Never send customers to tryjune.
+Trust / SEO gaps to fix on the public rental site: homepage meta description, customer reviews/testimonials, founding story (1997 industry / 2007 Party Perfect), and a visible Privacy Policy link (Command Center already hosts /legal/privacy).
 
 ## Who we sell to (conversion goals for Google)
 1. **Weddings** — tents, linens, china, chargers, glass, flatware, dance floor, décor, design/planning support
@@ -54,7 +55,7 @@ Objective: When someone in NE Oklahoma googles party/event rental need (wedding,
 
 Site final URL (default all Search ad groups unless microsite): 
 https://www.partyperfecteventrental.com
-Secondary CTAs: tel:918-258-7368 · Get Quote · showroom visit (Mon–Sat hours)
+Secondary CTAs: tel:918-258-7368 · Get Quote · showroom visit (Mon–Sat hours) · Design Studio on partyperfect.app (Madison — never tryjune.ai)
 
 ## Strategy pillars
 1. **Own high-intent Search** (tables, tents, linens, china, dance floor, wedding rental Tulsa)

@@ -1,37 +1,41 @@
+import { isAuthError, requireOwner, requireSession } from "@/lib/server-auth";
 import { getPorSnapshot, getPorSyncMeta } from "@/lib/por-snapshot";
-import { createBookkeepingEntry, listBookkeeping } from "@/lib/storage";
+import {
+  createBookkeepingEntry,
+  listAccountsReceivable,
+  listBookkeeping,
+} from "@/lib/storage";
 import type { CreateBookkeepingInput } from "@/lib/types";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 
 export async function GET() {
-  const [bookkeeping, por] = await Promise.all([
+  const gate = await requireOwner();
+  if (isAuthError(gate)) return gate;
+
+  const [ap, arPayload, por] = await Promise.all([
     listBookkeeping(),
+    listAccountsReceivable(),
     getPorSnapshot(),
   ]);
   const porMeta = getPorSyncMeta(por);
+  const showAr = arPayload.source === "por" && arPayload.entries.length > 0;
   return NextResponse.json({
-    bookkeeping,
-    source: porMeta.present ? "por" : "local",
+    bookkeeping: showAr ? arPayload.entries : ap,
+    accountsPayable: ap,
+    accountsReceivable: arPayload.entries,
+    source: showAr ? "por" : "local",
     por: porMeta,
     money: por?.money ?? null,
   });
 }
 
 export async function POST(request: Request) {
-  try {
-    const por = await getPorSnapshot();
-    if (por) {
-      return NextResponse.json(
-        {
-          error:
-            "Bookkeeping is mirrored from Point of Rental AR (read-only). Post payments in POR.",
-        },
-        { status: 403 },
-      );
-    }
+  const gate = await requireOwner();
+  if (isAuthError(gate)) return gate;
 
+  try {
     const body = (await request.json()) as CreateBookkeepingInput;
 
     if (!body.vendor?.trim() || !body.description?.trim()) {

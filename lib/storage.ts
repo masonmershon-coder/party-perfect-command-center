@@ -43,6 +43,7 @@ import type {
   InventoryItem,
   MarketingItem,
   Message,
+  PorSyncMeta,
   SocialComment,
   SocialDirectMessage,
   SocialEngagementSummary,
@@ -389,6 +390,9 @@ export async function ensurePartyPerfectSeed() {
   if (existingReports.length === 0) {
     const reports: SavedReport[] = DEFAULT_REPORTS.map((item) => ({
       ...item,
+      title: item.title.startsWith("[Demo]")
+        ? item.title
+        : `[Demo] ${item.title}`,
       id: createId(),
     }));
     await writeJsonFileBestEffort(REPORTS_FILE, reports);
@@ -920,13 +924,26 @@ export function buildSocialEngagement(
 }
 
 export async function listBookkeeping(): Promise<BookkeepingEntry[]> {
-  const por = await getPorSnapshot();
-  if (por?.money) {
-    const fromPor = bookkeepingFromPorSnapshot(por);
-    if (fromPor.length > 0) return fromPor;
-  }
+  // Vendor bills (AP) — never swap POR AR into this list.
   await ensurePartyPerfectSeed();
   return readJsonFile<BookkeepingEntry[]>(BOOKKEEPING_FILE, []);
+}
+
+/** POR AR aging rows for the Bookkeeping UI when live sync is present. */
+export async function listAccountsReceivable(): Promise<{
+  entries: BookkeepingEntry[];
+  source: "por" | "local";
+  por: PorSyncMeta;
+}> {
+  const por = await getPorSnapshot();
+  const meta = getPorSyncMeta(por);
+  if (por?.money) {
+    const fromPor = bookkeepingFromPorSnapshot(por);
+    if (fromPor.length > 0) {
+      return { entries: fromPor, source: "por", por: meta };
+    }
+  }
+  return { entries: [], source: "local", por: meta };
 }
 
 export async function createBookkeepingEntry(

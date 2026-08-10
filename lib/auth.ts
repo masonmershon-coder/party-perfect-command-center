@@ -1,77 +1,15 @@
-const AUTH_SALT = "party-perfect-command-center-v1";
-const MAIN_SESSION_KEY = "pp-auth-session";
-const OWNER_SESSION_KEY = "pp-owner-session";
+/**
+ * Client auth helpers — talk to /api/auth/session (httpOnly cookie).
+ * Passwords/PINs are NEVER embedded in the client bundle.
+ */
+
 const ATTEMPT_STATE_KEY = "pp-auth-attempts";
-
-/** Internal team password — client-side gate only (not server auth). */
-const MAIN_PASSWORD = "socialbutterfly";
-/** Owner / admin PIN for bookkeeping, marketing, reports. */
-const OWNER_PIN = "0623";
-
-const MAIN_SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
-const OWNER_SESSION_TTL_MS = 8 * 60 * 60 * 1000;
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_MS = 5 * 60 * 1000;
-
-interface StoredSession {
-  token: string;
-  expiresAt: number;
-}
 
 interface AttemptState {
   failures: number;
   lockedUntil?: number;
-}
-
-let cachedMainToken: string | null = null;
-let cachedOwnerToken: string | null = null;
-
-async function digestSecret(value: string): Promise<string> {
-  const encoded = new TextEncoder().encode(`${AUTH_SALT}:${value}`);
-  const buffer = await crypto.subtle.digest("SHA-256", encoded);
-  return Array.from(new Uint8Array(buffer))
-    .map((byte) => byte.toString(16).padStart(2, "0"))
-    .join("");
-}
-
-async function expectedMainToken() {
-  if (!cachedMainToken) {
-    cachedMainToken = await digestSecret(MAIN_PASSWORD);
-  }
-  return cachedMainToken;
-}
-
-async function expectedOwnerToken() {
-  if (!cachedOwnerToken) {
-    cachedOwnerToken = await digestSecret(OWNER_PIN);
-  }
-  return cachedOwnerToken;
-}
-
-function readSession(key: string): StoredSession | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = localStorage.getItem(key);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as StoredSession;
-    if (!parsed.token || !parsed.expiresAt) return null;
-    if (Date.now() > parsed.expiresAt) {
-      localStorage.removeItem(key);
-      return null;
-    }
-    return parsed;
-  } catch {
-    return null;
-  }
-}
-
-function writeSession(key: string, token: string, ttlMs: number) {
-  if (typeof window === "undefined") return;
-  const session: StoredSession = {
-    token,
-    expiresAt: Date.now() + ttlMs,
-  };
-  localStorage.setItem(key, JSON.stringify(session));
 }
 
 function readAttemptState(): AttemptState {
@@ -111,31 +49,47 @@ function clearFailedAttempts() {
   writeAttemptState({ failures: 0 });
 }
 
+export type SessionInfo = {
+  authenticated: boolean;
+  role?: "employee" | "owner";
+  expiresAt?: number;
+};
+
+export async function fetchAuthSession(): Promise<SessionInfo> {
+  try {
+    const res = await fetch("/api/auth/session", { credentials: "include" });
+    if (!res.ok) return { authenticated: false };
+    return (await res.json()) as SessionInfo;
+  } catch {
+    return { authenticated: false };
+  }
+}
+
 export async function isMainSessionValid(): Promise<boolean> {
-  const session = readSession(MAIN_SESSION_KEY);
-  if (!session) return false;
-  return session.token === (await expectedMainToken());
+  const s = await fetchAuthSession();
+  return Boolean(s.authenticated);
 }
 
 export async function isOwnerSessionValid(): Promise<boolean> {
-  const session = readSession(OWNER_SESSION_KEY);
-  if (!session) return false;
-  return session.token === (await expectedOwnerToken());
+  const s = await fetchAuthSession();
+  return s.authenticated === true && s.role === "owner";
 }
 
 export async function signInWithPassword(password: string): Promise<boolean> {
   const lockout = getAuthLockoutMessage();
   if (lockout) return false;
 
-  const token = await digestSecret(password.trim());
-  const expected = await expectedMainToken();
-  if (token !== expected) {
+  const res = await fetch("/api/auth/session", {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "login", password }),
+  });
+  if (!res.ok) {
     registerFailedAttempt();
     return false;
   }
-
   clearFailedAttempts();
-  writeSession(MAIN_SESSION_KEY, token, MAIN_SESSION_TTL_MS);
   return true;
 }
 
@@ -143,23 +97,35 @@ export async function unlockOwnerWithPin(pin: string): Promise<boolean> {
   const lockout = getAuthLockoutMessage();
   if (lockout) return false;
 
-  const normalized = pin.replace(/\D/g, "");
-  if (normalized !== OWNER_PIN) {
+  const res = await fetch("/api/auth/session", {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "owner", pin }),
+  });
+  if (!res.ok) {
     registerFailedAttempt();
     return false;
   }
-
   clearFailedAttempts();
-  const token = await expectedOwnerToken();
-  writeSession(OWNER_SESSION_KEY, token, OWNER_SESSION_TTL_MS);
   return true;
 }
 
-export function signOut() {
-  if (typeof window === "undefined") return;
-  localStorage.removeItem(MAIN_SESSION_KEY);
-  localStorage.removeItem(OWNER_SESSION_KEY);
-  localStorage.removeItem("pp-user-role");
+export async function signOut() {
+  try {
+    await fetch("/api/auth/session", {
+      method: "DELETE",
+      credentials: "include",
+    });
+  } catch {
+    // ignore
+  }
+  if (typeof window !== "undefined") {
+    localStorage.removeItem(ATTEMPT_STATE_KEY);
+    localStorage.removeItem("pp-user-role");
+    localStorage.removeItem("pp-auth-session");
+    localStorage.removeItem("pp-owner-session");
+  }
 }
 
 export function isOwnerSection(section: import("./types").NavSection) {

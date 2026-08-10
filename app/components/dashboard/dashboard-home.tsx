@@ -68,14 +68,20 @@ export function DashboardHome({
     },
     ...(isOwner
       ? [
-          {
-            label: "Pending Bills",
-            value: String(stats.bookkeepingPending),
-            hint: latestReport
-              ? `Last recap ${formatTime(latestReport.generatedAt)}`
-              : "No recap saved yet",
-          },
-        ]
+          porLive && stats.por?.arOpenBalance != null
+            ? {
+                label: "Open AR",
+                value: formatCurrency(stats.por.arOpenBalance),
+                hint: "Money owed TO Party Perfect (POR)",
+              }
+            : {
+                label: "Pending Bills",
+                value: String(stats.bookkeepingPending),
+                hint: latestReport
+                  ? `Last recap ${formatTime(latestReport.generatedAt)}`
+                  : "Vendor bills we owe (AP)",
+              },
+          ]
       : []),
   ];
 
@@ -84,7 +90,11 @@ export function DashboardHome({
       <PageHeader
         eyebrow="Overview"
         title="Command Center"
-        description="Live operations view for Party Perfect Event Rentals — Tulsa, Oklahoma."
+        description={
+          porLive
+            ? "Live POR ops where synced. Email/social/task counts may still be demo until IMAP/Meta are live."
+            : "Operations overview — connect POR sync for live inventory and AR."
+        }
         action={
           liveModeEnabled ? (
             <div className="flex items-center gap-2 rounded-xl border border-[var(--pp-accent)]/30 bg-[var(--pp-accent-soft)]/50 px-3 py-2 text-xs">

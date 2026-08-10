@@ -1,4 +1,4 @@
-import { searchPorCatalog } from "@/lib/por-catalog";
+import { getPorCatalog, porCatalogIsSynced, searchPorCatalog } from "@/lib/por-catalog";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
@@ -9,8 +9,17 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const q = searchParams.get("q") || "";
     const limit = Number(searchParams.get("limit") || 8);
-    const items = await searchPorCatalog(q, Number.isFinite(limit) ? limit : 8);
-    return NextResponse.json({ items });
+    const [items, synced, catalog] = await Promise.all([
+      searchPorCatalog(q, Number.isFinite(limit) ? limit : 8),
+      porCatalogIsSynced(),
+      getPorCatalog(),
+    ]);
+    return NextResponse.json({
+      items,
+      synced,
+      itemCount: catalog.items.length,
+      syncedAt: catalog.syncedAt || null,
+    });
   } catch (err) {
     return NextResponse.json(
       { error: (err as Error).message },

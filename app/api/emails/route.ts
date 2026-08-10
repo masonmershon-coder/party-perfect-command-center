@@ -1,3 +1,4 @@
+import { isAuthError, requireSession } from "@/lib/server-auth";
 import {
   getEmailAccounts,
   getEmailConnectionInfo,
@@ -11,6 +12,9 @@ export const runtime = "nodejs";
 export const maxDuration = 60;
 
 export async function GET(request: Request) {
+  const gate = await requireSession();
+  if (isAuthError(gate)) return gate;
+
   const { searchParams } = new URL(request.url);
   const accountId = searchParams.get("accountId") as EmailAccountId | null;
   const includeArchived = searchParams.get("includeArchived") === "true";

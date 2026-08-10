@@ -1,4 +1,9 @@
 import {
+  isAuthError,
+  readSession,
+  requireSession,
+} from "@/lib/server-auth";
+import {
   appendMessages,
   getAgent,
   getConversation,
@@ -36,6 +41,9 @@ function createMessage(
 }
 
 export async function GET(_request: Request, context: RouteContext) {
+  const gate = await requireSession();
+  if (isAuthError(gate)) return gate;
+
   const { id } = await context.params;
   const agent = await getAgent(id);
 
@@ -48,6 +56,9 @@ export async function GET(_request: Request, context: RouteContext) {
 }
 
 export async function POST(request: Request, context: RouteContext) {
+  const gate = await requireSession();
+  if (isAuthError(gate)) return gate;
+
   const { id } = await context.params;
 
   try {
@@ -109,10 +120,14 @@ export async function POST(request: Request, context: RouteContext) {
       }
     }
 
+    // Financials are server-derived from the session cookie — never trust client flag.
+    const session = await readSession();
+    const financialAccess = session?.role === "owner";
+
     const stream = await streamGrokResponse({
       model: chatModel,
       systemPrompt: await buildAgentSystemPrompt(agent, {
-        financialAccess: body.financialAccess === true,
+        financialAccess,
       }),
       messages: priorMessages,
     });

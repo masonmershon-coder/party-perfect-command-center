@@ -179,8 +179,18 @@ ORDER BY QtyOut DESC, [Name]
     }
   }
 
-  $arOpen = Get-Scalar $conn "SELECT SUM(ISNULL(CurrentBalance,0)) FROM dbo.CustomerFile"
-  $arCount = [int](Get-Scalar $conn "SELECT COUNT(*) FROM dbo.CustomerFile WHERE ISNULL(CurrentBalance,0) <> 0")
+  $arActiveFilter = "ISNULL(Inactive,0)=0"
+  try {
+    # Probe Inactive column (POR CustomerFile usually has it; fall back if not).
+    [void](Get-Scalar $conn "SELECT TOP 1 ISNULL(Inactive,0) FROM dbo.CustomerFile")
+  } catch {
+    $arActiveFilter = "1=1"
+    Write-Log "CustomerFile.Inactive unavailable — AR query will not filter inactive customers" "WARN"
+  }
+
+  # Positive balances only (credits netted out of overdue/open AR). Active customers when column exists.
+  $arOpen = Get-Scalar $conn "SELECT SUM(ISNULL(CurrentBalance,0)) FROM dbo.CustomerFile WHERE $arActiveFilter AND ISNULL(CurrentBalance,0) > 0"
+  $arCount = [int](Get-Scalar $conn "SELECT COUNT(*) FROM dbo.CustomerFile WHERE $arActiveFilter AND ISNULL(CurrentBalance,0) > 0")
 
   $agingRows = Read-Rows $conn @"
 SELECT
@@ -190,7 +200,7 @@ SELECT
   SUM(CASE WHEN AgeDate < DATEADD(day, -90, GETDATE()) AND AgeDate >= DATEADD(day, -120, GETDATE()) THEN ISNULL(CurrentBalance,0) ELSE 0 END) AS Aging90,
   SUM(CASE WHEN AgeDate < DATEADD(day, -120, GETDATE()) THEN ISNULL(CurrentBalance,0) ELSE 0 END) AS Aging120
 FROM dbo.CustomerFile
-WHERE ISNULL(CurrentBalance,0) <> 0
+WHERE $arActiveFilter AND ISNULL(CurrentBalance,0) > 0
 "@
 
   $aging = @{ current = 0.0; days30 = 0.0; days60 = 0.0; days90 = 0.0; days120Plus = 0.0 }
@@ -212,11 +222,39 @@ WHERE ISNULL(CurrentBalance,0) <> 0
   $rev30 = Get-Scalar $conn "SELECT SUM(ISNULL(Amount,0)) FROM dbo.PaymentFile WHERE [Date] >= DATEADD(day, -30, GETDATE())"
   $revYearToDate = Get-Scalar $conn "SELECT SUM(ISNULL(Amount,0)) FROM dbo.PaymentFile WHERE [Date] >= DATEFROMPARTS(YEAR(GETDATE()),1,1)"
 
-  $openContracts = [int](Get-Scalar $conn "SELECT COUNT(*) FROM dbo.CustomerFile WHERE ISNULL(QtyOut,0) > 0")
-  $deliveriesToday = [int](Get-Scalar $conn @"
-SELECT COUNT(*) FROM dbo.CustomerFile
-WHERE LastActive IS NOT NULL AND CAST(LastActive AS date) = CAST(GETDATE() AS date)
+  # Open contracts = ContractFile with open/out/reservation status (not customers with QtyOut).
+  $openContracts = 0
+  try {
+    $openContracts = [int](Get-Scalar $conn @"
+SELECT COUNT(*) FROM dbo.ContractFile
+WHERE UPPER(LTRIM(RTRIM(CAST(Status AS nvarchar(10))))) IN (N'R', N'O')
 "@)
+  } catch {
+    Write-Log ("ContractFile openContracts unavailable: {0}" -f $_.Exception.Message) "WARN"
+    $openContracts = [int](Get-Scalar $conn "SELECT COUNT(*) FROM dbo.CustomerFile WHERE ISNULL(QtyOut,0) > 0")
+  }
+
+  # Deliveries / returns = Transactions on those dates (not CustomerFile.LastActive edits).
+  $deliveriesToday = 0
+  $returnsDueToday = 0
+  try {
+    $deliveriesToday = [int](Get-Scalar $conn @"
+SELECT COUNT(*) FROM dbo.Transactions
+WHERE DeliveryDate IS NOT NULL
+  AND CAST(DeliveryDate AS date) = CAST(GETDATE() AS date)
+  AND ISNULL(Archived,0)=0
+  AND ISNULL(Cancelled,0)=0
+"@)
+    $returnsDueToday = [int](Get-Scalar $conn @"
+SELECT COUNT(*) FROM dbo.Transactions
+WHERE PickupDate IS NOT NULL
+  AND CAST(PickupDate AS date) = CAST(GETDATE() AS date)
+  AND ISNULL(Archived,0)=0
+  AND ISNULL(Cancelled,0)=0
+"@)
+  } catch {
+    Write-Log ("Transactions deliveries/returns today unavailable: {0}" -f $_.Exception.Message) "WARN"
+  }
 
   # --- Sales pipeline + catalog for Mike ticket completion (best-effort; never fail sync) ---
   $openQuotes = 0
@@ -452,7 +490,7 @@ WHERE ISNULL(ti.Archived,0)=0
     ops = [ordered]@{
       openContracts = $openContracts
       deliveriesToday = $deliveriesToday
-      returnsDueToday = 0
+      returnsDueToday = $returnsDueToday
     }
     sales = [ordered]@{
       openQuotes = $openQuotes

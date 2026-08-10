@@ -1,3 +1,4 @@
+import { isAuthError, requireSession } from "@/lib/server-auth";
 import { getJobApplication } from "@/lib/job-applications";
 import { applicationHasResume, readJobResumeBytes } from "@/lib/job-resume";
 import { NextResponse } from "next/server";
@@ -11,6 +12,9 @@ export async function GET(
   _request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
+  const gate = await requireSession();
+  if (isAuthError(gate)) return gate;
+
   try {
     const { id } = await context.params;
     const app = await getJobApplication(id);
@@ -30,9 +34,10 @@ export async function GET(
     }
 
     const fileName = app.resumeFileName || "resume.pdf";
-    const disposition = /\.pdf$/i.test(fileName) || stored.mimeType.includes("pdf")
-      ? "inline"
-      : "attachment";
+    const disposition =
+      /\.pdf$/i.test(fileName) || stored.mimeType.includes("pdf")
+        ? "inline"
+        : "attachment";
 
     return new NextResponse(new Uint8Array(stored.bytes), {
       headers: {

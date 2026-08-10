@@ -1,23 +1,23 @@
 /** Single source of truth for Command Center + Jobs release metadata. */
-export const APP_VERSION = "1.8.3";
+export const APP_VERSION = "1.8.4";
 
 /** ISO date of this release (YYYY-MM-DD). */
-export const APP_RELEASED_AT = "2026-08-09";
+export const APP_RELEASED_AT = "2026-08-10";
 
 export const APP_RELEASE_LABEL = `v${APP_VERSION} · ${APP_RELEASED_AT}`;
 
 export const APP_RELEASE_NOTES = {
   commandCenter: [
-    "Hiring daily goal raised to 5–25 apps (Tulsa) to match scale plan",
-    "Quoting photos: multi tablescape + handwritten ticket OCR; Madison offers 2 SKUs and learns picks",
-    "Overbook banner lists which items are short; reviewed/sent override with required reason",
-    "Shared queue copy clarifies draft→reviewed→sent — still no POR write",
+    "Server cookie login (AUTH_PASSWORD) — fixes stuck “Checking session” / login 500",
+    "API routes gated with session auth; owner PIN for bookkeeping/reports",
+    "Quoting: glassware rack sizing, stronger catalog search, confirm dialogs",
+    "Home Open AR from POR; sync agent AR = positive balances / active customers",
   ],
   jobs: [
-    "Quick Apply first: name, phone, city, role in under 60s — essays/resume optional after",
-    "Optional weekends/early mornings + lift/~50lb outdoor screeners on the fast path",
-    "“Add more to stand out” continuation after submit — never gates the application",
-    "Hiring daily goal 5–25 to push toward scale",
+    "Quick Apply live: name, phone, city, role in under 60s",
+    "Optional screeners + “Add more to stand out” after submit",
+    "Hiring daily goal 5–25",
+    "Apply rate limits + server validation for quick/enrich modes",
   ],
 } as const;
 

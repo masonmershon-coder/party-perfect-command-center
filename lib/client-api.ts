@@ -869,9 +869,22 @@ export async function searchPorCatalogApi(q: string, limit = 8) {
     q,
     limit: String(limit),
   });
-  return parseJson<{ items: Array<PorCatalogItem & { score: number }> }>(
-    await fetch(`/api/por/catalog/search?${params}`),
-  );
+  return parseJson<{
+    items: Array<PorCatalogItem & { score: number }>;
+    synced: boolean;
+    itemCount: number;
+    syncedAt: string | null;
+  }>(await fetch(`/api/por/catalog/search?${params}`));
+}
+
+/** Lightweight catalog sync check (empty query still returns synced + counts). */
+export async function fetchPorCatalogStatus() {
+  return parseJson<{
+    items: Array<PorCatalogItem & { score: number }>;
+    synced: boolean;
+    itemCount: number;
+    syncedAt: string | null;
+  }>(await fetch("/api/por/catalog/search?q=&limit=1"));
 }
 
 export async function fetchSavedQuotes() {

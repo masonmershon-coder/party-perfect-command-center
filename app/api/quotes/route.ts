@@ -1,3 +1,4 @@
+import { isAuthError, requireSession } from "@/lib/server-auth";
 import {
   createSavedQuote,
   listSavedQuotes,
@@ -10,11 +11,15 @@ export const runtime = "nodejs";
 
 /** Shared showroom quote queue — all girls see the same list. */
 export async function GET() {
+  const gate = await requireSession();
+  if (isAuthError(gate)) return gate;
   const quotes = await listSavedQuotes();
   return NextResponse.json({ quotes });
 }
 
 export async function POST(request: Request) {
+  const gate = await requireSession();
+  if (isAuthError(gate)) return gate;
   try {
     const body = (await request.json()) as {
       createdBy?: string;

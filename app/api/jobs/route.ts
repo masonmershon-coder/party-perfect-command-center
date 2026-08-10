@@ -1,3 +1,4 @@
+import { isAuthError, requireSession } from "@/lib/server-auth";
 import {
   deleteJobApplication,
   getJobApplicationsStoreMode,
@@ -9,6 +10,9 @@ export const runtime = "nodejs";
 
 /** Internal list for Mike / Command Center — top candidates first. */
 export async function GET() {
+  const gate = await requireSession();
+  if (isAuthError(gate)) return gate;
+
   const applications = await listJobApplications();
   const sorted = [...applications].sort((a, b) => {
     if (a.mike.flagForJosh !== b.mike.flagForJosh) {
@@ -27,6 +31,9 @@ export async function GET() {
 
 /** Close one application — Hired or Rejected with a required reason so Mike learns. */
 export async function DELETE(request: Request) {
+  const gate = await requireSession();
+  if (isAuthError(gate)) return gate;
+
   try {
     const body = (await request.json().catch(() => null)) as {
       id?: string;

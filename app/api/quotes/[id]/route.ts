@@ -1,3 +1,4 @@
+import { isAuthError, requireSession } from "@/lib/server-auth";
 import {
   deleteSavedQuote,
   getSavedQuote,
@@ -13,6 +14,8 @@ export async function GET(
   _request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
+  const gate = await requireSession();
+  if (isAuthError(gate)) return gate;
   const { id } = await context.params;
   const quote = await getSavedQuote(id);
   if (!quote) {
@@ -25,6 +28,8 @@ export async function PATCH(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
+  const gate = await requireSession();
+  if (isAuthError(gate)) return gate;
   try {
     const { id } = await context.params;
     const existing = await getSavedQuote(id);
@@ -88,6 +93,8 @@ export async function DELETE(
   _request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
+  const gate = await requireSession();
+  if (isAuthError(gate)) return gate;
   const { id } = await context.params;
   const ok = await deleteSavedQuote(id);
   if (!ok) {

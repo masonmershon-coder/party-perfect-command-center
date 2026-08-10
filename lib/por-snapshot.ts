@@ -175,26 +175,27 @@ export function bookkeepingFromPorSnapshot(
       status: aging.current > 0 ? "pending" : "paid",
     },
     {
-      vendor: "POR AR · 30 days",
-      description: "Aging bucket: 1–30 days",
+      // SQL Aging30 = AgeDate 31–60 days ago (field name is historical).
+      vendor: "POR AR · 31–60 days",
+      description: "Aging bucket: 31–60 days past AgeDate",
       amount: aging.days30,
-      status: aging.days30 > 0 ? "pending" : "paid",
+      status: aging.days30 > 0 ? "overdue" : "paid",
     },
     {
-      vendor: "POR AR · 60 days",
-      description: "Aging bucket: 31–60 days",
+      vendor: "POR AR · 61–90 days",
+      description: "Aging bucket: 61–90 days past AgeDate",
       amount: aging.days60,
       status: aging.days60 > 0 ? "overdue" : "paid",
     },
     {
-      vendor: "POR AR · 90 days",
-      description: "Aging bucket: 61–90 days",
+      vendor: "POR AR · 91–120 days",
+      description: "Aging bucket: 91–120 days past AgeDate",
       amount: aging.days90,
       status: aging.days90 > 0 ? "overdue" : "paid",
     },
     {
       vendor: "POR AR · 120+ days",
-      description: "Aging bucket: 120+ days",
+      description: "Aging bucket: 120+ days past AgeDate",
       amount: aging.days120Plus,
       status: aging.days120Plus > 0 ? "overdue" : "paid",
     },
@@ -291,7 +292,7 @@ export function formatPorContextForAgents(
   if (includeFinancials) {
     lines.push(
       `AR open: $${snapshot.money.arOpenBalance.toFixed(2)} across ${snapshot.money.arCustomerCount} customers`,
-      `Aging: current $${snapshot.money.aging.current.toFixed(2)} · 30 $${snapshot.money.aging.days30.toFixed(2)} · 60 $${snapshot.money.aging.days60.toFixed(2)} · 90 $${snapshot.money.aging.days90.toFixed(2)} · 120+ $${snapshot.money.aging.days120Plus.toFixed(2)}`,
+      `Aging (by AgeDate): current/0–30 $${snapshot.money.aging.current.toFixed(2)} · 31–60 $${snapshot.money.aging.days30.toFixed(2)} · 61–90 $${snapshot.money.aging.days60.toFixed(2)} · 91–120 $${snapshot.money.aging.days90.toFixed(2)} · 120+ $${snapshot.money.aging.days120Plus.toFixed(2)}`,
       `Payments last 24h: ${snapshot.money.paymentsLast24h.count} / $${snapshot.money.paymentsLast24h.volume.toFixed(2)}`,
     );
     if (snapshot.money.revenue) {

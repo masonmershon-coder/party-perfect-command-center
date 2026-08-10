@@ -1,3 +1,4 @@
+import { isAuthError, requireSession } from "@/lib/server-auth";
 import { getPorSnapshot, getPorSyncMeta } from "@/lib/por-snapshot";
 import {
   createInventoryItem,
@@ -10,16 +11,24 @@ import { NextResponse } from "next/server";
 export const runtime = "nodejs";
 
 export async function GET() {
+  const gate = await requireSession();
+  if (isAuthError(gate)) return gate;
   const [inventory, por] = await Promise.all([listInventory(), getPorSnapshot()]);
   const porMeta = getPorSyncMeta(por);
+  const rows =
+    gate.role === "owner"
+      ? inventory
+      : inventory.map((item) => ({ ...item, pricePerDay: 0 }));
   return NextResponse.json({
-    inventory,
+    inventory: rows,
     source: porMeta.present ? "por" : "local",
     por: porMeta,
   });
 }
 
 export async function POST(request: Request) {
+  const gate = await requireSession();
+  if (isAuthError(gate)) return gate;
   try {
     const por = await getPorSnapshot();
     if (por) {

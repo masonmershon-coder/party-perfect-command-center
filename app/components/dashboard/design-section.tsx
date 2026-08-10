@@ -1,8 +1,10 @@
 "use client";
 
+import { ConfirmDialog } from "@/app/components/dashboard/confirm-dialog";
 import { PageHeader } from "@/app/components/dashboard/page-header";
+import { PorSyncBanner } from "@/app/components/dashboard/por-sync-banner";
 import { DESIGN_PRESETS } from "@/lib/design-presets";
-import type { DesignAsset } from "@/lib/types";
+import type { DesignAsset, DesignMatchedItem, PorSyncMeta } from "@/lib/types";
 import { formatTime } from "@/lib/ui";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -16,10 +18,23 @@ type PendingMedia = {
   frameFile?: File;
 };
 
+function matchStockSummary(items: DesignMatchedItem[]) {
+  const out = items.filter((i) => (i.porAvailable ?? 1) <= 0).length;
+  const n = items.length;
+  if (out === 0) {
+    return `Madison matched ${n} rental piece${n === 1 ? "" : "s"} in the background.`;
+  }
+  return `Madison matched ${n} (${out} out of stock).`;
+}
+
 export function DesignSection({
   onAskMadison,
+  porMeta = null,
+  catalogSource = "local",
 }: {
   onAskMadison?: () => void;
+  porMeta?: PorSyncMeta | null;
+  catalogSource?: "por" | "local";
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [assets, setAssets] = useState<DesignAsset[]>([]);
@@ -31,6 +46,7 @@ export function DesignSection({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [lastNote, setLastNote] = useState<string | null>(null);
   const [engineNote, setEngineNote] = useState<string | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     const res = await fetch("/api/design");
@@ -74,11 +90,17 @@ export function DesignSection({
           if (data.falConfigured) {
             setEngineNote(
               data.recommendation?.label
-                ? `Madison · ${data.recommendation.label}`
-                : "Madison · Flux inventory edit",
+                ? `Image engine available · ${data.recommendation.label}`
+                : "Image engine available · Fal / Flux",
             );
           } else if (data.xaiConfigured) {
-            setEngineNote("Madison · Grok Imagine");
+            setEngineNote(
+              "Image engine · Grok Imagine (add FAL_KEY for photoreal Flux edits)",
+            );
+          } else {
+            setEngineNote(
+              "No image engine connected — text/match still works; Send needs photos or a command.",
+            );
           }
         },
       )
@@ -238,8 +260,8 @@ export function DesignSection({
 
   async function sendToMadison() {
     const text = command.trim();
-    if (!text) {
-      setError("Type what you need Madison to create.");
+    if (!text && pending.length === 0) {
+      setError("Add photos or type a command for Madison.");
       return;
     }
 
@@ -248,7 +270,7 @@ export function DesignSection({
     setLastNote(null);
     try {
       const form = new FormData();
-      form.set("command", text);
+      form.set("command", text || "Match these photos to our rental inventory and suggest a tablescape.");
       for (const p of pending) {
         form.append("files", p.file);
         if (p.frameFile) form.append("videoFrames", p.frameFile);
@@ -346,6 +368,25 @@ export function DesignSection({
             </button>
           ) : null
         }
+      />
+
+      <PorSyncBanner
+        source={catalogSource}
+        porMeta={porMeta}
+        label="catalog"
+      />
+
+      <ConfirmDialog
+        open={Boolean(deleteId)}
+        title="Delete design?"
+        message="Remove this asset from the studio history?"
+        confirmLabel="Delete"
+        onCancel={() => setDeleteId(null)}
+        onConfirm={() => {
+          const id = deleteId;
+          setDeleteId(null);
+          if (id) void handleDelete(id);
+        }}
       />
 
       {error && (
@@ -481,20 +522,22 @@ export function DesignSection({
             className="mt-2 w-full rounded-xl border border-[var(--pp-border)] bg-[var(--pp-bg)] px-3 py-3 text-base leading-6 text-[var(--pp-text)] outline-none focus:border-[var(--pp-accent)]"
           />
           <p className="mt-2 text-[11px] leading-5 text-[var(--pp-text-muted)]">
-            Madison matches inventory in the background — just send the photos.
+            Send photos alone, or add a command — Madison matches inventory in the
+            background.
           </p>
         </label>
 
         <button
           type="button"
-          disabled={busy || !command.trim()}
+          disabled={busy || (!command.trim() && pending.length === 0)}
           onClick={() => void sendToMadison()}
           className="pp-btn-primary w-full py-4 text-base font-semibold disabled:opacity-50"
         >
           {busy ? "Madison is building…" : "Send to Madison"}
         </button>
         <p className="text-center text-[11px] text-[var(--pp-text-muted)]">
-          Dump in the photos/videos for the look you want — she always returns 2 options.
+          Photos and/or a short command — she returns 2 options when an image
+          engine is connected.
         </p>
       </section>
 
@@ -529,10 +572,32 @@ export function DesignSection({
                 </p>
               )}
               {selected.matchedItems && selected.matchedItems.length > 0 && (
-                <p className="text-xs text-[var(--pp-text-muted)]">
-                  Madison matched {selected.matchedItems.length} rental piece
-                  {selected.matchedItems.length === 1 ? "" : "s"} in the background.
-                </p>
+                <div className="space-y-1">
+                  <p className="text-xs text-[var(--pp-text-muted)]">
+                    {matchStockSummary(selected.matchedItems)}
+                  </p>
+                  <ul className="space-y-1">
+                    {selected.matchedItems.slice(0, 8).map((item) => {
+                      const oos = (item.porAvailable ?? 1) <= 0;
+                      return (
+                        <li
+                          key={item.key || item.name}
+                          className={`text-xs ${
+                            oos
+                              ? "text-[var(--pp-text-muted)] opacity-60"
+                              : "text-[var(--pp-text)]"
+                          }`}
+                        >
+                          {item.name}
+                          {oos ? " · out of stock" : ""}
+                          {!oos && item.porAvailable != null
+                            ? ` · ${item.porAvailable} avail`
+                            : ""}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
               )}
               <p className="text-[11px] text-[var(--pp-text-muted)]">
                 {formatTime(selected.createdAt)}
@@ -548,7 +613,7 @@ export function DesignSection({
                 </a>
                 <button
                   type="button"
-                  onClick={() => void handleDelete(selected.id)}
+                  onClick={() => setDeleteId(selected.id)}
                   className="rounded-lg border border-red-500/30 px-3 py-2 text-xs text-red-500"
                 >
                   Delete

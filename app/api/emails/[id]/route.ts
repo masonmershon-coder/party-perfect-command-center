@@ -1,3 +1,4 @@
+import { isAuthError, requireSession } from "@/lib/server-auth";
 import { updateEmailItem } from "@/lib/storage";
 import type { EmailPriority, InboxEmailStatus } from "@/lib/types";
 import { NextResponse } from "next/server";
@@ -9,6 +10,8 @@ type RouteContext = {
 };
 
 export async function PATCH(request: Request, context: RouteContext) {
+  const gate = await requireSession();
+  if (isAuthError(gate)) return gate;
   const { id } = await context.params;
 
   try {
@@ -67,6 +70,8 @@ export async function PATCH(request: Request, context: RouteContext) {
 }
 
 export async function GET(_request: Request, context: RouteContext) {
+  const gate = await requireSession();
+  if (isAuthError(gate)) return gate;
   const { id } = await context.params;
   const { getEmail } = await import("@/lib/storage");
   const email = await getEmail(id);

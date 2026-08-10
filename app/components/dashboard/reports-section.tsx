@@ -94,6 +94,25 @@ export function ReportsSection({
         }
       />
 
+      {reports.some(
+        (r) =>
+          r.title.startsWith("[Demo]") ||
+          /9 emails need reply, 3 social comments/i.test(r.content),
+      ) ? (
+        <div className="mb-4 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-xs text-amber-900 dark:text-amber-100">
+          Demo/seeded recap data — not live POR figures. Generate a new recap after
+          sync for real numbers.
+        </div>
+      ) : null}
+
+      {reports.some((r) => r.sentViaSms === true && /seed|demo|sample/i.test(r.title + r.id)) ||
+      (reports.length > 0 &&
+        reports.every((r) => /seed|demo|sample/i.test(r.id))) ? (
+        <div className="mb-4 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-xs text-amber-900 dark:text-amber-100">
+          Demo/seeded recap data — not live POR figures. Generate a new recap after
+          sync for real numbers.
+        </div>
+      ) : null}
       {feedback && (
         <p className="mb-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700">
           {feedback}

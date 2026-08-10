@@ -571,6 +571,7 @@ export interface QuoteLineInput {
   size?: string;
   color?: string;
   kind?: "product" | "service";
+  lineNote?: string;
 }
 
 export interface QuoteLine extends QuoteLineInput {
@@ -587,6 +588,8 @@ export interface QuoteTotals {
   damageWaiver: number;
   total: number;
   deposit: number;
+  /** True when productSubtotal is under the caller-supplied rental minimum. */
+  belowRentalMinimum?: boolean;
 }
 
 export interface Quote {

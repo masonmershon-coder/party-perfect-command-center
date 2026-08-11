@@ -38,11 +38,17 @@ export function candidateSocialSearchLinks(app: {
   ];
 }
 
-export function formatHiringAppsForMike(applications: JobApplication[]): string {
+export function formatHiringAppsForMike(
+  applications: JobApplication[],
+  options?: { quickIndexCap?: number; detailCap?: number },
+): string {
+  const quickIndexCap = options?.quickIndexCap ?? 40;
+  const detailCap = options?.detailCap ?? 12;
+
   if (applications.length === 0) {
     return [
       "Hiring (partyperfectjobs.com): no applications in Redis yet.",
-      "Daily goal: 1–5 apps (Tulsa day). See docs/HIRING_OUTREACH.md.",
+      "Daily goal: 25 apps (Tulsa day). See docs/HIRING_OUTREACH.md.",
     ].join("\n");
   }
 
@@ -55,25 +61,23 @@ export function formatHiringAppsForMike(applications: JobApplication[]): string 
 
   const lines: string[] = [
     "Hiring applicants (from partyperfectjobs.com — live Command Center list):",
-    `Total in store: ${applications.length}. When Josh asks about a name, fuzzy-match here (first name OK).`,
+    `Total in store: ${applications.length}. Quick-index capped at ${quickIndexCap}; when Josh asks about a name beyond the index, say you’ll pull them from Hiring — do not invent.`,
     "PHOTO PROTOCOL: paste the social search URLs below — never claim you cannot find images.",
     "Rank for CURRENT need: tents/delivery physical grit first; desk/showroom secondary.",
     "You cannot open private Facebook/Instagram logins. Common-name collisions → use city + work history.",
     "",
   ];
 
-  // Full roster (compact) so name lookups don't miss people past the detail window.
-  lines.push("Quick index (name → score · city · phone):");
-  for (const app of sorted) {
+  lines.push(`Quick index (top ${Math.min(quickIndexCap, sorted.length)} by flag/score → score · city · phone):`);
+  for (const app of sorted.slice(0, quickIndexCap)) {
     lines.push(
       `  ${app.fullName} · ${app.mike.score}${app.mike.flagForJosh ? "*" : ""} · ${app.city || "—"} · ${app.phone || "—"}`,
     );
   }
   lines.push("");
 
-  // Rich detail for top / flagged first (cap keeps prompt sane).
-  const detail = sorted.slice(0, 60);
-  lines.push(`Detail cards (top ${detail.length} by flag/score):`);
+  const detail = sorted.slice(0, detailCap);
+  lines.push(`Detail cards (top ${detail.length} — ask for a name to expand others):`);
   for (const app of detail) {
     const links = candidateSocialSearchLinks(app)
       .map((l) => `${l.label}: ${l.url}`)

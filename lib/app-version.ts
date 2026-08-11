@@ -1,23 +1,21 @@
 /** Single source of truth for Command Center + Jobs release metadata. */
-export const APP_VERSION = "1.8.4";
+export const APP_VERSION = "1.9.0";
 
 /** ISO date of this release (YYYY-MM-DD). */
-export const APP_RELEASED_AT = "2026-08-10";
+export const APP_RELEASED_AT = "2026-08-11";
 
 export const APP_RELEASE_LABEL = `v${APP_VERSION} · ${APP_RELEASED_AT}`;
 
 export const APP_RELEASE_NOTES = {
   commandCenter: [
-    "Server cookie login (AUTH_PASSWORD) — fixes stuck “Checking session” / login 500",
-    "API routes gated with session auth; owner PIN for bookkeeping/reports",
-    "Quoting: glassware rack sizing, stronger catalog search, confirm dialogs",
-    "Home Open AR from POR; sync agent AR = positive balances / active customers",
+    "POR 2.0 P0: exclude fee cats 19+34 + fee-named lines from all stock math",
+    "Canonical metrics (items_out_rentable, deliveries_today, …) shared by dashboard + Mike",
+    "Clamp negative qtys; Fees & Services inventory tab; mobile Owner unlock",
+    "Employee sessions: financials absent from agent context (opt-in owner only)",
   ],
   jobs: [
-    "Quick Apply live: name, phone, city, role in under 60s",
-    "Optional screeners + “Add more to stand out” after submit",
-    "Hiring daily goal 5–25",
-    "Apply rate limits + server validation for quick/enrich modes",
+    "Quick Apply + enrich code-split",
+    "Pay $18–$28/hr · daily goal 25 apps",
   ],
 } as const;
 

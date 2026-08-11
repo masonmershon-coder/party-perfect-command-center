@@ -3,6 +3,8 @@
 import { getAuthLockoutMessage, unlockOwnerWithPin } from "@/lib/auth";
 import { useEffect, useRef, useState } from "react";
 
+const PIN_LENGTH = 6;
+
 export function OwnerPinModal({
   open,
   onClose,
@@ -12,17 +14,21 @@ export function OwnerPinModal({
   onClose: () => void;
   onSuccess: () => void;
 }) {
-  const [digits, setDigits] = useState(["", "", "", ""]);
+  const [pin, setPin] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (!open) return;
-    setDigits(["", "", "", ""]);
+    setPin("");
     setError(null);
     setSubmitting(false);
-    window.setTimeout(() => inputRefs.current[0]?.focus(), 50);
+    // Safari iOS: slight delay so the keyboard/input is visible above the fold.
+    window.setTimeout(() => {
+      inputRef.current?.focus({ preventScroll: false });
+      inputRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+    }, 80);
   }, [open]);
 
   useEffect(() => {
@@ -36,24 +42,27 @@ export function OwnerPinModal({
 
   if (!open) return null;
 
-  async function submitPin(nextDigits: string[]) {
+  async function submitPin(value: string) {
     const lockout = getAuthLockoutMessage();
     if (lockout) {
       setError(lockout);
       return;
     }
 
-    const pin = nextDigits.join("");
-    if (pin.length !== 4) return;
+    const digits = value.replace(/\D/g, "");
+    if (digits.length !== PIN_LENGTH) {
+      setError(`Enter the ${PIN_LENGTH}-digit admin code.`);
+      return;
+    }
 
     setSubmitting(true);
     setError(null);
     try {
-      const ok = await unlockOwnerWithPin(pin);
+      const ok = await unlockOwnerWithPin(digits);
       if (!ok) {
         setError("Incorrect admin code.");
-        setDigits(["", "", "", ""]);
-        inputRefs.current[0]?.focus();
+        setPin("");
+        inputRef.current?.focus();
         return;
       }
       onSuccess();
@@ -63,41 +72,26 @@ export function OwnerPinModal({
     }
   }
 
-  function updateDigit(index: number, value: string) {
-    const next = value.replace(/\D/g, "").slice(-1);
-    const updated = [...digits];
-    updated[index] = next;
-    setDigits(updated);
+  function onPinChange(raw: string) {
+    const digits = raw.replace(/\D/g, "").slice(0, PIN_LENGTH);
+    setPin(digits);
     setError(null);
-
-    if (next && index < 3) {
-      inputRefs.current[index + 1]?.focus();
-    }
-
-    if (updated.every((digit) => digit.length === 1)) {
-      void submitPin(updated);
-    }
-  }
-
-  function handleKeyDown(
-    index: number,
-    event: React.KeyboardEvent<HTMLInputElement>,
-  ) {
-    if (event.key === "Backspace" && !digits[index] && index > 0) {
-      inputRefs.current[index - 1]?.focus();
+    if (digits.length === PIN_LENGTH) {
+      void submitPin(digits);
     }
   }
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4 backdrop-blur-sm"
+      className="fixed inset-0 z-[100] flex items-end justify-center overflow-y-auto bg-black/50 px-4 py-6 backdrop-blur-sm sm:items-center sm:py-10"
       role="dialog"
       aria-modal="true"
       aria-labelledby="owner-pin-title"
       onClick={onClose}
+      style={{ WebkitOverflowScrolling: "touch" }}
     >
       <div
-        className="pp-panel w-full max-w-sm p-6"
+        className="pp-panel mb-[max(1rem,env(safe-area-inset-bottom))] w-full max-w-sm p-5 sm:mb-0 sm:p-6"
         onClick={(event) => event.stopPropagation()}
       >
         <p className="text-[11px] font-semibold uppercase tracking-[0.24em] pp-accent-text">
@@ -109,37 +103,45 @@ export function OwnerPinModal({
         >
           Enter admin code
         </h2>
-        <p className="mt-2 text-sm text-[var(--pp-text-muted)]">
-          Revenue, AR balances, rental rates, bookkeeping, marketing, and
-          reports stay hidden until an owner unlocks with this code.
+        <p className="mt-2 text-sm leading-5 text-[var(--pp-text-muted)]">
+          Unlock revenue, AR, rates, bookkeeping, marketing, and reports with
+          your {PIN_LENGTH}-digit owner code.
         </p>
 
-        <div className="mt-6 flex justify-center gap-3">
-          {digits.map((digit, index) => (
-            <input
-              key={index}
-              ref={(element) => {
-                inputRefs.current[index] = element;
-              }}
-              type="password"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              maxLength={1}
-              value={digit}
-              disabled={submitting}
-              onChange={(event) => updateDigit(index, event.target.value)}
-              onKeyDown={(event) => handleKeyDown(index, event)}
-              className="h-14 w-12 rounded-xl border border-[var(--pp-border)] bg-[var(--pp-input-bg)] text-center text-xl font-semibold text-[var(--pp-text)] outline-none transition focus:border-[var(--pp-accent)] focus:ring-2 focus:ring-[var(--pp-accent)]/20"
-              aria-label={`Admin code digit ${index + 1}`}
-            />
-          ))}
-        </div>
+        <label className="mt-5 block">
+          <span className="mb-1.5 block text-xs font-bold uppercase tracking-[0.16em] text-[var(--pp-text-muted)]">
+            {PIN_LENGTH}-digit code
+          </span>
+          <input
+            ref={inputRef}
+            type="password"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            pattern="[0-9]*"
+            maxLength={PIN_LENGTH}
+            value={pin}
+            disabled={submitting}
+            placeholder={"•".repeat(PIN_LENGTH)}
+            onChange={(event) => onPinChange(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                void submitPin(pin);
+              }
+            }}
+            className="w-full rounded-xl border border-[var(--pp-border)] bg-[var(--pp-input-bg)] px-4 py-3.5 text-center text-2xl font-semibold tracking-[0.35em] text-[var(--pp-text)] outline-none transition focus:border-[var(--pp-accent)] focus:ring-2 focus:ring-[var(--pp-accent)]/20"
+            aria-label={`${PIN_LENGTH}-digit admin code`}
+          />
+        </label>
+        <p className="mt-2 text-center text-xs text-[var(--pp-text-muted)]">
+          {pin.length}/{PIN_LENGTH} entered
+        </p>
 
         {error && (
-          <p className="mt-4 text-center text-sm text-red-600">{error}</p>
+          <p className="mt-3 text-center text-sm text-red-600">{error}</p>
         )}
 
-        <div className="mt-6 flex gap-3">
+        <div className="mt-5 flex gap-3">
           <button
             type="button"
             onClick={onClose}
@@ -149,8 +151,8 @@ export function OwnerPinModal({
           </button>
           <button
             type="button"
-            disabled={submitting || digits.some((digit) => !digit)}
-            onClick={() => void submitPin(digits)}
+            disabled={submitting || pin.length !== PIN_LENGTH}
+            onClick={() => void submitPin(pin)}
             className="pp-btn-primary flex-1 px-4 py-2.5 text-sm disabled:cursor-not-allowed disabled:opacity-50"
           >
             {submitting ? "Checking…" : "Unlock"}

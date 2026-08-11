@@ -1,4 +1,14 @@
+import {
+  formatCanonicalMetricsForAgent,
+  porInventoryTotalsFromRentable,
+} from "./por-canonical";
 import { readDurableJson, writeDurableJson } from "./durable-json";
+import {
+  clampQty,
+  isFeeCategoryCode,
+  isFeeItemName,
+  isRentable,
+} from "./por-rentable";
 import type {
   BookkeepingEntry,
   InventoryItem,
@@ -9,21 +19,14 @@ import type {
 export const POR_SNAPSHOT_KEY = "por-snapshot.json";
 export const POR_SYNC_STALE_MS = 30 * 60 * 1000;
 
-/**
- * POR "FEE - …" and "DISCOUNT" categories are service/fee lines (delivery, setup,
- * labor, waivers), NOT rentable stock. Their QTY/QYOT fields hold garbage counters
- * (e.g. "Delivery Fee $3.50/mi" reports 51,146 in stock), so counting them as
- * inventory inflates out-on-rent and low-stock numbers. Exclude them from stock.
- */
+/** @deprecated Prefer isFeeCategoryCode / isRentable from por-rentable. */
 export function isFeeCategory(category: string | undefined | null): boolean {
-  const c = (category || "").toUpperCase();
-  return c.startsWith("FEE") || c.startsWith("DISCOUNT");
+  return isFeeCategoryCode(category);
 }
 
 /**
- * Real (non-fee) inventory totals recomputed from the snapshot's per-item data so
- * dashboard "out on rent" / "available" reflect rentable stock only. Falls back to
- * non-fee category rollups, then to the stored totals when items aren't present.
+ * Rentable inventory totals (excludes fee/labor cats 19+34 and fee-named lines).
+ * Single path used by dashboard + agents via por-canonical.
  */
 export function porInventoryTotals(snapshot: PorSnapshot): {
   totalItems: number;
@@ -31,38 +34,7 @@ export function porInventoryTotals(snapshot: PorSnapshot): {
   availableQuantity: number;
   outQuantity: number;
 } {
-  // Prefer the COMPLETE category rollup (all SKUs grouped) over items[], which the
-  // sync caps at top-300 by qty-out and would badly undercount total stock.
-  const cats = snapshot.inventory.categories.filter((c) => !isFeeCategory(c.name));
-  if (cats.length) {
-    const totalQuantity = cats.reduce((s, c) => s + Math.max(0, c.quantity), 0);
-    const availableQuantity = cats.reduce((s, c) => s + Math.max(0, c.available), 0);
-    return {
-      totalItems: cats.reduce((s, c) => s + Math.max(0, c.itemCount), 0),
-      totalQuantity,
-      availableQuantity,
-      outQuantity: Math.max(0, totalQuantity - availableQuantity),
-    };
-  }
-  const items = snapshot.inventory.items;
-  if (items?.length) {
-    const real = items.filter((i) => !isFeeCategory(i.category));
-    const totalQuantity = real.reduce((s, i) => s + Math.max(0, i.quantity), 0);
-    const availableQuantity = real.reduce((s, i) => s + Math.max(0, i.available), 0);
-    return {
-      totalItems: real.length,
-      totalQuantity,
-      availableQuantity,
-      outQuantity: Math.max(0, totalQuantity - availableQuantity),
-    };
-  }
-  const inv = snapshot.inventory;
-  return {
-    totalItems: inv.totalItems,
-    totalQuantity: inv.totalQuantity,
-    availableQuantity: inv.availableQuantity,
-    outQuantity: inv.outQuantity,
-  };
+  return porInventoryTotalsFromRentable(snapshot);
 }
 
 export function isPorSyncConfigured() {
@@ -107,48 +79,107 @@ export function getPorSyncMeta(snapshot: PorSnapshot | null): PorSyncMeta {
   };
 }
 
+function toInventoryRow(
+  item: {
+    id: string;
+    name: string;
+    category: string;
+    quantity: number;
+    available: number;
+    pricePerDay?: number;
+    status: InventoryItem["status"];
+    notes?: string;
+  },
+  syncedAt: string,
+): InventoryItem {
+  const quantity = clampQty(item.quantity);
+  const available = clampQty(item.available);
+  return {
+    id: item.id,
+    name: item.name,
+    category: item.category,
+    quantity,
+    available,
+    pricePerDay: item.pricePerDay ?? 0,
+    status: item.status,
+    notes: item.notes ?? "Live from Point of Rental (read-only)",
+    updatedAt: syncedAt,
+  };
+}
+
+/** Default inventory list — rentable stock only (fees excluded). */
 export function inventoryFromPorSnapshot(
   snapshot: PorSnapshot,
 ): InventoryItem[] {
   if (snapshot.inventory.items?.length) {
     return snapshot.inventory.items
-      .filter((item) => !isFeeCategory(item.category))
-      .map((item) => ({
-        id: item.id,
-        name: item.name,
-        category: item.category,
-        quantity: item.quantity,
-        available: item.available,
-        pricePerDay: item.pricePerDay ?? 0,
-        status: item.status,
-        notes: item.notes ?? "Live from Point of Rental (read-only)",
-        updatedAt: snapshot.syncedAt,
-      }));
+      .filter((item) => isRentable({ category: item.category, name: item.name }))
+      .map((item) => toInventoryRow(item, snapshot.syncedAt));
   }
 
   return snapshot.inventory.categories
-    .filter((category) => !isFeeCategory(category.name))
+    .filter((category) => !isFeeCategoryCode(category.name))
     .map((category, index) => {
-    const quantity = Math.max(0, Math.round(category.quantity));
-    const available = Math.max(0, Math.round(category.available));
-    const out = Math.max(0, quantity - available);
-    return {
-      id: `por-cat-${index}-${category.name.toLowerCase().replace(/\s+/g, "-")}`,
-      name: category.name,
-      category: category.name,
-      quantity,
-      available,
-      pricePerDay: 0,
-      status:
-        available <= 0
-          ? ("reserved" as const)
-          : available / Math.max(quantity, 1) < 0.25
-            ? ("maintenance" as const)
-            : ("available" as const),
-      notes: `POR category · ${category.itemCount} SKUs · ${out} out`,
-      updatedAt: snapshot.syncedAt,
-    };
-  });
+      const quantity = clampQty(Math.round(category.quantity));
+      const available = clampQty(Math.round(category.available));
+      const out = Math.max(0, quantity - available);
+      return {
+        id: `por-cat-${index}-${category.name.toLowerCase().replace(/\s+/g, "-")}`,
+        name: `Category ${category.name}`,
+        category: category.name,
+        quantity,
+        available,
+        pricePerDay: 0,
+        status:
+          available <= 0
+            ? ("reserved" as const)
+            : available / Math.max(quantity, 1) < 0.25
+              ? ("maintenance" as const)
+              : ("available" as const),
+        notes: `POR category · ${category.itemCount} SKUs · ${out} out`,
+        updatedAt: snapshot.syncedAt,
+      };
+    });
+}
+
+/** Fee / labor / delivery lines — viewable under Fees & Services only. */
+export function feesFromPorSnapshot(snapshot: PorSnapshot): InventoryItem[] {
+  if (!snapshot.inventory.items?.length) {
+    return snapshot.inventory.categories
+      .filter((category) => isFeeCategoryCode(category.name))
+      .map((category, index) => {
+        const quantity = clampQty(Math.round(category.quantity));
+        const available = clampQty(Math.round(category.available));
+        return {
+          id: `por-fee-cat-${index}-${category.name}`,
+          name: `Fee category ${category.name}`,
+          category: category.name,
+          quantity,
+          available,
+          pricePerDay: 0,
+          status: "available" as const,
+          notes: `Fees & services · ${category.itemCount} SKUs — excluded from stock math`,
+          updatedAt: snapshot.syncedAt,
+        };
+      });
+  }
+
+  return snapshot.inventory.items
+    .filter(
+      (item) =>
+        isFeeCategoryCode(item.category) || isFeeItemName(item.name),
+    )
+    .map((item) =>
+      toInventoryRow(
+        {
+          ...item,
+          notes:
+            item.notes ??
+            "Fee/service line — excluded from rentable stock math",
+        },
+        snapshot.syncedAt,
+      ),
+    );
 }
 
 export function bookkeepingFromPorSnapshot(
@@ -225,12 +256,14 @@ export function formatPorContextForAgents(
   meta: PorSyncMeta,
   options?: { includeFinancials?: boolean },
 ): string {
-  const includeFinancials = options?.includeFinancials !== false;
+  // Default LOCKED — callers must opt in with includeFinancials: true (owner only).
+  const includeFinancials = options?.includeFinancials === true;
 
   if (!snapshot || !meta.present) {
     return [
       "POR live snapshot: not available yet.",
       "Point of Rental remains the system of record. Do not invent inventory or AR numbers.",
+      formatCanonicalMetricsForAgent(null, { includeFinancials }),
     ].join("\n");
   }
 
@@ -238,19 +271,12 @@ export function formatPorContextForAgents(
     ? "WARNING: POR sync is STALE — prefer last-known numbers and say they may be outdated."
     : "POR sync is fresh (within 30 minutes).";
 
-  const invTotals = porInventoryTotals(snapshot);
   const lines = [
     "Live Point of Rental snapshot (read-only copy — never claim you can change POR):",
-    "IMPORTANT: The numbers in THIS snapshot are the only current truth. If earlier messages in this chat show different figures, they are OUTDATED — always answer from these values and never repeat a number from earlier in the conversation.",
+    "IMPORTANT: Quote CANONICAL POR METRICS below verbatim. Ignore conflicting numbers from earlier chat turns.",
     staleNote,
-    `Synced at: ${snapshot.syncedAt} from ${snapshot.sourceHost}`,
-    `Inventory (rentable stock, excludes fee/service lines): ${invTotals.totalItems} items · qty ${invTotals.totalQuantity} · available ${invTotals.availableQuantity} · out ${invTotals.outQuantity}`,
-    `Top categories: ${snapshot.inventory.categories
-      .filter((c) => !isFeeCategory(c.name))
-      .slice(0, 8)
-      .map((c) => `${c.name} (${c.available}/${c.quantity})`)
-      .join("; ") || "n/a"}`,
-    `Ops today: open contracts ${snapshot.ops.openContracts} · deliveries ${snapshot.ops.deliveriesToday} · returns due ${snapshot.ops.returnsDueToday}`,
+    `Source host: ${snapshot.sourceHost}`,
+    formatCanonicalMetricsForAgent(snapshot, { includeFinancials }),
   ];
 
   const sales = snapshot.sales;
@@ -275,7 +301,7 @@ export function formatPorContextForAgents(
         `Catalog sample for ticket lines (${sales.catalogItems.length} items): ${sales.catalogItems
           .slice(0, 40)
           .map((s) => {
-            const avail = `avail ${s.available}`;
+            const avail = `avail ${clampQty(s.available)}`;
             return includeFinancials
               ? `${s.name} [${s.category}] $${s.pricePerDay.toFixed(2)} ${avail}`
               : `${s.name} [${s.category}] ${avail}`;
@@ -291,9 +317,7 @@ export function formatPorContextForAgents(
 
   if (includeFinancials) {
     lines.push(
-      `AR open: $${snapshot.money.arOpenBalance.toFixed(2)} across ${snapshot.money.arCustomerCount} customers`,
-      `Aging (by AgeDate): current/0–30 $${snapshot.money.aging.current.toFixed(2)} · 31–60 $${snapshot.money.aging.days30.toFixed(2)} · 61–90 $${snapshot.money.aging.days60.toFixed(2)} · 91–120 $${snapshot.money.aging.days90.toFixed(2)} · 120+ $${snapshot.money.aging.days120Plus.toFixed(2)}`,
-      `Payments last 24h: ${snapshot.money.paymentsLast24h.count} / $${snapshot.money.paymentsLast24h.volume.toFixed(2)}`,
+      `Aging detail (by AgeDate): current/0–30 $${snapshot.money.aging.current.toFixed(2)} · 31–60 $${snapshot.money.aging.days30.toFixed(2)} · 61–90 $${snapshot.money.aging.days60.toFixed(2)} · 91–120 $${snapshot.money.aging.days90.toFixed(2)} · 120+ $${snapshot.money.aging.days120Plus.toFixed(2)}`,
     );
     if (snapshot.money.revenue) {
       const r = snapshot.money.revenue;
@@ -302,13 +326,9 @@ export function formatPorContextForAgents(
       );
     } else {
       lines.push(
-        "Revenue-over-time: not in this snapshot yet (ENTERPRISE sync agent needs the revenue update). Say it's not available rather than guessing.",
+        "Revenue-over-time buckets: not in this snapshot. Period sales still live in POR reports — do not invent.",
       );
     }
-  } else {
-    lines.push(
-      "Financials (AR, aging, payments, revenue, rates): HIDDEN — employee session. Catalog item names/availability still OK for ticket building.",
-    );
   }
 
   return lines.join("\n");

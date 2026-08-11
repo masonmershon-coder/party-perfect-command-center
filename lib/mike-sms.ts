@@ -13,13 +13,13 @@ import {
 import { listJobApplications } from "@/lib/job-applications";
 import {
   countAppsOnTulsaDay,
-  HIRING_DAILY_GOAL_MAX,
-  HIRING_DAILY_GOAL_MIN,
+  HIRING_DAILY_GOAL,
 } from "@/lib/hiring-goals";
 import {
   getPorSnapshot,
   getPorSyncMeta,
 } from "@/lib/por-snapshot";
+import { computePorCanonicalMetrics } from "@/lib/por-canonical";
 import { generateWeeklyRecapMessage } from "@/lib/weekly-recap";
 import { getAuthorizedManagerPhones, getTwilioConfig } from "@/lib/twilio";
 import { readDurableJson, writeDurableJson } from "@/lib/durable-json";
@@ -70,6 +70,22 @@ export function isAuthorizedSender(from: string) {
   } catch {
     return false;
   }
+}
+
+/** Owner SMS phones may receive POR dollar amounts. Non-owner managers get ops-only. */
+export function isOwnerSmsSender(from: string) {
+  const fromEnv = (process.env.OWNER_SMS_PHONES ?? "")
+    .split(",")
+    .map((p) => p.trim())
+    .filter(Boolean);
+  // Default: primary manager + hard-coded owner extras (same as twilio defaults).
+  const defaults = [
+    process.env.MANAGER_PHONE?.trim(),
+    "+19188084311",
+    "+19182895588",
+  ].filter(Boolean) as string[];
+  const owners = fromEnv.length ? fromEnv : defaults;
+  return owners.some((phone) => phonesMatch(from, phone));
 }
 
 /**
@@ -134,7 +150,7 @@ function helpText() {
   ].join("\n");
 }
 
-async function buildStatusReply() {
+async function buildStatusReply(includeFinancials: boolean) {
   const [stats, tasks, apps, por] = await Promise.all([
     getDashboardStats(),
     listTasks(),
@@ -149,7 +165,14 @@ async function buildStatusReply() {
     .join("\n");
   const porMeta = getPorSyncMeta(por);
   const porLine = por
-    ? `POR${porMeta.stale ? " (stale)" : ""}: AR $${por.money.arOpenBalance.toFixed(0)} · out ${por.inventory.outQuantity} · deliveries ${por.ops.deliveriesToday} · returns ${por.ops.returnsDueToday}`
+    ? (() => {
+        const { metrics } = computePorCanonicalMetrics(por, {
+          includeFinancials,
+        });
+        return includeFinancials
+          ? `POR${porMeta.stale ? " (stale)" : ""}: AR $${Number(metrics.ar_open ?? 0).toFixed(0)} · out ${metrics.items_out_rentable} · deliveries ${metrics.deliveries_today} · returns ${metrics.returns_due}`
+          : `POR${porMeta.stale ? " (stale)" : ""}: out ${metrics.items_out_rentable} · deliveries ${metrics.deliveries_today} · returns ${metrics.returns_due} (AR locked — owner phone only)`;
+      })()
     : "POR: no live snapshot yet";
 
   return [
@@ -166,7 +189,7 @@ async function buildStatusReply() {
 async function buildHiringReply() {
   const apps = await listJobApplications();
   const today = countAppsOnTulsaDay(apps.map((a) => a.submittedAt));
-  const goalLine = `Today ${today}/${HIRING_DAILY_GOAL_MIN}–${HIRING_DAILY_GOAL_MAX} apps (Tulsa).`;
+  const goalLine = `Today ${today}/${HIRING_DAILY_GOAL} apps (Tulsa).`;
   const flagged = apps
     .filter((a) => a.mike.flagForJosh)
     .sort((a, b) => b.mike.score - a.mike.score)
@@ -347,12 +370,16 @@ async function parseWithGrok(body: string, history: SmsTurn[]): Promise<ParsedIn
   };
 }
 
-async function executeIntent(intent: ParsedIntent, originalBody: string) {
+async function executeIntent(
+  intent: ParsedIntent,
+  originalBody: string,
+  includeFinancials: boolean,
+) {
   switch (intent.action) {
     case "help":
       return intent.reply?.trim() || helpText();
     case "status":
-      return buildStatusReply();
+      return buildStatusReply(includeFinancials);
     case "hiring":
       return buildHiringReply();
     case "weekly_recap":
@@ -383,11 +410,19 @@ async function executeIntent(intent: ParsedIntent, originalBody: string) {
 }
 
 /**
- * Process an inbound SMS from Josh and return Mike's reply body.
+ * Process an inbound SMS from an authorized manager and return Mike's reply body.
+ * Dollar/AR context only when the sender is an owner phone.
  */
-export async function handleMikeInboundSms(body: string): Promise<string> {
+export async function handleMikeInboundSms(
+  body: string,
+  options?: { from?: string },
+): Promise<string> {
   const trimmed = body.trim().slice(0, 1600);
   if (!trimmed) return helpText();
+
+  const includeFinancials = options?.from
+    ? isOwnerSmsSender(options.from)
+    : false;
 
   const history = await readThread();
   let intent = heuristicIntent(trimmed);
@@ -406,7 +441,7 @@ export async function handleMikeInboundSms(body: string): Promise<string> {
 
   let reply: string;
   try {
-    reply = await executeIntent(intent, trimmed);
+    reply = await executeIntent(intent, trimmed, includeFinancials);
   } catch (error) {
     reply =
       error instanceof Error

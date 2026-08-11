@@ -113,6 +113,7 @@ export default function PartyPerfectDashboard() {
   const [grokAgent, setGrokAgent] = useState<Agent | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [inventoryFees, setInventoryFees] = useState<InventoryItem[]>([]);
   const [inventorySource, setInventorySource] = useState<"por" | "local">(
     "local",
   );
@@ -287,6 +288,12 @@ export default function PartyPerfectDashboard() {
       setActiveSection(pendingOwnerSection);
       setPendingOwnerSection(null);
     }
+    // Load owner-only panels now that the cookie/session is elevated.
+    window.setTimeout(() => {
+      void refreshAll().catch(() => {
+        // refreshAll surfaces its own non-owner errors
+      });
+    }, 0);
   }
 
   function handleSignOut() {
@@ -374,15 +381,19 @@ export default function PartyPerfectDashboard() {
   );
 
   const refreshAll = useCallback(async () => {
+    const canLoadOwnerPanels = ownerUnlocked;
+
     const settled = await Promise.allSettled([
       fetchAgents(),
       fetchGrokAgent(),
       fetchTasks(),
       fetchInventory(),
-      fetchBookkeeping(),
+      canLoadOwnerPanels
+        ? fetchBookkeeping()
+        : Promise.resolve(null),
       fetchStats(),
       fetchMarketing(),
-      fetchReports(),
+      canLoadOwnerPanels ? fetchReports() : Promise.resolve(null),
       refreshEmails(),
       refreshSocial(),
       refreshConnections(),
@@ -405,19 +416,42 @@ export default function PartyPerfectDashboard() {
     if (nextTasks.status === "fulfilled") setTasks(nextTasks.value);
     if (nextInventory.status === "fulfilled") {
       setInventory(nextInventory.value.inventory);
+      setInventoryFees(nextInventory.value.fees ?? []);
       setInventorySource(nextInventory.value.source ?? "local");
       setInventoryPorMeta(nextInventory.value.por ?? null);
     }
-    if (nextBookkeeping.status === "fulfilled") {
+    if (
+      canLoadOwnerPanels &&
+      nextBookkeeping.status === "fulfilled" &&
+      nextBookkeeping.value
+    ) {
       setBookkeeping(nextBookkeeping.value.bookkeeping);
       setBookkeepingSource(nextBookkeeping.value.source ?? "local");
       setBookkeepingPorMeta(nextBookkeeping.value.por ?? null);
     }
     if (nextStats.status === "fulfilled") setStats(nextStats.value);
     if (nextMarketing.status === "fulfilled") setMarketing(nextMarketing.value);
-    if (nextReports.status === "fulfilled") setReports(nextReports.value);
+    if (
+      canLoadOwnerPanels &&
+      nextReports.status === "fulfilled" &&
+      nextReports.value
+    ) {
+      setReports(nextReports.value);
+    }
 
-    const failed = settled.filter((result) => result.status === "rejected");
+    const failed = settled.filter((result) => {
+      if (result.status !== "rejected") return false;
+      const message =
+        result.reason instanceof Error
+          ? result.reason.message
+          : String(result.reason || "");
+      // Expected when employee session hits owner-only routes — never surface.
+      if (/owner access required/i.test(message)) return false;
+      if (/some panels failed to load:.*owner access/i.test(message)) {
+        return false;
+      }
+      return true;
+    });
     if (failed.length === settled.length) {
       const first = failed[0] as PromiseRejectedResult;
       throw first.reason instanceof Error
@@ -426,13 +460,29 @@ export default function PartyPerfectDashboard() {
     }
     if (failed.length > 0) {
       const first = failed[0] as PromiseRejectedResult;
-      setError(
+      const message =
         first.reason instanceof Error
-          ? `Some panels failed to load: ${first.reason.message}`
-          : "Some panels failed to load.",
-      );
+          ? first.reason.message
+          : "Some panels failed to load.";
+      if (/owner access required/i.test(message)) {
+        setError(null);
+      } else {
+        setError(
+          first.reason instanceof Error
+            ? `Some panels failed to load: ${first.reason.message}`
+            : "Some panels failed to load.",
+        );
+      }
+    } else {
+      setError(null);
     }
-  }, [refreshConnections, refreshEmails, refreshJobs, refreshSocial]);
+  }, [
+    ownerUnlocked,
+    refreshConnections,
+    refreshEmails,
+    refreshJobs,
+    refreshSocial,
+  ]);
 
   const refreshChat = useCallback(async (agentId: string) => {
     const payload = await fetchAgentChat(agentId);
@@ -757,6 +807,7 @@ export default function PartyPerfectDashboard() {
         return (
           <InventorySection
             inventory={inventory}
+            fees={inventoryFees}
             source={inventorySource}
             porMeta={inventoryPorMeta}
             showRates={ownerUnlocked && canViewFinancials(userRole)}
@@ -981,6 +1032,7 @@ export default function PartyPerfectDashboard() {
         ownerUnlocked={ownerUnlocked}
         mobileOpen={mobileNavOpen}
         onMobileClose={() => setMobileNavOpen(false)}
+        onRequestOwner={() => openOwnerPin(null)}
         replyCounts={
           stats
             ? {
@@ -1034,7 +1086,23 @@ export default function PartyPerfectDashboard() {
 
       {error && (
         <div className="fixed bottom-24 left-1/2 z-40 w-[min(100%-2rem,24rem)] -translate-x-1/2 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm text-red-500 shadow-lg lg:bottom-4">
-          {error}
+          {/owner access/i.test(error) && !ownerUnlocked ? (
+            <span className="flex flex-wrap items-center gap-2">
+              Owner panels need unlock.
+              <button
+                type="button"
+                onClick={() => {
+                  setError(null);
+                  openOwnerPin(null);
+                }}
+                className="underline"
+              >
+                Unlock owner
+              </button>
+            </span>
+          ) : (
+            error
+          )}
           <button type="button" onClick={() => setError(null)} className="ml-3 underline">
             Dismiss
           </button>

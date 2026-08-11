@@ -1,10 +1,13 @@
 <#
 .SYNOPSIS
-  Read-only POR SQL snapshot -> Command Center POST /api/por/sync
+  Read-only POR SQL snapshot + CRM -> Command Center
 
 .NOTES
-  Tuned for Party Perfect ENTERPRISE (POR on SQLEXP).
+  Tuned for Party Perfect ENTERPRISE.
+  Connect with host,port only — e.g. ENTERPRISE,9676.
+  Never use localhost\SQLEXP or any named instance (SQL Browser is disabled).
   SELECT only. Never INSERT/UPDATE/DELETE against POR.
+  Never SELECT CheckCardFile. Never pull PaymentFile.Encrypted/EncryptedCard/CCAlias.
 #>
 [CmdletBinding()]
 param(
@@ -41,17 +44,29 @@ function Get-Config {
 }
 
 function New-SqlConnection([object]$Config) {
+  $server = [string]$Config.SqlServer
+  if ($server -match '\\') {
+    throw "SqlServer must be host,port (e.g. ENTERPRISE,9676). Named instances like \SQLEXP are blocked — SQL Browser is disabled."
+  }
+  if ($server -notmatch ',') {
+    Write-Log "SqlServer has no port — prefer ENTERPRISE,9676" "WARN"
+  }
   if ($Config.UseWindowsAuth) {
-    $cs = "Server=$($Config.SqlServer);Database=$($Config.SqlDatabase);Integrated Security=True;TrustServerCertificate=True;ApplicationIntent=ReadOnly;"
+    $cs = "Server=$server;Database=$($Config.SqlDatabase);Integrated Security=True;TrustServerCertificate=True;ApplicationIntent=ReadOnly;"
   } else {
     if (-not $Config.SqlUser -or -not $Config.SqlPassword) {
       throw "SqlUser/SqlPassword required when UseWindowsAuth is false."
     }
-    $cs = "Server=$($Config.SqlServer);Database=$($Config.SqlDatabase);User ID=$($Config.SqlUser);Password=$($Config.SqlPassword);TrustServerCertificate=True;ApplicationIntent=ReadOnly;"
+    $cs = "Server=$server;Database=$($Config.SqlDatabase);User ID=$($Config.SqlUser);Password=$($Config.SqlPassword);TrustServerCertificate=True;ApplicationIntent=ReadOnly;"
   }
   $conn = New-Object System.Data.SqlClient.SqlConnection $cs
   $conn.Open()
   return $conn
+}
+
+function Push-Json([string]$Uri, [hashtable]$Headers, [object]$Payload, [int]$TimeoutSec = 180) {
+  $json = $Payload | ConvertTo-Json -Depth 8 -Compress
+  return Invoke-RestMethod -Method Post -Uri $Uri -Headers $Headers -Body $json -TimeoutSec $TimeoutSec
 }
 
 function Assert-SelectOnly([string]$Query) {
@@ -107,10 +122,14 @@ $conn = $null
 try {
   $conn = New-SqlConnection $config
 
-  # Exclude POR "FEE - ..." and "DISCOUNT" categories from stock math - they are
-  # service/fee lines (delivery, setup, waivers), NOT rentable inventory, and their
-  # QTY/QYOT hold garbage counters that inflate out-on-rent and low-stock numbers.
-  $notFee = "AND ISNULL(Category,'') NOT LIKE 'FEE%' AND ISNULL(Category,'') NOT LIKE 'DISCOUNT%'"
+  # Exclude non-rentable fee/labor/delivery categories from stock math.
+  # POR stores Category as numeric codes: 34 = setup/breakdown/labor fees,
+  # 19 = delivery/convenience fees. Also drop legacy FEE%/DISCOUNT% labels.
+  $notFee = @"
+AND LTRIM(RTRIM(ISNULL(Category,''))) NOT IN (N'19', N'34')
+AND ISNULL(Category,'') NOT LIKE N'FEE%'
+AND ISNULL(Category,'') NOT LIKE N'DISCOUNT%'
+"@
 
   $totalItems = [int](Get-Scalar $conn "SELECT COUNT(*) FROM dbo.ItemFile WHERE ISNULL(Inactive,0)=0 $notFee")
   $totalQty = Get-Scalar $conn @"
@@ -544,6 +563,457 @@ WHERE ISNULL(ti.Archived,0)=0
     } catch {
       Write-Log ("Reservations push failed: {0}" -f $_.Exception.Message) "WARN"
     }
+  }
+
+  # --- CRM entity sync (keyed Redis store). Never CheckCardFile. No card ciphertext. ---
+  $crmWindowDays = 90
+  try {
+    if ($config.CrmWindowDays) { $crmWindowDays = [int]$config.CrmWindowDays }
+  } catch {}
+
+  try {
+    Write-Log "CRM sync starting (windowDays=$crmWindowDays)"
+
+    $crmCustomers = @()
+    $custRows = Read-Rows $conn @"
+SELECT
+  CAST([KEY] AS nvarchar(64)) AS [KEY],
+  CAST([NAME] AS nvarchar(200)) AS [NAME],
+  CAST(Address AS nvarchar(200)) AS Address,
+  CAST(Address2 AS nvarchar(200)) AS Address2,
+  CAST(CITY AS nvarchar(100)) AS CITY,
+  CAST(ZIP AS nvarchar(20)) AS ZIP,
+  CAST(Phone AS nvarchar(40)) AS Phone,
+  CAST(WORK AS nvarchar(40)) AS WORK,
+  CAST(MOBILE AS nvarchar(40)) AS MOBILE,
+  CAST(Email AS nvarchar(200)) AS Email,
+  CAST(CNUM AS nvarchar(32)) AS CNUM,
+  CAST(OpenDate AS nvarchar(40)) AS OpenDate,
+  CAST(LastActive AS nvarchar(40)) AS LastActive,
+  CAST(LastContract AS nvarchar(40)) AS LastContract,
+  CreditLimit, Status, Type, CurrentBalance, HighBalance,
+  LastPayAmount, CAST(LastPayDate AS nvarchar(40)) AS LastPayDate,
+  NumberContracts, CAST(Salesman AS nvarchar(40)) AS Salesman,
+  CAST(TaxCode AS nvarchar(40)) AS TaxCode,
+  CAST(BillContact AS nvarchar(120)) AS BillContact,
+  CAST(BillPhone AS nvarchar(40)) AS BillPhone,
+  CAST(Message AS nvarchar(400)) AS Message
+FROM dbo.CustomerFile
+"@
+    foreach ($row in $custRows) {
+      $crmCustomers += @{
+        KEY = [string]$row.KEY
+        NAME = [string]$row.NAME
+        Address = [string]$row.Address
+        Address2 = [string]$row.Address2
+        CITY = [string]$row.CITY
+        ZIP = [string]$row.ZIP
+        Phone = [string]$row.Phone
+        WORK = [string]$row.WORK
+        MOBILE = [string]$row.MOBILE
+        Email = [string]$row.Email
+        CNUM = [string]$row.CNUM
+        OpenDate = [string]$row.OpenDate
+        LastActive = [string]$row.LastActive
+        LastContract = [string]$row.LastContract
+        CreditLimit = $row.CreditLimit
+        Status = [string]$row.Status
+        Type = [string]$row.Type
+        CurrentBalance = $row.CurrentBalance
+        HighBalance = $row.HighBalance
+        LastPayAmount = $row.LastPayAmount
+        LastPayDate = [string]$row.LastPayDate
+        NumberContracts = $row.NumberContracts
+        Salesman = [string]$row.Salesman
+        TaxCode = [string]$row.TaxCode
+        BillContact = [string]$row.BillContact
+        BillPhone = [string]$row.BillPhone
+        Message = [string]$row.Message
+      }
+    }
+    Write-Log ("CRM customers={0}" -f $crmCustomers.Count)
+
+    $crmSites = @()
+    try {
+      $siteRows = Read-Rows $conn @"
+SELECT
+  CAST(Number AS nvarchar(40)) AS Number,
+  CAST(Cnum AS nvarchar(32)) AS Cnum,
+  CAST(Description AS nvarchar(200)) AS Description,
+  CAST(ContactName AS nvarchar(120)) AS ContactName,
+  CAST(ContactPhone AS nvarchar(40)) AS ContactPhone,
+  CAST(SiteAddress AS nvarchar(200)) AS SiteAddress,
+  CAST(SiteCity AS nvarchar(100)) AS SiteCity,
+  CAST(SiteZip AS nvarchar(20)) AS SiteZip,
+  CAST(SiteNotes AS nvarchar(400)) AS SiteNotes,
+  CAST(PONumber AS nvarchar(80)) AS PONumber,
+  CAST(JobNumber AS nvarchar(80)) AS JobNumber,
+  CAST(ProjectStartDate AS nvarchar(40)) AS ProjectStartDate,
+  CAST(ProjectEndDate AS nvarchar(40)) AS ProjectEndDate,
+  CAST(SiteDeliveryInstructions AS nvarchar(400)) AS SiteDeliveryInstructions
+FROM dbo.CustomerJobSite
+"@
+      foreach ($row in $siteRows) {
+        $crmSites += @{
+          Number = [string]$row.Number
+          Cnum = [string]$row.Cnum
+          Description = [string]$row.Description
+          ContactName = [string]$row.ContactName
+          ContactPhone = [string]$row.ContactPhone
+          SiteAddress = [string]$row.SiteAddress
+          SiteCity = [string]$row.SiteCity
+          SiteZip = [string]$row.SiteZip
+          SiteNotes = [string]$row.SiteNotes
+          PONumber = [string]$row.PONumber
+          JobNumber = [string]$row.JobNumber
+          ProjectStartDate = [string]$row.ProjectStartDate
+          ProjectEndDate = [string]$row.ProjectEndDate
+          SiteDeliveryInstructions = [string]$row.SiteDeliveryInstructions
+        }
+      }
+    } catch {
+      Write-Log ("CRM CustomerJobSite failed: {0}" -f $_.Exception.Message) "WARN"
+    }
+
+    $crmComments = @()
+    try {
+      $commentRows = Read-Rows $conn @"
+SELECT CAST(CNUM AS nvarchar(32)) AS CNUM, CAST(COMMENTS1 AS nvarchar(max)) AS COMMENTS1
+FROM dbo.CustomerComments
+"@
+      foreach ($row in $commentRows) {
+        $crmComments += @{ CNUM = [string]$row.CNUM; COMMENTS1 = [string]$row.COMMENTS1 }
+      }
+    } catch {
+      Write-Log ("CRM CustomerComments failed: {0}" -f $_.Exception.Message) "WARN"
+    }
+
+    $crmItems = @()
+    try {
+      $crmItemRows = Read-Rows $conn @"
+SELECT
+  CAST([KEY] AS nvarchar(64)) AS [KEY],
+  CAST([Name] AS nvarchar(200)) AS [Name],
+  CAST(LOC AS nvarchar(40)) AS LOC,
+  QTY, QYOT, Category, TYPE, RATE1, SELL,
+  CAST(PartNumber AS nvarchar(80)) AS PartNumber,
+  CAST(NUM AS nvarchar(64)) AS NUM
+FROM dbo.ItemFile
+WHERE ISNULL(Inactive,0)=0
+"@
+      foreach ($row in $crmItemRows) {
+        $crmItems += @{
+          KEY = [string]$row.KEY
+          Name = [string]$row.Name
+          LOC = [string]$row.LOC
+          QTY = $row.QTY
+          QYOT = $row.QYOT
+          Category = [string]$row.Category
+          TYPE = [string]$row.TYPE
+          RATE1 = $row.RATE1
+          SELL = $row.SELL
+          PartNumber = [string]$row.PartNumber
+          NUM = [string]$row.NUM
+        }
+      }
+    } catch {
+      Write-Log ("CRM ItemFile failed: {0}" -f $_.Exception.Message) "WARN"
+    }
+
+    # Payments — explicit column list; NEVER Encrypted / EncryptedCard / CCAlias
+    $crmPayments = @()
+    try {
+      $payRows = Read-Rows $conn @"
+SELECT
+  CAST(Payment AS nvarchar(40)) AS Payment,
+  CAST([Date] AS nvarchar(40)) AS [Date],
+  CAST([Type] AS nvarchar(20)) AS [Type],
+  CAST(CustNumb AS nvarchar(32)) AS CustNumb,
+  Amount,
+  CAST(Meth AS nvarchar(20)) AS Meth,
+  CAST(RefNo AS nvarchar(80)) AS RefNo,
+  CAST(Notes AS nvarchar(400)) AS Notes,
+  Tendered,
+  CAST(TransType AS nvarchar(20)) AS TransType
+FROM dbo.PaymentFile
+"@
+      foreach ($row in $payRows) {
+        $crmPayments += @{
+          Payment = [string]$row.Payment
+          Date = [string]$row.Date
+          Type = [string]$row.Type
+          CustNumb = [string]$row.CustNumb
+          Amount = $row.Amount
+          Meth = [string]$row.Meth
+          RefNo = [string]$row.RefNo
+          Notes = [string]$row.Notes
+          Tendered = $row.Tendered
+          TransType = [string]$row.TransType
+        }
+      }
+    } catch {
+      Write-Log ("CRM PaymentFile failed: {0}" -f $_.Exception.Message) "WARN"
+    }
+
+    $crmPayDetails = @()
+    try {
+      $pdRows = Read-Rows $conn @"
+SELECT
+  CAST(Payment AS nvarchar(40)) AS Payment,
+  CAST(Contract AS nvarchar(40)) AS Contract,
+  Amount, Discount
+FROM dbo.PaymentDetail
+"@
+      foreach ($row in $pdRows) {
+        $crmPayDetails += @{
+          Payment = [string]$row.Payment
+          Contract = [string]$row.Contract
+          Amount = $row.Amount
+          Discount = $row.Discount
+        }
+      }
+    } catch {
+      Write-Log ("CRM PaymentDetail failed: {0}" -f $_.Exception.Message) "WARN"
+    }
+
+    $crmTx = @()
+    $crmTxItems = @()
+    try {
+      $txRows = Read-Rows $conn @"
+SELECT
+  CAST(CNTR AS nvarchar(40)) AS CNTR,
+  CAST([DATE] AS nvarchar(40)) AS [DATE],
+  CAST([TIME] AS nvarchar(40)) AS [TIME],
+  CAST(STAT AS nvarchar(10)) AS STAT,
+  CAST(CUSN AS nvarchar(32)) AS CUSN,
+  TOTL, PAID, RENT, SALE, TAX, DPMT, PYMT,
+  CAST(DeliveryDate AS nvarchar(40)) AS DeliveryDate,
+  CAST(PickupDate AS nvarchar(40)) AS PickupDate,
+  CAST(EventEndDate AS nvarchar(40)) AS EventEndDate,
+  CAST(Contact AS nvarchar(120)) AS Contact,
+  CAST(ContactPhone AS nvarchar(40)) AS ContactPhone,
+  CAST(DeliveryAddress AS nvarchar(200)) AS DeliveryAddress,
+  CAST(DeliveryCity AS nvarchar(100)) AS DeliveryCity,
+  CAST(DeliveryZip AS nvarchar(20)) AS DeliveryZip,
+  CAST(JobSite AS nvarchar(120)) AS JobSite,
+  CAST(DeliveryNotes AS nvarchar(400)) AS DeliveryNotes,
+  CAST(TransactionType AS nvarchar(40)) AS TransactionType,
+  CAST(Salesman AS nvarchar(40)) AS Salesman,
+  CAST(Completed AS nvarchar(40)) AS Completed,
+  CAST(Billed AS nvarchar(40)) AS Billed
+FROM dbo.Transactions
+WHERE
+  UPPER(LTRIM(RTRIM(CAST(STAT AS nvarchar(10))))) IN (N'R', N'O', N'Q')
+  OR (DeliveryDate IS NOT NULL AND DeliveryDate >= DATEADD(day, -$crmWindowDays, GETDATE()))
+  OR (PickupDate IS NOT NULL AND PickupDate >= DATEADD(day, -$crmWindowDays, GETDATE()))
+  OR (DeliveryDate IS NOT NULL AND DeliveryDate >= CAST(GETDATE() AS date))
+"@
+      $cntrList = New-Object System.Collections.Generic.List[string]
+      foreach ($row in $txRows) {
+        $cntr = [string]$row.CNTR
+        [void]$cntrList.Add($cntr)
+        $crmTx += @{
+          CNTR = $cntr
+          DATE = [string]$row.DATE
+          TIME = [string]$row.TIME
+          STAT = [string]$row.STAT
+          CUSN = [string]$row.CUSN
+          TOTL = $row.TOTL
+          PAID = $row.PAID
+          RENT = $row.RENT
+          SALE = $row.SALE
+          TAX = $row.TAX
+          DPMT = $row.DPMT
+          PYMT = $row.PYMT
+          DeliveryDate = [string]$row.DeliveryDate
+          PickupDate = [string]$row.PickupDate
+          EventEndDate = [string]$row.EventEndDate
+          Contact = [string]$row.Contact
+          ContactPhone = [string]$row.ContactPhone
+          DeliveryAddress = [string]$row.DeliveryAddress
+          DeliveryCity = [string]$row.DeliveryCity
+          DeliveryZip = [string]$row.DeliveryZip
+          JobSite = [string]$row.JobSite
+          DeliveryNotes = [string]$row.DeliveryNotes
+          TransactionType = [string]$row.TransactionType
+          Salesman = [string]$row.Salesman
+          Completed = [string]$row.Completed
+          Billed = [string]$row.Billed
+        }
+      }
+      Write-Log ("CRM transactions (window+open)={0}" -f $crmTx.Count)
+
+      if ($cntrList.Count -gt 0) {
+        # Chunk IN lists to avoid huge SQL
+        $chunkSize = 400
+        for ($i = 0; $i -lt $cntrList.Count; $i += $chunkSize) {
+          $end = [math]::Min($i + $chunkSize - 1, $cntrList.Count - 1)
+          $slice = $cntrList.GetRange($i, $end - $i + 1)
+          $inList = ($slice | ForEach-Object { "N'" + ($_ -replace "'", "''") + "'" }) -join ","
+          $tiRows = Read-Rows $conn @"
+SELECT
+  CAST(CNTR AS nvarchar(40)) AS CNTR,
+  CAST(ITEM AS nvarchar(64)) AS ITEM,
+  QTY, PRIC,
+  CAST([Desc] AS nvarchar(200)) AS [Desc],
+  CAST(Comments AS nvarchar(400)) AS Comments,
+  LineNumber,
+  CAST(OutDate AS nvarchar(40)) AS OutDate,
+  TaxAmount, DailyAmount
+FROM dbo.TransactionItems
+WHERE CNTR IN ($inList)
+"@
+          foreach ($row in $tiRows) {
+            $crmTxItems += @{
+              CNTR = [string]$row.CNTR
+              ITEM = [string]$row.ITEM
+              QTY = $row.QTY
+              PRIC = $row.PRIC
+              Desc = [string]$row.Desc
+              Comments = [string]$row.Comments
+              LineNumber = $row.LineNumber
+              OutDate = [string]$row.OutDate
+              TaxAmount = $row.TaxAmount
+              DailyAmount = $row.DailyAmount
+            }
+          }
+        }
+      }
+      Write-Log ("CRM transactionItems={0}" -f $crmTxItems.Count)
+    } catch {
+      Write-Log ("CRM Transactions/Items window failed: {0}" -f $_.Exception.Message) "WARN"
+    }
+
+    $crmUri = "$baseUrl/api/por/sync/crm"
+    $syncedAtCrm = (Get-Date).ToUniversalTime().ToString("o")
+
+    # Push in chunks so Vercel body limits aren't hit
+    function Send-CrmPart([hashtable]$Part) {
+      $Part.source = "ENTERPRISE Sync-PorSnapshot CRM"
+      $Part.syncedAt = $syncedAtCrm
+      $resp = Push-Json -Uri $crmUri -Headers $headers -Payload $Part -TimeoutSec 240
+      Write-Log ("CRM chunk OK keys={0}" -f (($Part.Keys | Where-Object { $_ -notin @('source','syncedAt','counts') }) -join ','))
+      return $resp
+    }
+
+    if ($crmCustomers.Count -gt 0) {
+      for ($i = 0; $i -lt $crmCustomers.Count; $i += 2000) {
+        $take = [math]::Min(2000, $crmCustomers.Count - $i)
+        [void](Send-CrmPart @{ customers = @($crmCustomers[$i..($i + $take - 1)]) })
+      }
+    }
+    if ($crmSites.Count -gt 0) {
+      [void](Send-CrmPart @{ jobSites = @($crmSites) })
+    }
+    if ($crmComments.Count -gt 0) {
+      [void](Send-CrmPart @{ comments = @($crmComments) })
+    }
+    if ($crmItems.Count -gt 0) {
+      for ($i = 0; $i -lt $crmItems.Count; $i += 2000) {
+        $take = [math]::Min(2000, $crmItems.Count - $i)
+        [void](Send-CrmPart @{ items = @($crmItems[$i..($i + $take - 1)]) })
+      }
+    }
+    if ($crmPayments.Count -gt 0) {
+      for ($i = 0; $i -lt $crmPayments.Count; $i += 2000) {
+        $take = [math]::Min(2000, $crmPayments.Count - $i)
+        [void](Send-CrmPart @{ payments = @($crmPayments[$i..($i + $take - 1)]) })
+      }
+    }
+    if ($crmPayDetails.Count -gt 0) {
+      for ($i = 0; $i -lt $crmPayDetails.Count; $i += 3000) {
+        $take = [math]::Min(3000, $crmPayDetails.Count - $i)
+        [void](Send-CrmPart @{ paymentDetails = @($crmPayDetails[$i..($i + $take - 1)]) })
+      }
+    }
+    if ($crmTx.Count -gt 0) {
+      for ($i = 0; $i -lt $crmTx.Count; $i += 1500) {
+        $take = [math]::Min(1500, $crmTx.Count - $i)
+        [void](Send-CrmPart @{ transactions = @($crmTx[$i..($i + $take - 1)]) })
+      }
+    }
+    if ($crmTxItems.Count -gt 0) {
+      for ($i = 0; $i -lt $crmTxItems.Count; $i += 2500) {
+        $take = [math]::Min(2500, $crmTxItems.Count - $i)
+        [void](Send-CrmPart @{ transactionItems = @($crmTxItems[$i..($i + $take - 1)]) })
+      }
+    }
+
+    $countsPayload = @{
+      source = "ENTERPRISE Sync-PorSnapshot CRM"
+      syncedAt = $syncedAtCrm
+      counts = @{
+        customers = $crmCustomers.Count
+        jobSites = $crmSites.Count
+        comments = $crmComments.Count
+        transactions = $crmTx.Count
+        transactionItems = $crmTxItems.Count
+        payments = $crmPayments.Count
+        paymentDetails = $crmPayDetails.Count
+        items = $crmItems.Count
+      }
+    }
+    [void](Push-Json -Uri $crmUri -Headers $headers -Payload $countsPayload -TimeoutSec 60)
+    Write-Log "CRM sync complete"
+
+    # --- Also upsert Supabase por.* via Command Center (requires DATABASE_URL on Vercel) ---
+    try {
+      $pgUri = "$baseUrl/api/por/sync/postgres"
+      $syncedAtPg = (Get-Date).ToUniversalTime().ToString("o")
+      function Send-PgPart([hashtable]$Part) {
+        $Part.source = "ENTERPRISE Sync-PorSnapshot Postgres"
+        $Part.syncedAt = $syncedAtPg
+        $resp = Push-Json -Uri $pgUri -Headers $headers -Payload $Part -TimeoutSec 240
+        Write-Log ("Postgres chunk OK keys={0}" -f (($Part.Keys | Where-Object { $_ -notin @('source','syncedAt','counts') }) -join ','))
+        return $resp
+      }
+      if ($crmCustomers.Count -gt 0) {
+        for ($i = 0; $i -lt $crmCustomers.Count; $i += 1500) {
+          $take = [math]::Min(1500, $crmCustomers.Count - $i)
+          [void](Send-PgPart @{ customers = @($crmCustomers[$i..($i + $take - 1)]) })
+        }
+      }
+      if ($crmItems.Count -gt 0) {
+        for ($i = 0; $i -lt $crmItems.Count; $i += 1500) {
+          $take = [math]::Min(1500, $crmItems.Count - $i)
+          [void](Send-PgPart @{ items = @($crmItems[$i..($i + $take - 1)]) })
+        }
+      }
+      if ($crmPayments.Count -gt 0) {
+        for ($i = 0; $i -lt $crmPayments.Count; $i += 1500) {
+          $take = [math]::Min(1500, $crmPayments.Count - $i)
+          [void](Send-PgPart @{ payments = @($crmPayments[$i..($i + $take - 1)]) })
+        }
+      }
+      if ($crmTx.Count -gt 0) {
+        for ($i = 0; $i -lt $crmTx.Count; $i += 1000) {
+          $take = [math]::Min(1000, $crmTx.Count - $i)
+          [void](Send-PgPart @{ contracts = @($crmTx[$i..($i + $take - 1)]) })
+        }
+      }
+      if ($crmTxItems.Count -gt 0) {
+        for ($i = 0; $i -lt $crmTxItems.Count; $i += 2000) {
+          $take = [math]::Min(2000, $crmTxItems.Count - $i)
+          [void](Send-PgPart @{ contractItems = @($crmTxItems[$i..($i + $take - 1)]) })
+        }
+      }
+      [void](Push-Json -Uri $pgUri -Headers $headers -Payload @{
+        source = "ENTERPRISE Sync-PorSnapshot Postgres"
+        syncedAt = $syncedAtPg
+        counts = @{
+          customers = $crmCustomers.Count
+          contracts = $crmTx.Count
+          contractItems = $crmTxItems.Count
+          payments = $crmPayments.Count
+          items = $crmItems.Count
+        }
+      } -TimeoutSec 60)
+      Write-Log "Postgres por.* sync complete"
+    } catch {
+      Write-Log ("Postgres por.* sync failed (ok until DATABASE_URL live on Vercel): {0}" -f $_.Exception.Message) "WARN"
+    }
+  } catch {
+    Write-Log ("CRM sync failed: {0}" -f $_.Exception.Message) "WARN"
   }
 }
 catch {

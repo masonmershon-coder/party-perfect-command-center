@@ -19,6 +19,7 @@ export function Sidebar({
   ownerUnlocked,
   mobileOpen = false,
   onMobileClose,
+  onRequestOwner,
 }: {
   activeSection: NavSection;
   onNavigate: (section: NavSection) => void;
@@ -27,6 +28,7 @@ export function Sidebar({
   ownerUnlocked: boolean;
   mobileOpen?: boolean;
   onMobileClose?: () => void;
+  onRequestOwner?: () => void;
 }) {
   function replyLabel(section: "emails" | "social") {
     if (!replyCounts) return null;
@@ -65,18 +67,32 @@ export function Sidebar({
         }`}
       >
         <div className="border-b border-[var(--pp-border)] px-5 py-5 lg:py-6">
-          <div className="mb-2 flex items-center justify-between lg:hidden">
+          <div className="mb-2 flex items-center justify-between gap-2 lg:hidden">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--pp-text-muted)]">
               Menu
             </p>
-            <button
-              type="button"
-              onClick={onMobileClose}
-              className="rounded-lg border border-[var(--pp-border)] px-3 py-1.5 text-sm text-[var(--pp-text)]"
-              aria-label="Close menu"
-            >
-              Close
-            </button>
+            <div className="flex items-center gap-2">
+              {!ownerUnlocked && onRequestOwner ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onRequestOwner();
+                    onMobileClose?.();
+                  }}
+                  className="rounded-lg border border-[var(--pp-border)] px-3 py-1.5 text-xs font-semibold text-[var(--pp-text)]"
+                >
+                  🔒 Owner
+                </button>
+              ) : null}
+              <button
+                type="button"
+                onClick={onMobileClose}
+                className="rounded-lg border border-[var(--pp-border)] px-3 py-1.5 text-sm text-[var(--pp-text)]"
+                aria-label="Close menu"
+              >
+                Close
+              </button>
+            </div>
           </div>
           <button
             type="button"

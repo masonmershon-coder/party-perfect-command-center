@@ -1,6 +1,8 @@
 import { createHmac, timingSafeEqual, randomBytes } from "crypto";
+import { Ratelimit } from "@upstash/ratelimit";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { getDurableRedis, isDurableRedisConfigured } from "@/lib/durable-json";
 
 /**
  * Server-side session auth for Command Center.
@@ -8,11 +10,11 @@ import { NextResponse } from "next/server";
  *
  * Required (rotate from the old client-side codes — treat those as compromised):
  *   AUTH_PASSWORD — team login
- *   OWNER_PIN — 4+ digit owner unlock
- *   SESSION_SECRET — HMAC key for signing cookies (long random string)
+ *   OWNER_PIN — 6+ digit owner unlock
+ *   SESSION_SECRET — HMAC key for signing cookies (long random string, required in prod)
  *
  * Until env is set in Vercel, temporary fallbacks keep local/dev usable but
- * MUST be rotated before real customers/money.
+ * MUST be rotated before real customers/money (OWNER_PIN ≥6 digits).
  */
 
 const COOKIE_NAME = "pp_cc_session";
@@ -31,8 +33,12 @@ export type AuthSession = {
 function sessionSecret(): string {
   const s = process.env.SESSION_SECRET?.trim();
   if (s && s.length >= 16) return s;
-  // Derive a stable-but-weak secret so signed cookies work in local/dev.
-  // Production MUST set SESSION_SECRET.
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "SESSION_SECRET env is required in production (min 16 characters)",
+    );
+  }
+  // Local/dev only — never ship without SESSION_SECRET on Vercel.
   return `pp-dev-only:${process.env.AUTH_PASSWORD || "unset"}`;
 }
 
@@ -48,11 +54,17 @@ function teamPassword(): string {
 
 function ownerPin(): string {
   const fromEnv = process.env.OWNER_PIN?.trim();
-  if (fromEnv) return fromEnv;
-  if (process.env.NODE_ENV === "production") {
-    throw new Error("OWNER_PIN env is required in production");
+  if (fromEnv) {
+    const digits = fromEnv.replace(/\D/g, "");
+    if (digits.length < 6) {
+      throw new Error("OWNER_PIN must be at least 6 digits");
+    }
+    return fromEnv;
   }
-  return "0623";
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("OWNER_PIN env is required in production (min 6 digits)");
+  }
+  return "062306";
 }
 
 function b64url(buf: Buffer | string): string {
@@ -188,11 +200,27 @@ export function clearSessionCookie(response: NextResponse): NextResponse {
   return response;
 }
 
-/** Simple per-IP login throttle (in-memory; use Upstash in multi-instance later). */
-const loginAttempts = new Map<string, { failures: number; lockedUntil: number }>();
+/** Auth attempt throttle — Upstash when configured; in-memory fallback for local/dev. */
+const memoryAttempts = new Map<
+  string,
+  { failures: number; lockedUntil: number }
+>();
+
+type AuthRateAction = "login" | "owner";
+
+function memoryAuthKey(ip: string, action: AuthRateAction) {
+  return `${action}:${ip || "unknown"}`;
+}
 
 export function checkLoginRateLimit(ip: string): string | null {
-  const row = loginAttempts.get(ip);
+  return checkAuthRateLimitSync(ip, "login");
+}
+
+export function checkAuthRateLimitSync(
+  ip: string,
+  action: AuthRateAction,
+): string | null {
+  const row = memoryAttempts.get(memoryAuthKey(ip, action));
   if (!row) return null;
   if (row.lockedUntil > Date.now()) {
     const minutes = Math.ceil((row.lockedUntil - Date.now()) / 60_000);
@@ -202,17 +230,87 @@ export function checkLoginRateLimit(ip: string): string | null {
 }
 
 export function registerLoginFailure(ip: string) {
-  const row = loginAttempts.get(ip) || { failures: 0, lockedUntil: 0 };
+  registerAuthFailureSync(ip, "login");
+}
+
+export function registerAuthFailureSync(ip: string, action: AuthRateAction) {
+  const key = memoryAuthKey(ip, action);
+  const row = memoryAttempts.get(key) || { failures: 0, lockedUntil: 0 };
   row.failures += 1;
   if (row.failures >= 5) {
     row.failures = 0;
     row.lockedUntil = Date.now() + 5 * 60 * 1000;
   }
-  loginAttempts.set(ip, row);
+  memoryAttempts.set(key, row);
 }
 
 export function clearLoginFailures(ip: string) {
-  loginAttempts.delete(ip);
+  clearAuthFailuresSync(ip, "login");
+}
+
+export function clearAuthFailuresSync(ip: string, action: AuthRateAction) {
+  memoryAttempts.delete(memoryAuthKey(ip, action));
+}
+
+let upstashLogin: Ratelimit | null = null;
+let upstashOwner: Ratelimit | null = null;
+
+function getAuthLimiters(): { login: Ratelimit; owner: Ratelimit } | null {
+  if (!isDurableRedisConfigured()) return null;
+  const redis = getDurableRedis();
+  if (!redis) return null;
+  if (!upstashLogin) {
+    upstashLogin = new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(5, "5 m"),
+      prefix: "pp:auth:rl:login",
+      analytics: false,
+    });
+  }
+  if (!upstashOwner) {
+    upstashOwner = new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(5, "5 m"),
+      prefix: "pp:auth:rl:owner",
+      analytics: false,
+    });
+  }
+  return { login: upstashLogin, owner: upstashOwner };
+}
+
+/** Prefer Upstash (IP+action). Falls back to in-memory when Redis is unset. */
+export async function enforceAuthRateLimit(
+  ip: string,
+  action: AuthRateAction,
+): Promise<string | null> {
+  const limiters = getAuthLimiters();
+  if (limiters) {
+    const limiter = action === "owner" ? limiters.owner : limiters.login;
+    const result = await limiter.limit(`${action}:${ip || "unknown"}`);
+    if (!result.success) {
+      return "Too many failed attempts. Try again in a few minutes.";
+    }
+    return null;
+  }
+  return checkAuthRateLimitSync(ip, action);
+}
+
+export async function registerAuthFailure(
+  ip: string,
+  action: AuthRateAction,
+): Promise<void> {
+  // Upstash window already counted the attempt in enforceAuthRateLimit.
+  // Memory fallback still needs failure accounting for lockouts.
+  if (!getAuthLimiters()) {
+    registerAuthFailureSync(ip, action);
+  }
+}
+
+export async function clearAuthFailures(
+  ip: string,
+  action: AuthRateAction,
+): Promise<void> {
+  clearAuthFailuresSync(ip, action);
 }
 
 export function clientIp(request: Request): string {

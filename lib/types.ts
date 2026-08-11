@@ -236,6 +236,7 @@ export interface SocialDirectMessage {
   receivedAt: string;
   status: SocialInteractionStatus;
   repliedAt?: string;
+  source?: "demo" | "meta";
 }
 
 export interface SocialEngagementSummary {
@@ -528,9 +529,22 @@ export interface DashboardStats {
     openContracts: number | null;
     deliveriesToday: number | null;
     returnsDueToday: number | null;
+    /** @deprecated Prefer itemsOutRentable — same value. */
     inventoryAvailable: number | null;
+    /** @deprecated Prefer itemsOutRentable — same value. */
     inventoryOut: number | null;
+    /** Canonical rentable metrics (dashboard + agents share these). */
+    itemsOutRentable: number | null;
+    itemsAvailableRentable: number | null;
+    skusRentable: number | null;
     paymentsLast24hVolume: number | null;
+  };
+  /** Which overview tiles are live vs seed/demo. */
+  dataSources?: {
+    emails: "live" | "demo";
+    social: "live" | "demo";
+    tasks: "live" | "demo";
+    inventory: "live" | "demo";
   };
 }
 

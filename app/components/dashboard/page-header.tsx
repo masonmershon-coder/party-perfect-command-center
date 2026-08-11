@@ -116,7 +116,7 @@ export function CommandCenterHeader({
   return (
     <header className="sticky top-0 z-20 border-b border-[var(--pp-border)] bg-[var(--pp-header-bg)] px-3 py-3 backdrop-blur-xl sm:px-6 sm:py-4 lg:px-8">
       {/* Phone top bar — full width, hamburger opens drawer */}
-      <div className="flex items-center gap-3 lg:hidden">
+      <div className="flex items-center gap-2 lg:hidden">
         <button
           type="button"
           onClick={onOpenMobileMenu}
@@ -133,6 +133,23 @@ export function CommandCenterHeader({
             {sectionLabel || BRAND.commandCenter}
           </h1>
         </div>
+        {ownerLocked ? (
+          <button
+            type="button"
+            onClick={onRequestOwner}
+            className="flex h-11 shrink-0 items-center gap-1.5 rounded-xl border border-[var(--pp-border)] px-3 text-xs font-semibold text-[var(--pp-text)]"
+            aria-label="Unlock owner access"
+          >
+            🔒 Owner
+          </button>
+        ) : (
+          <UserRoleSwitcher
+            role={userRole}
+            ownerLocked={ownerLocked}
+            onChange={onUserRoleChange}
+            onRequestOwner={onRequestOwner}
+          />
+        )}
         <ThemeToggle />
       </div>
 

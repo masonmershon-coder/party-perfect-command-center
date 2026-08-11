@@ -14,6 +14,7 @@
  */
 import { searchPorCatalog } from "@/lib/por-catalog";
 import { availableOn } from "@/lib/por-availability";
+import { clampQty } from "@/lib/por-rentable";
 
 export type InventoryMatch = {
   name: string;
@@ -50,11 +51,11 @@ export async function lookupInventory(
     results.push({
       name: m.name,
       sku: m.sku,
-      category: m.category ?? null,
-      total: a.total,
-      outNow: a.firmHeld,
-      softHeld: a.softHeld,
-      available: a.available,
+      category: m.category ?? m.categoryCode ?? null,
+      total: clampQty(a.total),
+      outNow: clampQty(a.firmHeld),
+      softHeld: clampQty(a.softHeld),
+      available: clampQty(a.available),
       date,
     });
   }

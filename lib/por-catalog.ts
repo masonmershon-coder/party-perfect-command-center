@@ -1,4 +1,5 @@
 import { readDurableJson, writeDurableJson } from "@/lib/durable-json";
+import { isRentable } from "@/lib/por-rentable";
 import type { PorCatalogItem, PorCatalogState } from "@/lib/types";
 
 /**
@@ -165,8 +166,11 @@ export async function getPorCatalog(): Promise<PorCatalogState> {
 }
 
 export function porCatalogIsFee(item: PorCatalogItem): boolean {
-  const cat = (item.category || "").toUpperCase();
-  return cat.startsWith("FEE") || cat.startsWith("DISCOUNT");
+  return !isRentable({
+    category: item.categoryCode || item.category,
+    categoryCode: item.categoryCode,
+    name: item.name,
+  });
 }
 
 function isHardwareNoise(item: PorCatalogItem): boolean {

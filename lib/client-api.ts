@@ -240,6 +240,7 @@ export async function streamTaskRun(
 export async function fetchInventory() {
   const payload = await parseJson<{
     inventory: InventoryItem[];
+    fees?: InventoryItem[];
     source?: "por" | "local";
     por?: PorSyncMeta;
   }>(await fetch("/api/inventory"));

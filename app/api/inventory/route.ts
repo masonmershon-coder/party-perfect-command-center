@@ -3,6 +3,7 @@ import { getPorSnapshot, getPorSyncMeta } from "@/lib/por-snapshot";
 import {
   createInventoryItem,
   listInventory,
+  listInventoryFees,
   updateInventoryItem,
 } from "@/lib/storage";
 import type { CreateInventoryInput } from "@/lib/types";
@@ -13,14 +14,19 @@ export const runtime = "nodejs";
 export async function GET() {
   const gate = await requireSession();
   if (isAuthError(gate)) return gate;
-  const [inventory, por] = await Promise.all([listInventory(), getPorSnapshot()]);
+  const [inventory, fees, por] = await Promise.all([
+    listInventory(),
+    listInventoryFees(),
+    getPorSnapshot(),
+  ]);
   const porMeta = getPorSyncMeta(por);
-  const rows =
+  const stripRates = <T extends { pricePerDay: number }>(rows: T[]) =>
     gate.role === "owner"
-      ? inventory
-      : inventory.map((item) => ({ ...item, pricePerDay: 0 }));
+      ? rows
+      : rows.map((item) => ({ ...item, pricePerDay: 0 }));
   return NextResponse.json({
-    inventory: rows,
+    inventory: stripRates(inventory),
+    fees: stripRates(fees),
     source: porMeta.present ? "por" : "local",
     por: porMeta,
   });

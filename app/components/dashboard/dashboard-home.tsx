@@ -50,21 +50,25 @@ export function DashboardHome({
       label: "Emails Need Reply",
       value: String(stats.emailsNeedsReply),
       hint: `${stats.emailsUnread} unread`,
+      demo: stats.dataSources?.emails === "demo",
     },
     {
       label: "Social Waiting",
       value: String(stats.socialNeedsReply),
       hint: `${stats.socialUnread} unread total`,
+      demo: stats.dataSources?.social === "demo",
     },
     {
       label: "Tasks To Do",
       value: String(stats.tasksTodo),
       hint: `${stats.tasksInProgress} in progress`,
+      demo: stats.dataSources?.tasks !== "live",
     },
     {
       label: "Low Inventory",
       value: String(stats.inventoryLow),
-      hint: "Items below 25% available",
+      hint: "Rentable items below 25% available",
+      demo: stats.dataSources?.inventory === "demo",
     },
     ...(isOwner
       ? [
@@ -73,6 +77,7 @@ export function DashboardHome({
                 label: "Open AR",
                 value: formatCurrency(stats.por.arOpenBalance),
                 hint: "Money owed TO Party Perfect (POR)",
+                demo: false,
               }
             : {
                 label: "Pending Bills",
@@ -80,6 +85,7 @@ export function DashboardHome({
                 hint: latestReport
                   ? `Last recap ${formatTime(latestReport.generatedAt)}`
                   : "Vendor bills we owe (AP)",
+                demo: false,
               },
           ]
       : []),
@@ -117,9 +123,16 @@ export function DashboardHome({
       >
         {summaryCards.map((card) => (
           <div key={card.label} className="pp-stat-card rounded-2xl p-5">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--pp-text-muted)]">
-              {card.label}
-            </p>
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--pp-text-muted)]">
+                {card.label}
+              </p>
+              {card.demo ? (
+                <span className="rounded-md border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-amber-700">
+                  Demo
+                </span>
+              ) : null}
+            </div>
             <p className="mt-3 text-3xl font-semibold pp-accent-text">
               {card.value}
             </p>
@@ -162,15 +175,22 @@ export function DashboardHome({
           {[
             {
               label: "Out on rent",
-              value: porLive ? String(por?.inventoryOut ?? "—") : "—",
+              value: porLive
+                ? String(
+                    por?.itemsOutRentable ?? por?.inventoryOut ?? "—",
+                  )
+                : "—",
+              hint: "Rentable only (fees excluded)",
             },
             {
               label: "Deliveries today",
               value: porLive ? String(por?.deliveriesToday ?? "—") : "—",
+              hint: "From POR ops",
             },
             {
               label: "Returns due",
               value: porLive ? String(por?.returnsDueToday ?? "—") : "—",
+              hint: "From POR ops",
             },
             ...(isOwner
               ? [
@@ -180,6 +200,7 @@ export function DashboardHome({
                       porLive && por?.arOpenBalance != null
                         ? formatCurrency(por.arOpenBalance)
                         : "—",
+                    hint: "Owner only",
                   },
                 ]
               : []),
@@ -194,6 +215,11 @@ export function DashboardHome({
               <p className="mt-2 text-xl font-semibold pp-accent-text">
                 {item.value}
               </p>
+              {"hint" in item && item.hint ? (
+                <p className="mt-1 text-[10px] text-[var(--pp-text-muted)]">
+                  {item.hint}
+                </p>
+              ) : null}
             </div>
           ))}
         </div>

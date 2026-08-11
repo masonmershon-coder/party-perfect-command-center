@@ -22,11 +22,12 @@ import {
 } from "./seed";
 import {
   bookkeepingFromPorSnapshot,
+  feesFromPorSnapshot,
   getPorSnapshot,
   getPorSyncMeta,
   inventoryFromPorSnapshot,
-  porInventoryTotals,
 } from "./por-snapshot";
+import { computePorCanonicalMetrics } from "./por-canonical";
 import type {
   Agent,
   BookkeepingEntry,
@@ -536,6 +537,15 @@ export async function listInventory(): Promise<InventoryItem[]> {
   return readJsonFile<InventoryItem[]>(INVENTORY_FILE, []);
 }
 
+/** Fee/labor/delivery lines from POR — not included in stock math. */
+export async function listInventoryFees(): Promise<InventoryItem[]> {
+  const por = await getPorSnapshot();
+  if (por?.inventory) {
+    return feesFromPorSnapshot(por);
+  }
+  return [];
+}
+
 export async function createInventoryItem(
   input: CreateInventoryInput,
 ): Promise<InventoryItem> {
@@ -965,9 +975,12 @@ export async function createBookkeepingEntry(
   return entry;
 }
 
-export async function getConversation(agentId: string): Promise<Conversation> {
+export async function getConversation(
+  agentId: string,
+  role: "employee" | "owner" = "employee",
+): Promise<Conversation> {
   await ensureDataDir();
-  const filePath = path.join(CONVERSATIONS_DIR, `${agentId}.json`);
+  const filePath = path.join(CONVERSATIONS_DIR, `${agentId}__${role}.json`);
   return readJsonFile<Conversation>(filePath, {
     agentId,
     messages: [],
@@ -978,13 +991,14 @@ export async function getConversation(agentId: string): Promise<Conversation> {
 export async function appendMessages(
   agentId: string,
   messages: Message[],
+  role: "employee" | "owner" = "employee",
 ): Promise<Conversation> {
-  const conversation = await getConversation(agentId);
+  const conversation = await getConversation(agentId, role);
   conversation.messages.push(...messages);
   conversation.updatedAt = now();
 
   await writeJsonFile(
-    path.join(CONVERSATIONS_DIR, `${agentId}.json`),
+    path.join(CONVERSATIONS_DIR, `${agentId}__${role}.json`),
     conversation,
   );
 
@@ -995,8 +1009,9 @@ export async function replaceLastAssistantMessage(
   agentId: string,
   messageId: string,
   content: string,
+  role: "employee" | "owner" = "employee",
 ): Promise<Conversation> {
-  const conversation = await getConversation(agentId);
+  const conversation = await getConversation(agentId, role);
   const index = conversation.messages.findIndex(
     (message) => message.id === messageId,
   );
@@ -1008,7 +1023,7 @@ export async function replaceLastAssistantMessage(
     };
     conversation.updatedAt = now();
     await writeJsonFile(
-      path.join(CONVERSATIONS_DIR, `${agentId}.json`),
+      path.join(CONVERSATIONS_DIR, `${agentId}__${role}.json`),
       conversation,
     );
   }
@@ -1062,6 +1077,13 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   ).length;
 
   const porMeta = getPorSyncMeta(por);
+  const canonical = por
+    ? computePorCanonicalMetrics(por, { includeFinancials: true }).metrics
+    : null;
+  const emailsLive = emails.some((e) => e.source === "imap");
+  const socialLive =
+    social.comments.some((c) => c.source === "meta") ||
+    social.messages.some((m) => m.source === "meta");
 
   return {
     agentCount: agents.length,
@@ -1087,16 +1109,28 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     bookkeepingPending: bookkeeping.filter(
       (item) => item.status === "pending" || item.status === "overdue",
     ).length,
+    dataSources: {
+      emails: emailsLive ? "live" : "demo",
+      social: socialLive ? "live" : "demo",
+      tasks: "demo",
+      inventory: porMeta.present ? "live" : "demo",
+    },
     por: {
       syncedAt: porMeta.syncedAt,
       stale: porMeta.stale,
-      arOpenBalance: por?.money.arOpenBalance ?? null,
-      openContracts: por?.ops.openContracts ?? null,
-      deliveriesToday: por?.ops.deliveriesToday ?? null,
-      returnsDueToday: por?.ops.returnsDueToday ?? null,
-      inventoryAvailable: por ? porInventoryTotals(por).availableQuantity : null,
-      inventoryOut: por ? porInventoryTotals(por).outQuantity : null,
-      paymentsLast24hVolume: por?.money.paymentsLast24h.volume ?? null,
+      arOpenBalance: canonical?.ar_open ?? por?.money.arOpenBalance ?? null,
+      openContracts: canonical?.open_contracts ?? null,
+      deliveriesToday: canonical?.deliveries_today ?? null,
+      returnsDueToday: canonical?.returns_due ?? null,
+      inventoryAvailable: canonical?.items_available ?? null,
+      inventoryOut: canonical?.items_out_rentable ?? null,
+      itemsOutRentable: canonical?.items_out_rentable ?? null,
+      itemsAvailableRentable: canonical?.items_available ?? null,
+      skusRentable: canonical?.skus_rentable ?? null,
+      paymentsLast24hVolume:
+        canonical?.payments_24h_volume ??
+        por?.money.paymentsLast24h.volume ??
+        null,
     },
   };
 }

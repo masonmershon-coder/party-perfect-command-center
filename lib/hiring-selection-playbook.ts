@@ -66,7 +66,7 @@ Primary fit: recommend the best department. Open + physical → often Tents or D
 
 ## volume goal
 
-Target **1–5 quality apps/day** via partyperfectjobs.com (Easy Apply off). Ads can still lead with physical roles; all roles remain open on the form.
+Target **25 apps/day** via partyperfectjobs.com (Quick Apply default). Pay line owners approved: **$18–$28/hr + growth** (by role). Ads can still lead with physical roles; all roles remain open on the form.
 `.trim();
 
 /** Keywords that mark real crew fitness in free text. */
@@ -124,15 +124,25 @@ export function applyHiringSelectionWeights(
 
   const wantsCrew =
     input.roles.includes("tents") ||
+    input.roles.includes("warehouse") ||
     input.roles.includes("delivery") ||
+    input.roles.includes("linen") ||
+    input.roles.includes("dish") ||
+    input.roles.includes("deco") ||
     input.roles.includes("open") ||
     input.roles.includes("lines");
   const wantsFront =
-    input.roles.includes("showroom") || input.roles.includes("sales");
+    input.roles.includes("leadership") ||
+    input.roles.includes("showroom") ||
+    input.roles.includes("sales");
   const onlyFront =
     wantsFront &&
     !input.roles.includes("tents") &&
+    !input.roles.includes("warehouse") &&
     !input.roles.includes("delivery") &&
+    !input.roles.includes("linen") &&
+    !input.roles.includes("dish") &&
+    !input.roles.includes("deco") &&
     !input.roles.includes("open") &&
     !input.roles.includes("lines");
 

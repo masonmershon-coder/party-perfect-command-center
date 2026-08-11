@@ -174,3 +174,19 @@ export async function logAudit(e: { domain: Domain; actor?: string; action: stri
     [domain, e.actor ?? null, e.action, e.entityType ?? null, e.entityId ?? null, JSON.stringify(e.detail ?? {})]
   );
 }
+
+// --- approvals: read (for the phone approvals inbox) ---
+export async function listApprovals(filter: { domain: Domain; status?: "PENDING" | "APPROVED" | "REJECTED"; limit?: number }): Promise<Record<string, unknown>[]> {
+  const domain = requireDomain(filter.domain);
+  const where = ["domain = $1"]; const vals: unknown[] = [domain]; let i = 2;
+  if (filter.status) { where.push(`status = $${i++}`); vals.push(filter.status); }
+  vals.push(Math.min(filter.limit ?? 100, 500));
+  const { rows } = await db().query(`select * from ai_core.approvals where ${where.join(" and ")} order by requested_at desc limit $${i}`, vals);
+  return rows;
+}
+
+/** For server-side domain-authorization checks before deciding an approval. */
+export async function getApprovalDomain(id: string): Promise<string | null> {
+  const { rows } = await db().query(`select domain from ai_core.approvals where id = $1`, [id]);
+  return (rows[0]?.domain as string) ?? null;
+}

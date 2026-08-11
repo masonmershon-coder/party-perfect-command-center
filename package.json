@@ -11,7 +11,8 @@
     "meta:push-env": "node scripts/push-meta-env-vercel.mjs",
     "store:migrate": "node --env-file=.env.local scripts/migrate-blob-to-redis.mjs",
     "jobs:migrate": "node --env-file=.env.local scripts/migrate-jobs-append.mjs",
-    "por:health": "node scripts/check-por-health.mjs"
+    "por:health": "node scripts/check-por-health.mjs",
+    "por:ingest": "node --env-file=.env.local scripts/ingest-por-full.mjs"
   },
   "engines": {
     "node": ">=20"
@@ -27,6 +28,7 @@
     "next": "16.2.10",
     "nodemailer": "^9.0.3",
     "openai": "^6.45.0",
+    "pg": "^8.13.1",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "sharp": "^0.34.4"
@@ -37,6 +39,7 @@
     "@types/mailparser": "^3.4.6",
     "@types/node": "^20",
     "@types/nodemailer": "^8.0.1",
+    "@types/pg": "^8.11.10",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",

@@ -64,6 +64,19 @@ today everything is `human_handoff`; **automatic dispatch drops in later with ze
 - **Personal domains (`mershon_personal`, `mershon:*`) are service_role-only** until the identity layer exists — the leak-prevention boundary.
 - **Future (no core redesign):** `ai_core.actor_permissions(actor, allowed_domains[], tool_permissions, scope)` + `ai_core.can_access(domain)` the policies switch to.
 
+## Integrity protections (enforced at the database boundary)
+1. **Cross-domain referential integrity — composite FKs `(id, domain)`.** A child can only reference a
+   parent in the **same domain**. Enforced on: `approvals→tasks`, `artifacts→tasks`, `artifacts→meetings`,
+   `brain_records→(meetings, projects, supersedes)`. So `approvals.domain='party_perfect'` pointing at a
+   `mershon_personal` task is **rejected by the database**, not just by app code. (Null child refs are
+   allowed — a standalone approval/artifact is fine.) Deleting a referenced parent is restricted (P1
+   rarely deletes; `approvals` cascade-delete with their task).
+2. **`audit_log` is append-only.** A trigger (`ai_core.audit_append_only`) **rejects UPDATE and DELETE for
+   every role — including the app's `service_role`.** INSERT is allowed (service_role/gateway). The only
+   way to mutate history is an **admin/superuser** temporarily disabling the trigger
+   (`alter table ai_core.audit_log disable trigger user;`) — the documented emergency-maintenance path.
+   `authenticated` is additionally `revoke`d update/delete.
+
 ## Deferred (NOT in P1)
 Gateway · PWA · native app · intent/wake-word routing · automatic dispatch behavior · identity/permissions
 engine · event/notification engine · vector store. **Nothing here is applied to the live DB or touches POR**

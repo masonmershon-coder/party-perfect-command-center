@@ -3,7 +3,7 @@
 import { getAuthLockoutMessage, unlockOwnerWithPin } from "@/lib/auth";
 import { useEffect, useRef, useState } from "react";
 
-const PIN_LENGTH = 6;
+const PIN_LENGTH = 4;
 
 export function OwnerPinModal({
   open,

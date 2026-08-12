@@ -26,7 +26,7 @@ export default function JobsPage() {
     "@context": "https://schema.org",
     "@type": "JobPosting",
     title: role.label,
-    description: role.blurb,
+    description: `${role.blurb}. Pay $18–$28/hr depending on role and experience.`,
     datePosted: "2026-07-01",
     employmentType: "FULL_TIME",
     hiringOrganization: {
@@ -48,6 +48,16 @@ export default function JobsPage() {
       "@type": "Country",
       name: "US",
     },
+    baseSalary: {
+      "@type": "MonetaryAmount",
+      currency: "USD",
+      value: {
+        "@type": "QuantitativeValue",
+        minValue: 18,
+        maxValue: 28,
+        unitText: "HOUR",
+      },
+    },
     directApply: true,
     url: "https://partyperfectjobs.com/",
   }));
@@ -64,7 +74,7 @@ export default function JobsPage() {
       />
       {/* Crawlable heading for Safari/search (JobsApplication is client-only). */}
       <h1 className="sr-only">
-        Party Perfect Jobs — Tulsa event rental careers
+        Party Perfect Jobs — Tulsa event rental careers · $18–$28/hr · Full application
       </h1>
       <Suspense
         fallback={

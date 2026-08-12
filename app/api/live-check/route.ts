@@ -1,12 +1,14 @@
 import { buildLiveSnapshot } from "@/lib/live-snapshot";
 import { runMikeInboxCheck } from "@/lib/mike-ops";
 import { getEmailConnectionInfo } from "@/lib/email-accounts";
+import { NO_STORE_HEADERS } from "@/lib/no-store";
 import { getMetaConnectionInfo } from "@/lib/social-accounts";
 import { isMetaLiveConfigured } from "@/lib/meta-graph";
 import { syncMetaSocial } from "@/lib/meta-sync";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 /**
@@ -46,14 +48,17 @@ export async function GET(request: Request) {
   const emailConnection = getEmailConnectionInfo();
   const metaConnection = await getMetaConnectionInfo(request.url);
 
-  return NextResponse.json({
-    snapshot,
-    inboxCheck,
-    socialSync,
-    synced: shouldSync,
-    connections: {
-      email: emailConnection,
-      social: metaConnection,
+  return NextResponse.json(
+    {
+      snapshot,
+      inboxCheck,
+      socialSync,
+      synced: shouldSync,
+      connections: {
+        email: emailConnection,
+        social: metaConnection,
+      },
     },
-  });
+    { headers: NO_STORE_HEADERS },
+  );
 }

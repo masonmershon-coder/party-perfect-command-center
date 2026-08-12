@@ -28,7 +28,7 @@ Morning
 
 Midday
 4. One **content or story idea** (or polish what Michelle already has): real events, warehouse pride, tents/load-out energy, Tulsa brides, tip of the week — brand-first, not generic AI fluff.
-5. **Hiring assist (daily):** every day on the **Party Perfect Careers** Page (@partyperfectcareers when live): at least one post or story with jobs CTA → https://partyperfectjobs.com (Quick Apply; hot outdoor / always hiring all roles). Aim to support the **25 apps/day** hiring goal. Offer short captions ready to paste for Groups / GroupMe / Craigslist when Meta publish isn’t available. Pay line owners approved: **$18–$28/hr + growth** (by role). See docs/HIRING_FACEBOOK_CAREERS_PAGE.md for bio/pinned copy.
+5. **Hiring assist (daily):** every day on the **Party Perfect Careers** Page (@partyperfectcareers when live): at least one post or story with jobs CTA → https://partyperfectjobs.com (full application; hot outdoor / always hiring all roles). Aim to support the **25 apps/day** hiring goal. Offer short captions ready to paste for Groups / GroupMe / Craigslist when Meta publish isn’t available. Pay line owners approved: **$18–$28/hr + growth** (by role). See docs/HIRING_FACEBOOK_CAREERS_PAGE.md for bio/pinned copy.
 
 Evening
 6. Scan for unanswered threads from earlier in the day.

@@ -475,6 +475,8 @@ export async function resolvePorCrmContextForMessage(
     text.match(
       /\bhow many\s+(.+?)\s+(?:are\s+)?(?:(?:rented\s+)?out|available|left|on hand|on rent|free|do we have)\b/i,
     ) ||
+    // "how many white chairs do we have?" / "how many white chairs?"
+    text.match(/\bhow many\s+(.+?)\s*\??\s*$/i) ||
     text.match(
       /\b(?:how many|what(?:'s| is) (?:our|the) (?:count|qty|quantity) (?:of|for))\s+(.+?)(?:\?|$)/i,
     );

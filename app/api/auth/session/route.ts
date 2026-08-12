@@ -1,16 +1,17 @@
 import {
   buildSession,
-  checkLoginRateLimit,
-  clearLoginFailures,
+  clearAuthFailures,
   clearSessionCookie,
   clientIp,
+  enforceAuthRateLimit,
   isAuthError,
   readSession,
-  registerLoginFailure,
+  registerAuthFailure,
   requireSession,
   setSessionCookie,
   verifyOwnerPin,
   verifyTeamPassword,
+  OWNER_PIN_LENGTH,
 } from "@/lib/server-auth";
 import { NextResponse } from "next/server";
 
@@ -32,10 +33,6 @@ export async function GET() {
 /** POST — team password login OR owner PIN unlock. */
 export async function POST(request: Request) {
   const ip = clientIp(request);
-  const locked = checkLoginRateLimit(ip);
-  if (locked) {
-    return NextResponse.json({ error: locked }, { status: 429 });
-  }
 
   let body: { password?: string; pin?: string; action?: string };
   try {
@@ -54,12 +51,26 @@ export async function POST(request: Request) {
   if (action === "owner") {
     const gate = await requireSession();
     if (isAuthError(gate)) return gate;
+
+    const locked = await enforceAuthRateLimit(ip, "owner");
+    if (locked) {
+      return NextResponse.json({ error: locked }, { status: 429 });
+    }
+
     const pin = String(body.pin || "");
+    const pinDigits = pin.replace(/\D/g, "");
+    if (pinDigits.length !== OWNER_PIN_LENGTH) {
+      await registerAuthFailure(ip, "owner");
+      return NextResponse.json(
+        { error: `Admin code must be ${OWNER_PIN_LENGTH} digits.` },
+        { status: 400 },
+      );
+    }
     if (!verifyOwnerPin(pin)) {
-      registerLoginFailure(ip);
+      await registerAuthFailure(ip, "owner");
       return NextResponse.json({ error: "Incorrect admin code." }, { status: 401 });
     }
-    clearLoginFailures(ip);
+    await clearAuthFailures(ip, "owner");
     const session = buildSession("owner");
     const res = NextResponse.json({
       ok: true,
@@ -70,15 +81,20 @@ export async function POST(request: Request) {
   }
 
   // Team login
+  const locked = await enforceAuthRateLimit(ip, "login");
+  if (locked) {
+    return NextResponse.json({ error: locked }, { status: 429 });
+  }
+
   const password = String(body.password || "");
   if (!password.trim()) {
     return NextResponse.json({ error: "Password required." }, { status: 400 });
   }
   if (!verifyTeamPassword(password)) {
-    registerLoginFailure(ip);
+    await registerAuthFailure(ip, "login");
     return NextResponse.json({ error: "Incorrect password." }, { status: 401 });
   }
-  clearLoginFailures(ip);
+  await clearAuthFailures(ip, "login");
   const session = buildSession("employee");
   const res = NextResponse.json({
     ok: true,

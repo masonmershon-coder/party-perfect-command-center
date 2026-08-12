@@ -213,14 +213,27 @@ export async function POST(request: Request) {
     const applyModeRaw = String(
       (body as { applyMode?: string }).applyMode || "",
     ).trim();
+    if (applyModeRaw === "quick") {
+      return NextResponse.json(
+        {
+          error:
+            "Quick Apply is no longer available. Please complete the full application.",
+        },
+        { status: 400 },
+      );
+    }
     const applyMode =
-      applyModeRaw === "quick" ||
-      applyModeRaw === "enrich" ||
-      applyModeRaw === "full"
+      applyModeRaw === "enrich" || applyModeRaw === "full"
         ? applyModeRaw
         : enrichId
           ? "enrich"
           : "full";
+    if (applyMode === "enrich" && !enrichId) {
+      return NextResponse.json(
+        { error: "Full application required." },
+        { status: 400 },
+      );
+    }
 
     const applicationId = enrichId || crypto.randomUUID();
     let resumeFields: Partial<JobApplicationInput> = {};
@@ -314,7 +327,7 @@ export async function POST(request: Request) {
       const prior = await getJobApplication(enrichId);
       if (!prior) {
         return NextResponse.json(
-          { error: "Application not found — start a new Quick Apply." },
+          { error: "Application not found — start a new application." },
           { status: 404 },
         );
       }

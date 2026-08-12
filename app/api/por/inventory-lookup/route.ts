@@ -1,8 +1,10 @@
 import { lookupInventory } from "@/lib/inventory-lookup";
+import { NO_STORE_HEADERS } from "@/lib/no-store";
 import { isAuthError, requireSession } from "@/lib/server-auth";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 export const maxDuration = 30;
 
 /**
@@ -24,9 +26,15 @@ export async function GET(request: Request) {
 
   try {
     const results = await lookupInventory(q, date);
-    return NextResponse.json({ query: q, date: results[0]?.date, results });
+    return NextResponse.json(
+      { query: q, date: results[0]?.date, results },
+      { headers: NO_STORE_HEADERS },
+    );
   } catch (err) {
     console.error("[inventory-lookup]", err);
-    return NextResponse.json({ error: "Inventory lookup failed. Try again." }, { status: 502 });
+    return NextResponse.json(
+      { error: "Inventory lookup failed. Try again." },
+      { status: 502, headers: NO_STORE_HEADERS },
+    );
   }
 }

@@ -1,6 +1,7 @@
 import { gatherCatchUpItems } from "./catch-up";
 import { assertGrokConfigured, grokClient } from "./grok";
 import { listJobApplications } from "./job-applications";
+import { computePorCanonicalMetrics } from "./por-canonical";
 import { getPorSnapshot, getPorSyncMeta } from "./por-snapshot";
 import { getDashboardStats, listInventory, listTasks } from "./storage";
 import type { Task } from "./types";
@@ -71,16 +72,23 @@ export async function buildWeeklyRecapContext() {
       top: topApps,
     },
     por: por
-      ? {
-          stale: porMeta.stale,
-          syncedAt: por.syncedAt,
-          arOpenBalance: por.money.arOpenBalance,
-          openContracts: por.ops.openContracts,
-          deliveriesToday: por.ops.deliveriesToday,
-          returnsDueToday: por.ops.returnsDueToday,
-          inventoryOut: por.inventory.outQuantity,
-          paymentsLast24h: por.money.paymentsLast24h,
-        }
+      ? (() => {
+          const { metrics } = computePorCanonicalMetrics(por, {
+            includeFinancials: true,
+          });
+          return {
+            stale: porMeta.stale,
+            syncedAt: por.syncedAt,
+            arOpenBalance: metrics.ar_open ?? por.money.arOpenBalance,
+            openContracts: metrics.open_contracts,
+            deliveriesToday: metrics.deliveries_today,
+            returnsDueToday: metrics.returns_due,
+            /** Rentable-only — same as dashboard / Mike (never raw snapshot outQuantity). */
+            inventoryOut: metrics.items_out_rentable,
+            itemsOutRentable: metrics.items_out_rentable,
+            paymentsLast24h: metrics.payments_24h_count ?? por.money.paymentsLast24h,
+          };
+        })()
       : null,
   };
 }
@@ -105,8 +113,10 @@ export function fallbackWeeklyRecap(
   }
 
   if (context.por) {
+    const out =
+      context.por.itemsOutRentable ?? context.por.inventoryOut ?? null;
     lines.push(
-      `POR AR $${context.por.arOpenBalance.toFixed(0)}, ${context.por.deliveriesToday} deliveries, ${context.por.returnsDueToday} returns due.`,
+      `POR: ${out != null ? `${out} rentable out` : "out n/a"}, AR $${Number(context.por.arOpenBalance ?? 0).toFixed(0)}, ${context.por.deliveriesToday} deliveries, ${context.por.returnsDueToday} returns due.`,
     );
   }
 

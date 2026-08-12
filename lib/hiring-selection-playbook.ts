@@ -66,7 +66,7 @@ Primary fit: recommend the best department. Open + physical → often Tents or D
 
 ## volume goal
 
-Target **25 apps/day** via partyperfectjobs.com (Quick Apply default). Pay line owners approved: **$18–$28/hr + growth** (by role). Ads can still lead with physical roles; all roles remain open on the form.
+Target **25 apps/day** via partyperfectjobs.com (full application). Pay line owners approved: **$18–$28/hr + growth** (by role). Ads can still lead with physical roles; all roles remain open on the form.
 `.trim();
 
 /** Keywords that mark real crew fitness in free text. */

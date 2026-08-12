@@ -1,3 +1,4 @@
+import { NO_STORE_HEADERS } from "@/lib/no-store";
 import { isAuthError, requireSession } from "@/lib/server-auth";
 import { getPorSnapshot, getPorSyncMeta } from "@/lib/por-snapshot";
 import {
@@ -10,6 +11,7 @@ import type { CreateInventoryInput } from "@/lib/types";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export async function GET() {
   const gate = await requireSession();
@@ -24,12 +26,15 @@ export async function GET() {
     gate.role === "owner"
       ? rows
       : rows.map((item) => ({ ...item, pricePerDay: 0 }));
-  return NextResponse.json({
-    inventory: stripRates(inventory),
-    fees: stripRates(fees),
-    source: porMeta.present ? "por" : "local",
-    por: porMeta,
-  });
+  return NextResponse.json(
+    {
+      inventory: stripRates(inventory),
+      fees: stripRates(fees),
+      source: porMeta.present ? "por" : "local",
+      por: porMeta,
+    },
+    { headers: NO_STORE_HEADERS },
+  );
 }
 
 export async function POST(request: Request) {

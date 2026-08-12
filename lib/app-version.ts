@@ -1,5 +1,5 @@
 /** Single source of truth for Command Center + Jobs release metadata. */
-export const APP_VERSION = "1.9.0";
+export const APP_VERSION = "1.9.1";
 
 /** ISO date of this release (YYYY-MM-DD). */
 export const APP_RELEASED_AT = "2026-08-11";
@@ -8,13 +8,12 @@ export const APP_RELEASE_LABEL = `v${APP_VERSION} · ${APP_RELEASED_AT}`;
 
 export const APP_RELEASE_NOTES = {
   commandCenter: [
-    "POR 2.0 P0: exclude fee cats 19+34 + fee-named lines from all stock math",
-    "Canonical metrics (items_out_rentable, deliveries_today, …) shared by dashboard + Mike",
-    "Clamp negative qtys; Fees & Services inventory tab; mobile Owner unlock",
-    "Employee sessions: financials absent from agent context (opt-in owner only)",
+    "Owner PIN restored to 4-digit OWNER_ADMIN_CODE (mobile unlock kept)",
+    "POR 2.0 rentable stock metrics + DEMO chips",
   ],
   jobs: [
-    "Quick Apply + enrich code-split",
+    "Full multi-step application restored (Quick Apply removed)",
+    "Rate-limit, honeypot, validation, and Mike scoring kept",
     "Pay $18–$28/hr · daily goal 25 apps",
   ],
 } as const;

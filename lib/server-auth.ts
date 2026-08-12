@@ -10,16 +10,17 @@ import { getDurableRedis, isDurableRedisConfigured } from "@/lib/durable-json";
  *
  * Required (rotate from the old client-side codes — treat those as compromised):
  *   AUTH_PASSWORD — team login
- *   OWNER_PIN — 6+ digit owner unlock
+ *   OWNER_ADMIN_CODE or OWNER_PIN — owner unlock (digits; owner-directed length)
  *   SESSION_SECRET — HMAC key for signing cookies (long random string, required in prod)
  *
- * Until env is set in Vercel, temporary fallbacks keep local/dev usable but
- * MUST be rotated before real customers/money (OWNER_PIN ≥6 digits).
+ * Until env is set in Vercel, temporary fallbacks keep local/dev usable.
  */
 
 const COOKIE_NAME = "pp_cc_session";
 const MAIN_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const OWNER_TTL_MS = 8 * 60 * 60 * 1000;
+/** Owner-directed PIN length (matches OWNER_ADMIN_CODE / OWNER_PIN). */
+export const OWNER_PIN_LENGTH = 4;
 
 export type SessionRole = "employee" | "owner";
 
@@ -53,18 +54,27 @@ function teamPassword(): string {
 }
 
 function ownerPin(): string {
-  const fromEnv = process.env.OWNER_PIN?.trim();
+  const fromEnv = (
+    process.env.OWNER_ADMIN_CODE?.trim() ||
+    process.env.OWNER_PIN?.trim() ||
+    ""
+  );
   if (fromEnv) {
     const digits = fromEnv.replace(/\D/g, "");
-    if (digits.length < 6) {
-      throw new Error("OWNER_PIN must be at least 6 digits");
+    if (digits.length !== OWNER_PIN_LENGTH) {
+      throw new Error(
+        `OWNER_ADMIN_CODE / OWNER_PIN must be exactly ${OWNER_PIN_LENGTH} digits`,
+      );
     }
-    return fromEnv;
+    return digits;
   }
   if (process.env.NODE_ENV === "production") {
-    throw new Error("OWNER_PIN env is required in production (min 6 digits)");
+    throw new Error(
+      "OWNER_ADMIN_CODE (or OWNER_PIN) env is required in production",
+    );
   }
-  return "062306";
+  // Local/dev only — production must set OWNER_ADMIN_CODE.
+  return "0623";
 }
 
 function b64url(buf: Buffer | string): string {

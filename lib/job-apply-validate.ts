@@ -106,9 +106,9 @@ export function validateJobApplicationInput(
     return "Are you OK with outdoor heat and lifting ~50 lbs?";
   }
 
-  // Quick Apply: only the fields above (+ optional screeners already checked).
+  // Quick Apply removed — full application only.
   if (mode === "quick") {
-    return null;
+    return "Please complete the full application (Quick Apply is no longer available).";
   }
 
   // Enrich: validate optional sections only when the applicant filled them in.

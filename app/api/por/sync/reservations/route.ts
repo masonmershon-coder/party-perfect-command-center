@@ -4,6 +4,10 @@ import {
   isValidPorReservationState,
   savePorReservations,
 } from "@/lib/por-availability";
+import {
+  recordPorSyncError,
+  recordPorSyncSuccess,
+} from "@/lib/por-sync-health";
 import type { PorReservationState } from "@/lib/types";
 import { NextResponse } from "next/server";
 
@@ -36,6 +40,10 @@ export async function POST(request: Request) {
   try {
     const body = (await request.json()) as unknown;
     if (!isValidPorReservationState(body)) {
+      await recordPorSyncError(
+        "reservations",
+        "Invalid reservations. Expected { reservations:[{itemKey,qty,delivery,pickup,status,firm}], syncedAt, source }.",
+      );
       return NextResponse.json(
         {
           error:
@@ -52,6 +60,7 @@ export async function POST(request: Request) {
     };
     clearReservationsCache();
     await savePorReservations(state);
+    await recordPorSyncSuccess("reservations");
 
     return NextResponse.json({
       ok: true,
@@ -61,14 +70,11 @@ export async function POST(request: Request) {
       syncedAt: state.syncedAt,
     });
   } catch (error) {
-    return NextResponse.json(
-      {
-        error:
-          error instanceof Error
-            ? error.message
-            : "Failed to store reservations.",
-      },
-      { status: 500 },
-    );
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Failed to store reservations.";
+    await recordPorSyncError("reservations", message);
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

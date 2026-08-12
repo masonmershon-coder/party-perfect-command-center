@@ -1,0 +1,33 @@
+# DECISIONS
+
+Approved decisions worth preserving. Keep short. No secrets.
+
+## 2026-08-11 — Shared handoff location
+
+- **Decision:** Use repo-root `AI-HANDOFF/` in `grok-dashboard` as Claude ↔ Cursor coordination.
+- **Why:** Command Center is Cursor’s primary workspace; Claude can read/write the same git tree / worktree.
+- **Source:** Mason integration prompt; Cursor bootstrap when Claude had not yet created the folder.
+
+## 2026-08-11 — POR remains system of record
+
+- **Decision:** POR/Counter on ENTERPRISE is authoritative. App/Redis/Supabase/CSVs are mirrors only. No write-back to POR until Mason explicitly approves a future design.
+- **Source:** Existing Party Perfect guardrails + POR 2.0 brief.
+
+## 2026-08-11 — Cursor orientation mechanism
+
+- **Decision:** Prefer `.cursor/rules` `alwaysApply` for handoff orientation; treat `sessionStart` hooks as best-effort only.
+- **Why:** Known Cursor IDE race can drop `sessionStart.additional_context`.
+
+## 2026-08-11 — Handoff reconciliation (Claude review of PP-HANDOFF-001)
+
+- **Protocol canonical in `AGENTS.md`** (repo root; both Claude Code + Cursor auto-read). Claude removed its redundant `AI-HANDOFF/PROTOCOL.md`.
+- **Archive standardized on `history/`** (Claude removed its `ARCHIVE/`).
+- **Brain pointer added** in `09 - Claude Efficiency/BRAIN_STATUS_AND_ROADMAP.md` → this folder ("both linked").
+- Note: Claude's `README.md` write overwrote Cursor's (uncommitted); kept as the Mason-facing explainer, references updated to AGENTS.md + history/.
+- **PP-HANDOFF-001 → VERIFIED.**
+
+## 2026-08-11 — Live relay (Mason-approved)
+
+- **Decision:** Run `scripts/ai-handoff-relay.sh` for near-real-time notify + Claude auto-wake; gate with `AUTO_RELAY.enabled`; hard caps (90s debounce, 3 wakes/hour, `READY_FOR_CLAUDE*` only). Cursor wake = Notification Center + optional Cursor Automation.
+- **Why:** Agents cannot share one chat process; filesystem + capped wake is the workable bridge.
+- **Source:** Mason request to automate Claude↔Cursor keep-up.

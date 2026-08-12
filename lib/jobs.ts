@@ -8,11 +8,18 @@ export type AutoFilterResult = {
 
 /** Crew-track roles that require transport + outdoor physical OK. */
 export function wantsCrewTrack(roles: string[]): boolean {
-  return (
-    roles.includes("tents") ||
-    roles.includes("delivery") ||
-    roles.includes("open") ||
-    roles.includes("lines")
+  return roles.some((role) =>
+    [
+      "tents",
+      "warehouse",
+      "delivery",
+      "linen",
+      "dish",
+      "deco",
+      "open",
+      // Legacy ids still on older applications
+      "lines",
+    ].includes(role),
   );
 }
 
@@ -56,7 +63,11 @@ export function evaluateAutoFilters(input: {
   if (
     input.roles.includes("delivery") &&
     input.validDriverLicense === "no" &&
-    !input.roles.some((r) => r === "tents" || r === "lines" || r === "showroom")
+    !input.roles.some((r) =>
+      ["tents", "warehouse", "linen", "dish", "deco", "lines", "showroom"].includes(
+        r,
+      ),
+    )
   ) {
     scoreCap = Math.min(scoreCap, 48);
     reasons.push("Delivery-only without license");
@@ -84,44 +95,63 @@ export function evaluateAutoFilters(input: {
 
 export const JOB_ROLES = [
   {
-    id: "showroom",
-    label: "Showroom",
-    blurb: "Welcome guests & style the space",
-    icon: "✨",
-  },
-  {
-    id: "sales",
-    label: "Sales",
-    blurb: "Phones, quotes & happy clients",
-    icon: "📞",
-  },
-  {
-    id: "lines",
-    label: "Lines Department",
-    blurb: "Linens, polish & prep magic",
-    icon: "🧵",
-  },
-  {
-    id: "delivery",
-    label: "Delivery Team",
-    blurb: "Load, drive & make events happen",
-    icon: "🚚",
-  },
-  {
     id: "tents",
-    label: "Tents Crew",
-    blurb: "Build structures that wow",
+    label: "Tents & Setup",
+    blurb: "Hot outdoor builds — tents, stakes, grit",
     icon: "⛺",
   },
   {
+    id: "warehouse",
+    label: "Warehouse",
+    blurb: "Pace, pull, prep, and keep the dock moving",
+    icon: "📦",
+  },
+  {
+    id: "delivery",
+    label: "Delivery/Driver",
+    blurb: "Load, drive, and make events happen",
+    icon: "🚚",
+  },
+  {
+    id: "linen",
+    label: "Linen",
+    blurb: "Linens, polish, and prep magic",
+    icon: "🧵",
+  },
+  {
+    id: "dish",
+    label: "Dish",
+    blurb: "China, glass, and dish-room hustle",
+    icon: "🍽️",
+  },
+  {
+    id: "deco",
+    label: "Décor",
+    blurb: "Style rooms and event looks with the deco team",
+    icon: "✨",
+  },
+  {
+    id: "leadership",
+    label: "Leadership",
+    blurb: "Lead crews and grow into management",
+    icon: "⭐",
+  },
+  {
     id: "open",
-    label: "Open to anything",
+    label: "Not sure",
     blurb: "Put me where I shine",
     icon: "🎉",
   },
 ] as const;
 
 export type JobRoleId = (typeof JOB_ROLES)[number]["id"];
+
+/** Older applications may still carry these role ids. */
+const LEGACY_ROLE_LABELS: Record<string, string> = {
+  showroom: "Showroom",
+  sales: "Sales",
+  lines: "Linen",
+};
 
 /** Mike flags / texts Josh when score is at or above this. */
 export const TOP_CANDIDATE_SCORE = 70;
@@ -171,7 +201,7 @@ export interface JobApplicationInput {
   phone: string;
   email: string;
   city: string;
-  /** quick = <60s apply; enrich = optional extras after submit; full = legacy complete form */
+  /** quick = <60s intake; enrich = optional post-submit extras; full = legacy complete app */
   applyMode?: JobApplyMode;
   eligibleToWork: EligibilityAnswer;
   over18: EligibilityAnswer;
@@ -238,7 +268,11 @@ export interface JobApplication extends JobApplicationInput {
 }
 
 export function roleLabel(id: string) {
-  return JOB_ROLES.find((role) => role.id === id)?.label ?? id;
+  return (
+    JOB_ROLES.find((role) => role.id === id)?.label ||
+    LEGACY_ROLE_LABELS[id] ||
+    id
+  );
 }
 
 export function referralSourceLabel(id: string) {

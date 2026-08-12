@@ -2,9 +2,14 @@
 
 import { CatchUpPanel } from "@/app/components/dashboard/catch-up-panel";
 import { PageHeader } from "@/app/components/dashboard/page-header";
+import {
+  PorFreshnessBadge,
+  PorSyncBanner,
+} from "@/app/components/dashboard/por-sync-banner";
+import { PorSyncHealthPanel } from "@/app/components/dashboard/por-sync-health-panel";
 import { StatusBadge } from "@/app/components/status-badge";
 import { MADISON_COMMS_AGENT_ID, MIKE_OPERATIONS_AGENT_ID } from "@/lib/seed";
-import type { Agent, CatchUpItem, DashboardStats, SavedReport, Task } from "@/lib/types";
+import type { Agent, CatchUpItem, DashboardStats, PorSyncMeta, SavedReport, Task } from "@/lib/types";
 import { formatCurrency, formatTime } from "@/lib/ui";
 
 export function DashboardHome({
@@ -44,6 +49,20 @@ export function DashboardHome({
   const madison = agents.find((agent) => agent.id === MADISON_COMMS_AGENT_ID);
   const por = stats.por;
   const porLive = Boolean(por?.syncedAt);
+  const porMeta: PorSyncMeta | null = por
+    ? {
+        present: porLive,
+        stale: Boolean(por.stale),
+        veryStale: Boolean(por.veryStale),
+        freshness:
+          por.freshness ??
+          (por.veryStale ? "very_stale" : por.stale ? "stale" : "fresh"),
+        syncedAt: por.syncedAt,
+        ageMs: por.ageMs ?? null,
+        ageLabel: por.ageLabel ?? null,
+        sourceHost: null,
+      }
+    : null;
 
   const summaryCards = [
     {
@@ -102,19 +121,44 @@ export function DashboardHome({
             : "Operations overview — connect POR sync for live inventory and AR."
         }
         action={
-          liveModeEnabled ? (
-            <div className="flex items-center gap-2 rounded-xl border border-[var(--pp-accent)]/30 bg-[var(--pp-accent-soft)]/50 px-3 py-2 text-xs">
-              <span className="h-2 w-2 rounded-full bg-[var(--pp-accent)] pp-live-pulse-dot" />
-              <span className="font-medium pp-accent-text">Live</span>
-              <span className="text-[var(--pp-text-muted)]">
-                {lastCheckedAt
-                  ? `Updated ${formatTime(lastCheckedAt)}`
-                  : "Mike is watching inboxes"}
-              </span>
-            </div>
-          ) : null
+          <div className="flex flex-wrap items-center gap-2">
+            {porLive ? (
+              <div
+                className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-xs ${
+                  por?.veryStale
+                    ? "border-red-500/40 bg-red-500/10"
+                    : por?.stale
+                      ? "border-amber-500/40 bg-amber-500/10"
+                      : "border-[var(--pp-accent)]/30 bg-[var(--pp-accent-soft)]/50"
+                }`}
+              >
+                <PorFreshnessBadge porMeta={porMeta} />
+                <span className="text-[var(--pp-text-muted)]">
+                  {por?.ageLabel ??
+                    (por?.syncedAt
+                      ? `synced ${formatTime(por.syncedAt)}`
+                      : "POR")}
+                </span>
+              </div>
+            ) : null}
+            {liveModeEnabled ? (
+              <div className="flex items-center gap-2 rounded-xl border border-[var(--pp-accent)]/30 bg-[var(--pp-accent-soft)]/50 px-3 py-2 text-xs">
+                <span className="h-2 w-2 rounded-full bg-[var(--pp-accent)] pp-live-pulse-dot" />
+                <span className="font-medium pp-accent-text">Watching</span>
+                <span className="text-[var(--pp-text-muted)]">
+                  {lastCheckedAt
+                    ? `Updated ${formatTime(lastCheckedAt)}`
+                    : "Mike is watching inboxes"}
+                </span>
+              </div>
+            ) : null}
+          </div>
         }
       />
+
+      {porLive && porMeta ? (
+        <PorSyncBanner source="por" porMeta={porMeta} label="ops snapshot" />
+      ) : null}
 
       <div
         className={`grid gap-4 sm:grid-cols-2 lg:grid-cols-3 ${
@@ -145,9 +189,11 @@ export function DashboardHome({
 
       <section
         className={`mt-6 rounded-2xl border p-5 ${
-          por?.stale
-            ? "border-amber-500/40 bg-amber-500/5"
-            : "border-[var(--pp-border)] bg-[var(--pp-panel)]"
+          por?.veryStale
+            ? "border-red-500/40 bg-red-500/5"
+            : por?.stale
+              ? "border-amber-500/40 bg-amber-500/5"
+              : "border-[var(--pp-border)] bg-[var(--pp-panel)]"
         }`}
       >
         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -155,14 +201,19 @@ export function DashboardHome({
             <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--pp-text-muted)]">
               Today at Party Perfect
             </p>
-            <h3 className="mt-1 text-lg font-semibold text-[var(--pp-text)]">
-              Point of Rental snapshot
-            </h3>
+            <div className="mt-1 flex flex-wrap items-center gap-2">
+              <h3 className="text-lg font-semibold text-[var(--pp-text)]">
+                Point of Rental snapshot
+              </h3>
+              <PorFreshnessBadge porMeta={porMeta} />
+            </div>
             <p className="mt-1 text-xs text-[var(--pp-text-muted)]">
               {porLive
-                ? por?.stale
-                  ? `POR sync stale — last sync ${por.syncedAt ? formatTime(por.syncedAt) : "unknown"}`
-                  : `Read-only mirror · synced ${por?.syncedAt ? formatTime(por.syncedAt) : ""}`
+                ? por?.veryStale
+                  ? `POR sync stale — data may be outdated · ${por.ageLabel ?? "last sync unknown"}${por.syncedAt ? ` (${formatTime(por.syncedAt)})` : ""}`
+                  : por?.stale
+                    ? `POR sync stale · ${por.ageLabel ?? (por.syncedAt ? formatTime(por.syncedAt) : "unknown")}`
+                    : `Read-only mirror · ${por?.ageLabel ?? (por?.syncedAt ? `synced ${formatTime(por.syncedAt)}` : "")}`
                 : "Waiting for ENTERPRISE sync agent. POR stays the system of record."}
             </p>
           </div>
@@ -224,6 +275,8 @@ export function DashboardHome({
           ))}
         </div>
       </section>
+
+      {isOwner ? <PorSyncHealthPanel /> : null}
 
       <CatchUpPanel variant="dashboard" onOpenItem={onCatchUpOpen} />
 

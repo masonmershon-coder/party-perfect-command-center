@@ -67,7 +67,7 @@ export async function POST(request: Request) {
       });
     }
 
-    const reply = await handleMikeInboundSms(body);
+    const reply = await handleMikeInboundSms(body, { from });
     return new NextResponse(twimlMessage(reply), {
       status: 200,
       headers: { "Content-Type": "text/xml; charset=utf-8" },

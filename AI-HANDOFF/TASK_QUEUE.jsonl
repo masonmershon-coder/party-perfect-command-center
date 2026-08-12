@@ -1,0 +1,14 @@
+{"at":"2026-08-12T20:52:03.742Z","type":"create","task_id":"POR-STAT-VERIFY-001","by":"claude","status":"NEW"}
+{"at":"2026-08-12T20:52:03.857Z","type":"claim","task_id":"POR-STAT-VERIFY-001","by":"claude","status":"CLAIMED"}
+{"at":"2026-08-12T20:52:04.003Z","type":"transition","task_id":"POR-STAT-VERIFY-001","by":"claude","status":"IN_PROGRESS","result":null}
+{"at":"2026-08-12T20:52:04.120Z","type":"transition","task_id":"POR-STAT-VERIFY-001","by":"claude","status":"READY_FOR_VERIFICATION","result":null}
+{"at":"2026-08-12T20:52:04.236Z","type":"create","task_id":"COMMAND-CENTER-0C476A","by":"claude","status":"NEW"}
+{"at":"2026-08-12T21:03:39.033Z","type":"create","task_id":"POR-KITS-VERIFY-001","by":"claude","status":"NEW"}
+{"at":"2026-08-12T21:03:39.235Z","type":"claim","task_id":"POR-KITS-VERIFY-001","by":"claude","status":"CLAIMED"}
+{"at":"2026-08-12T21:03:39.374Z","type":"transition","task_id":"POR-KITS-VERIFY-001","by":"claude","status":"IN_PROGRESS","result":null}
+{"at":"2026-08-12T21:03:39.507Z","type":"transition","task_id":"POR-KITS-VERIFY-001","by":"claude","status":"READY_FOR_VERIFICATION","result":null}
+{"at":"2026-08-12T21:03:39.636Z","type":"create","task_id":"CERT-HARNESS-VERIFY-001","by":"claude","status":"NEW"}
+{"at":"2026-08-12T21:03:39.748Z","type":"claim","task_id":"CERT-HARNESS-VERIFY-001","by":"claude","status":"CLAIMED"}
+{"at":"2026-08-12T21:03:39.847Z","type":"transition","task_id":"CERT-HARNESS-VERIFY-001","by":"claude","status":"IN_PROGRESS","result":null}
+{"at":"2026-08-12T21:03:39.945Z","type":"transition","task_id":"CERT-HARNESS-VERIFY-001","by":"claude","status":"READY_FOR_VERIFICATION","result":null}
+{"at":"2026-08-12T21:03:40.129Z","type":"park","task_id":"COMMAND-CENTER-0C476A","status":"WAITING_FOR_WORKER","owner":"cursor"}

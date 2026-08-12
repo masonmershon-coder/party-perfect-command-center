@@ -66,13 +66,20 @@ export function MetaConnectSetup({
   return (
     <div className="pp-panel mb-6 rounded-2xl border border-[var(--pp-accent)]/25 bg-[var(--pp-accent-soft)]/30 p-5">
       <p className="text-xs font-semibold uppercase tracking-[0.16em] pp-accent-text">
-        Connect Facebook + Instagram
+        Connect Meta · Hiring / Careers
       </p>
       <h3 className="mt-2 text-lg font-semibold text-[var(--pp-text)]">
         Mike will finish the hard parts
       </h3>
       <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--pp-text-muted)]">
         {connection.message}
+      </p>
+      <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--pp-text-muted)]">
+        This Meta app is for the{" "}
+        <strong>Party Perfect Careers</strong> hiring campaign (Madison + AI
+        bots → partyperfectjobs.com). It is{" "}
+        <strong>not</strong> the main company Facebook / Instagram API — that
+        needs a second Developer app later.
       </p>
 
       <ol className="mt-4 space-y-2 text-sm text-[var(--pp-text)]">
@@ -86,7 +93,8 @@ export function MetaConnectSetup({
           >
             developers.facebook.com/apps
           </a>{" "}
-          → Create app → choose <strong>Business</strong> → name it Party Perfect.
+          → hiring app <strong>Party Perfect Command Center</strong> (or create
+          it).
         </li>
         <li>
           <span className="font-semibold pp-accent-text">2.</span> Copy{" "}
@@ -102,8 +110,9 @@ export function MetaConnectSetup({
         </li>
         <li>
           <span className="font-semibold pp-accent-text">4.</span> Click{" "}
-          <strong>Connect with Facebook</strong>, log in as the Page admin, click
-          Allow. Mike grabs Page token + Instagram automatically.
+          <strong>Connect with Facebook</strong>, authorize the{" "}
+          <strong>Careers</strong> Page only (not the main brand Page). Mike
+          stores that Page token for hiring.
         </li>
       </ol>
 

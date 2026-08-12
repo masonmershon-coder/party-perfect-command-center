@@ -1,3 +1,7 @@
+import {
+  isAuthError,
+  requireApiAuth,
+} from "@/lib/api-auth";
 import { streamDesignCoach } from "@/lib/design-coach";
 import { NextResponse } from "next/server";
 
@@ -5,6 +9,9 @@ export const runtime = "nodejs";
 export const maxDuration = 120;
 
 export async function POST(request: Request) {
+  const gate = await requireApiAuth("design");
+  if (isAuthError(gate)) return gate;
+
   try {
     const body = (await request.json().catch(() => null)) as {
       message?: string;

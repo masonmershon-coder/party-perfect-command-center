@@ -500,11 +500,19 @@ export interface PorSnapshot {
   sales?: PorSalesSnapshot;
 }
 
+export type PorFreshness = "fresh" | "stale" | "very_stale" | "missing";
+
 export interface PorSyncMeta {
   present: boolean;
+  /** True when older than ~20 min (amber) or ~60 min (red). */
   stale: boolean;
+  /** True when older than ~60 min — treat as possibly down. */
+  veryStale: boolean;
+  freshness: PorFreshness;
   syncedAt: string | null;
   ageMs: number | null;
+  /** e.g. "synced 8 min ago" */
+  ageLabel: string | null;
   sourceHost: string | null;
 }
 
@@ -525,6 +533,10 @@ export interface DashboardStats {
   por?: {
     syncedAt: string | null;
     stale: boolean;
+    veryStale?: boolean;
+    freshness?: PorFreshness;
+    ageMs?: number | null;
+    ageLabel?: string | null;
     arOpenBalance: number | null;
     openContracts: number | null;
     deliveriesToday: number | null;
@@ -545,7 +557,37 @@ export interface DashboardStats {
     social: "live" | "demo";
     tasks: "live" | "demo";
     inventory: "live" | "demo";
+    marketing?: "live" | "demo";
   };
+}
+
+export type PorSyncTarget =
+  | "snapshot"
+  | "catalog"
+  | "catalog-images"
+  | "reservations"
+  | "crm"
+  | "postgres";
+
+export interface PorSyncTargetHealth {
+  id: PorSyncTarget;
+  path: string;
+  label: string;
+  configured: boolean;
+  lastSuccessAt: string | null;
+  lastErrorAt: string | null;
+  lastError: string | null;
+  ageMs: number | null;
+  ageLabel: string | null;
+  windowMs: number;
+  overdue: boolean;
+}
+
+export interface PorSyncHealthReport {
+  checkedAt: string;
+  syncConfigured: boolean;
+  targets: PorSyncTargetHealth[];
+  overdueCount: number;
 }
 
 /**
@@ -562,9 +604,39 @@ export interface PorCatalogItem {
   category?: string;
   /** POR ItemFile.NUM — the id reservations link by (availability) */
   num?: string;
+  /** Public product photo URL (POR ItemFile picture ref or website itemimages) */
+  imageUrl?: string;
   ratePerDay: number;
   qty: number;
   available: number;
+  /**
+   * POR ItemFile.TYPE. 'T'/' ' = Rental - Normal (real stock).
+   * 'K' = Rental - Package — a KIT HEADER. Kit headers legitimately carry
+   * qty 0 and ratePerDay 0; they are NOT dead inventory. They resolve to real
+   * components through PorCatalogState.kitMembers. Never show a 'K' row as stock.
+   */
+  itemType?: string;
+  /** POR ItemFile.RMIN — rental minimum for this item (0 = none) */
+  rentalMinimum?: number;
+  /** POR ItemFile.CaseQty — pack/rack size for rounding (0 = none) */
+  caseQty?: number;
+}
+
+/**
+ * One row of dbo.ItemKits: a kit header's membership entry.
+ * quantity 0 + selectType/multiGroup means the operator chooses the component
+ * and the quantity at order time — a selection group, not a fixed bundle.
+ */
+export interface PorKitMember {
+  /** ItemFile.NUM of the kit header */
+  kitNum: string;
+  /** ItemFile.KEY of the component item */
+  componentSku: string;
+  quantity: number;
+  selectType?: string;
+  multiGroup?: string;
+  useSpecialRate?: boolean;
+  dailyAmount?: number;
 }
 
 export interface PorCatalogState {
@@ -572,6 +644,8 @@ export interface PorCatalogState {
   activeItems: number;
   source: string;
   syncedAt: string;
+  /** Kit header → component mapping from dbo.ItemKits. */
+  kitMembers?: PorKitMember[];
 }
 
 /** A single line to price in a quote (rental product or service/fee). */

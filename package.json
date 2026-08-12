@@ -12,6 +12,8 @@
     "store:migrate": "node --env-file=.env.local scripts/migrate-blob-to-redis.mjs",
     "jobs:migrate": "node --env-file=.env.local scripts/migrate-jobs-append.mjs",
     "por:health": "node scripts/check-por-health.mjs",
+    "por:probe-db": "node scripts/probe-supabase-readonly.mjs",
+    "ai-core:apply-0003": "node --env-file=.env.local scripts/apply-0003-ai-core.mjs",
     "por:ingest": "node --env-file=.env.local scripts/ingest-por-full.mjs"
   },
   "engines": {
@@ -39,7 +41,7 @@
     "@types/mailparser": "^3.4.6",
     "@types/node": "^20",
     "@types/nodemailer": "^8.0.1",
-    "@types/pg": "^8.11.10",
+    "@types/pg": "^8.21.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",

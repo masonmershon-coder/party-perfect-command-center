@@ -1,3 +1,7 @@
+import {
+  isAuthError,
+  requireApiAuth,
+} from "@/lib/api-auth";
 import { MADISON_VOICE } from "@/lib/agent-voices";
 import { getEmailAccount } from "@/lib/email-accounts";
 import {
@@ -19,6 +23,9 @@ type RouteContext = {
 const DRAFT_MODEL: GrokModel = "grok-build-0.1";
 
 export async function POST(request: Request, context: RouteContext) {
+  const gate = await requireApiAuth("emails");
+  if (isAuthError(gate)) return gate;
+
   const { id } = await context.params;
 
   try {

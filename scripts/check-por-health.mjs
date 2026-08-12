@@ -14,7 +14,10 @@ async function main() {
     `porSyncConfigured: ${data.porSyncConfigured}`,
     `porSnapshotPresent: ${data.porSnapshotPresent}`,
     `porSnapshotStale: ${data.porSnapshotStale}`,
+    `porSnapshotVeryStale: ${data.porSnapshotVeryStale}`,
+    `porSnapshotFreshness: ${data.porSnapshotFreshness}`,
     `porSyncedAt: ${data.porSyncedAt}`,
+    `porSyncedAgo: ${data.porSyncedAgo}`,
   ];
   console.log(lines.join("\n"));
 

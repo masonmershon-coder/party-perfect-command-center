@@ -1,3 +1,7 @@
+import {
+  isAuthError,
+  requireApiAuth,
+} from "@/lib/api-auth";
 import { quoteCandidatesFromPhotos } from "@/lib/quote-from-photo";
 import { NextResponse } from "next/server";
 
@@ -10,6 +14,9 @@ export const maxDuration = 90;
  * -> { mode, lines:[{qty,term,candidates}], searchTerms, transcribed?, usedVision }
  */
 export async function POST(request: Request) {
+  const gate = await requireApiAuth("quoting");
+  if (isAuthError(gate)) return gate;
+
   try {
     const form = await request.formData();
     const modeRaw = String(form.get("mode") || "tablescape").toLowerCase();

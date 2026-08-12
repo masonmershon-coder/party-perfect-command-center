@@ -9,6 +9,12 @@ import {
   isFeeItemName,
   isRentable,
 } from "./por-rentable";
+import {
+  POR_SYNC_STALE_MS,
+  POR_SYNC_VERY_STALE_MS,
+  buildPorSyncMeta,
+  missingPorSyncMeta,
+} from "./por-freshness";
 import type {
   BookkeepingEntry,
   InventoryItem,
@@ -17,7 +23,7 @@ import type {
 } from "./types";
 
 export const POR_SNAPSHOT_KEY = "por-snapshot.json";
-export const POR_SYNC_STALE_MS = 30 * 60 * 1000;
+export { POR_SYNC_STALE_MS, POR_SYNC_VERY_STALE_MS };
 
 /** @deprecated Prefer isFeeCategoryCode / isRentable from por-rentable. */
 export function isFeeCategory(category: string | undefined | null): boolean {
@@ -57,26 +63,11 @@ export async function savePorSnapshot(snapshot: PorSnapshot): Promise<void> {
 }
 
 export function getPorSyncMeta(snapshot: PorSnapshot | null): PorSyncMeta {
-  if (!snapshot?.syncedAt) {
-    return {
-      present: false,
-      stale: true,
-      syncedAt: null,
-      ageMs: null,
-      sourceHost: null,
-    };
-  }
-
-  const ageMs = Date.now() - new Date(snapshot.syncedAt).getTime();
-  const stale = !Number.isFinite(ageMs) || ageMs > POR_SYNC_STALE_MS;
-
-  return {
-    present: true,
-    stale,
+  if (!snapshot?.syncedAt) return missingPorSyncMeta();
+  return buildPorSyncMeta({
     syncedAt: snapshot.syncedAt,
-    ageMs: Number.isFinite(ageMs) ? ageMs : null,
     sourceHost: snapshot.sourceHost ?? null,
-  };
+  });
 }
 
 function toInventoryRow(
@@ -262,19 +253,45 @@ export function formatPorContextForAgents(
   if (!snapshot || !meta.present) {
     return [
       "POR live snapshot: not available yet.",
-      "Point of Rental remains the system of record. Do not invent inventory or AR numbers.",
+      "POR DATA FRESHNESS: MISSING. Do not invent inventory, ops, or AR numbers.",
+      "If asked for current POR figures, say the Command Center has no snapshot yet — check ENTERPRISE sync.",
+      "Point of Rental remains the system of record.",
       formatCanonicalMetricsForAgent(null, { includeFinancials }),
     ].join("\n");
   }
 
-  const staleNote = meta.stale
-    ? "WARNING: POR sync is STALE — prefer last-known numbers and say they may be outdated."
-    : "POR sync is fresh (within 30 minutes).";
+  const ageMins = meta.ageMs != null ? Math.floor(meta.ageMs / 60_000) : null;
+  const agePhrase =
+    ageMins == null
+      ? "unknown"
+      : ageMins < 1
+        ? "just now"
+        : `${ageMins} min ago`;
+
+  let freshnessRules: string;
+  if (meta.freshness === "very_stale") {
+    freshnessRules = [
+      `POR DATA FRESHNESS: VERY_STALE (${meta.ageLabel ?? agePhrase}). Sync may be down.`,
+      `When answering ANY POR number, prefix with: "As of my last POR sync ${agePhrase} (sync may be down):"`,
+      "Do not say currently / right now / live / up to date. The mirror may be outdated.",
+    ].join("\n");
+  } else if (meta.freshness === "stale") {
+    freshnessRules = [
+      `POR DATA FRESHNESS: STALE (${meta.ageLabel ?? agePhrase}).`,
+      `When answering ANY POR number, prefix with: "As of my last POR sync ${agePhrase}:"`,
+      "Do not imply the numbers are real-time.",
+    ].join("\n");
+  } else {
+    freshnessRules = [
+      `POR DATA FRESHNESS: FRESH (${meta.ageLabel ?? "within 20 minutes"}).`,
+      "You may treat CANONICAL POR METRICS as the latest mirror — still a copy, not live Counter.",
+    ].join("\n");
+  }
 
   const lines = [
-    "Live Point of Rental snapshot (read-only copy — never claim you can change POR):",
+    "Point of Rental snapshot (read-only copy — never claim you can change POR, never imply real-time unless FRESH):",
     "IMPORTANT: Quote CANONICAL POR METRICS below verbatim. Ignore conflicting numbers from earlier chat turns.",
-    staleNote,
+    freshnessRules,
     `Source host: ${snapshot.sourceHost}`,
     formatCanonicalMetricsForAgent(snapshot, { includeFinancials }),
   ];

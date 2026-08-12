@@ -1,4 +1,8 @@
 import {
+  isAuthError,
+  requireSession,
+} from "@/lib/server-auth";
+import {
   appendMessages,
   getAgent,
   getTask,
@@ -9,6 +13,7 @@ import {
 import {
   buildAgentSystemPrompt,
   createTextStream,
+  resolveChatModel,
   streamGrokResponse,
 } from "@/lib/grok";
 import type { Message } from "@/lib/types";
@@ -32,6 +37,9 @@ function createMessage(role: Message["role"], content: string, taskId: string) {
 }
 
 export async function POST(_request: Request, context: RouteContext) {
+  const gate = await requireSession();
+  if (isAuthError(gate)) return gate;
+
   const { id: taskId } = await context.params;
 
   try {
@@ -56,11 +64,12 @@ export async function POST(_request: Request, context: RouteContext) {
 
     const userMessage = createMessage("user", prompt, taskId);
     const assistantMessage = createMessage("assistant", "", taskId);
-    await appendMessages(agent.id, [userMessage, assistantMessage]);
+    await appendMessages(agent.id, [userMessage, assistantMessage], gate.role);
 
+    const financialAccess = gate.role === "owner";
     const stream = await streamGrokResponse({
-      model: agent.model,
-      systemPrompt: await buildAgentSystemPrompt(agent),
+      model: resolveChatModel(agent.model),
+      systemPrompt: await buildAgentSystemPrompt(agent, { financialAccess }),
       messages: [{ role: "user", content: prompt }],
     });
 
@@ -88,6 +97,7 @@ export async function POST(_request: Request, context: RouteContext) {
             agent.id,
             assistantMessage.id,
             assistantContent,
+            gate.role,
           );
           await updateTask(taskId, {
             status: "done",
@@ -101,6 +111,7 @@ export async function POST(_request: Request, context: RouteContext) {
             agent.id,
             assistantMessage.id,
             assistantContent || "Task execution failed.",
+            gate.role,
           );
           await updateTask(taskId, {
             status: "done",
@@ -121,8 +132,10 @@ export async function POST(_request: Request, context: RouteContext) {
       },
     });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Failed to run task.";
-    return NextResponse.json({ error: message }, { status: 502 });
+    console.error("[task-run]", error);
+    return NextResponse.json(
+      { error: "Failed to run task. Try again." },
+      { status: 502 },
+    );
   }
 }

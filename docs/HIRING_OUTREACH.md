@@ -19,7 +19,7 @@ Every ad CTA = **https://partyperfectjobs.com** only (Indeed **Easy Apply OFF**)
 
 If Today is still 0 by noon: raise Indeed budget + post a second FB job story.
 
-Madison (once live) keeps daily job posts/stories warm so the feed isn’t only “we’re hiring.”
+Madison (once live on **Party Perfect Careers** FB Page) keeps daily job posts/stories warm so the feed isn’t only “we’re hiring.” Setup brief: [HIRING_FACEBOOK_CAREERS_PAGE.md](./HIRING_FACEBOOK_CAREERS_PAGE.md).
 
 ---
 
@@ -130,7 +130,8 @@ Free for a quick chat this week about the work? Reply with a good call time.
 
 ## Madison’s role once Meta is live
 
-- Daily keep-up on comments/DMs  
-- Draft hiring + growth content  
+- Connected Page: **Party Perfect Careers — Tulsa Event Rentals** (`@partyperfectcareers`)  
+- Daily keep-up on comments/DMs on that Page  
+- Draft + post hiring + growth content (pinned copy + $18–$28/hr line in Careers brief)  
 - Weekly content calendar suggestions  
-See [MADISON_META.md](./MADISON_META.md) and selection rules in [HIRING_SELECTION.md](./HIRING_SELECTION.md).
+See [HIRING_FACEBOOK_CAREERS_PAGE.md](./HIRING_FACEBOOK_CAREERS_PAGE.md), [MADISON_META.md](./MADISON_META.md), and [HIRING_SELECTION.md](./HIRING_SELECTION.md).

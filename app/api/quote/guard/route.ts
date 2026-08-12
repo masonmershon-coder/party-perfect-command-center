@@ -1,4 +1,8 @@
-import { NextResponse } from "next/server";
+import {
+  isAuthError,
+  privateJson,
+  requireApiAuth,
+} from "@/lib/api-auth";
 import { guardQuote } from "@/lib/quote-guard";
 
 /**
@@ -9,6 +13,9 @@ import { guardQuote } from "@/lib/quote-guard";
  * hard overbook — the quote would promise stock that isn't there on that date.
  */
 export async function POST(req: Request) {
+  const gate = await requireApiAuth("quoting");
+  if (isAuthError(gate)) return gate;
+
   try {
     const body = (await req.json()) as {
       lines?: Array<{ itemKey?: string; sku?: string; qty: number }>;
@@ -18,8 +25,8 @@ export async function POST(req: Request) {
       Array.isArray(body?.lines) ? body.lines : [],
       String(body?.date || ""),
     );
-    return NextResponse.json(result);
+    return privateJson(result);
   } catch (err) {
-    return NextResponse.json({ error: (err as Error).message }, { status: 400 });
+    return privateJson({ error: (err as Error).message }, { status: 400 });
   }
 }

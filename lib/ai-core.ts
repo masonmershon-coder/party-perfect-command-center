@@ -22,6 +22,7 @@
  * Requires: pg + DATABASE_URL (Supabase transaction pooler; not applied until approved).
  */
 import pg from "pg";
+import { isValidTransactionPoolerUri } from "./supabase-probe";
 
 export type Domain = string; // "party_perfect" | "mershon_personal" | `mershon:${string}`
 export type Executor = "claude" | "cursor" | "chatgpt" | "grok" | "human" | "mike" | "madison" | "gateway" | string;
@@ -35,11 +36,17 @@ export type BrainStatus =
 const g = globalThis as unknown as { __aiCorePool?: pg.Pool };
 function db(): pg.Pool {
   if (!process.env.DATABASE_URL?.trim()) throw new Error("ai_core: DATABASE_URL not set");
-  if (!g.__aiCorePool) g.__aiCorePool = new pg.Pool({ connectionString: process.env.DATABASE_URL, max: 3 });
+  if (!g.__aiCorePool) {
+    g.__aiCorePool = new pg.Pool({
+      connectionString: process.env.DATABASE_URL,
+      max: 3,
+      ssl: { rejectUnauthorized: false },
+    });
+  }
   return g.__aiCorePool;
 }
 export function isAiCoreConfigured(): boolean {
-  return Boolean(process.env.DATABASE_URL?.trim());
+  return isValidTransactionPoolerUri(process.env.DATABASE_URL);
 }
 function requireDomain(domain: string | undefined | null): string {
   const d = (domain || "").trim();
@@ -156,14 +163,35 @@ export async function listBrainRecords(filter: { domain: Domain; status?: BrainS
 }
 
 // --- artifacts (pointers to big files) ---
-export async function indexArtifact(a: { domain: Domain; kind?: string; location?: string; pathOrUrl?: string; sha256?: string; bytes?: number; relatedTask?: string; relatedMeeting?: string }): Promise<{ id: string }> {
+/**
+ * Idempotent on content identity: SAME DOMAIN + SAME sha256 -> reuse the existing row.
+ *
+ * Backed by the partial unique index applied in 0004:
+ *   ux_artifacts_domain_sha256 ON (domain, sha256) WHERE sha256 IS NOT NULL
+ *
+ * The ON CONFLICT clause repeats that predicate because Postgres cannot infer a
+ * partial index without it. DO UPDATE (not DO NOTHING) so a conflicting insert
+ * still returns the existing row — DO NOTHING returns zero rows and callers
+ * expect an id back.
+ *
+ * Rows with a NULL sha256 keep the previous behavior: they never collide
+ * (they fall outside the index predicate) and always insert a new row.
+ *
+ * `reused` tells the caller whether this content was already known, so
+ * expensive downstream work (transcription, extraction) can be skipped —
+ * see processing_status / processing_result_ref on the same table.
+ */
+export async function indexArtifact(a: { domain: Domain; kind?: string; location?: string; pathOrUrl?: string; sha256?: string; bytes?: number; relatedTask?: string; relatedMeeting?: string }): Promise<{ id: string; reused: boolean }> {
   const domain = requireDomain(a.domain);
   const { rows } = await db().query(
     `insert into ai_core.artifacts (domain, kind, location, path_or_url, sha256, bytes, related_task, related_meeting)
-     values ($1,$2,$3,$4,$5,$6,$7,$8) returning id`,
+     values ($1,$2,$3,$4,$5,$6,$7,$8)
+     on conflict (domain, sha256) where sha256 is not null
+     do update set updated_at = now()
+     returning id, (xmax <> 0) as reused`,
     [domain, a.kind ?? null, a.location ?? null, a.pathOrUrl ?? null, a.sha256 ?? null, a.bytes ?? null, a.relatedTask ?? null, a.relatedMeeting ?? null]
   );
-  return { id: rows[0].id };
+  return { id: rows[0].id, reused: Boolean(rows[0].reused) };
 }
 
 // --- audit (append-only, domain-attributable) ---

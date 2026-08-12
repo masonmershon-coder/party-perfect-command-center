@@ -15,6 +15,7 @@ import type {
   InventoryItem,
   LiveSnapshot,
   MarketingItem,
+  PorSyncHealthReport,
   PorSyncMeta,
   SavedReport,
   SanitizedConnection,
@@ -82,6 +83,13 @@ export async function fetchStats() {
     await fetch("/api/stats"),
   );
   return payload.stats;
+}
+
+export async function fetchPorSyncHealth() {
+  const payload = await parseJson<{ health: PorSyncHealthReport }>(
+    await fetch("/api/por/sync/health"),
+  );
+  return payload.health;
 }
 
 export async function fetchLiveCheck() {

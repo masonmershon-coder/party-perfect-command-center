@@ -28,6 +28,10 @@ if (-not $ConfigPath) {
   $ConfigPath = Join-Path $PSScriptRoot "config.json"
 }
 
+# Status classification (STAT is two chars; blank primary = Completed; never LTRIM).
+# See PorStatus.ps1 and "00 - Reference/POR_OPERATING_SYSTEM_MAP.md".
+. (Join-Path $PSScriptRoot "PorStatus.ps1")
+
 function Write-Log {
   param([string]$Message, [string]$Level = "INFO")
   $logDir = Join-Path $PSScriptRoot "logs"
@@ -113,6 +117,46 @@ function Read-Rows {
     $reader.Close()
   }
   return ,$rows.ToArray()
+}
+
+function Test-RentableCatalogItem {
+  param([string]$CategoryCode, [string]$Name)
+  $cat = ([string]$CategoryCode).Trim().ToUpperInvariant()
+  if ($cat -in @('19','34')) { return $false }
+  if ($cat.StartsWith('FEE') -or $cat.StartsWith('DISCOUNT')) { return $false }
+  $n = ([string]$Name).Trim()
+  if ($n -match '^(setup|breakdown|installation|removal|repack|delivery|pick ?up|convenience|service|processing)\b') { return $false }
+  if ($n -match '\bfee\b') { return $false }
+  return $true
+}
+
+function Resolve-ProductImageUrl {
+  param(
+    [string]$PictureRef,
+    [string]$WebsiteBase = "https://www.partyperfecteventrental.com"
+  )
+  if (-not $PictureRef) { return $null }
+  $p = ([string]$PictureRef).Trim()
+  if (-not $p) { return $null }
+  if ($p -match '^https?://') { return $p }
+  $p = $p -replace '\\', '/'
+  if ($p -match '^itemimages/') { return "$WebsiteBase/$p" }
+  if ($p.StartsWith('/')) { return "$WebsiteBase$p" }
+  return "$WebsiteBase/itemimages/$p"
+}
+
+function Get-ItemFilePictureSelect {
+  param([System.Data.SqlClient.SqlConnection]$Connection)
+  foreach ($col in @('WebPicture','Picture','ImageName','Photo','PictureFile')) {
+    try {
+      $rows = Read-Rows $Connection "SELECT TOP 1 CAST([$col] AS nvarchar(500)) AS Pic FROM dbo.ItemFile WHERE [$col] IS NOT NULL AND LTRIM(RTRIM(CAST([$col] AS nvarchar(200)))) <> N''"
+      if ($rows.Count -gt 0) {
+        Write-Log "ItemFile picture column detected: $col"
+        return ", CAST(ISNULL([$col], N'') AS nvarchar(500)) AS PictureRef"
+      }
+    } catch {}
+  }
+  return ""
 }
 
 $config = Get-Config
@@ -241,12 +285,15 @@ WHERE $arActiveFilter AND ISNULL(CurrentBalance,0) > 0
   $rev30 = Get-Scalar $conn "SELECT SUM(ISNULL(Amount,0)) FROM dbo.PaymentFile WHERE [Date] >= DATEADD(day, -30, GETDATE())"
   $revYearToDate = Get-Scalar $conn "SELECT SUM(ISNULL(Amount,0)) FROM dbo.PaymentFile WHERE [Date] >= DATEFROMPARTS(YEAR(GETDATE()),1,1)"
 
-  # Open contracts = ContractFile with open/out/reservation status (not customers with QtyOut).
+  # Open contracts = live reservations + live open orders, from dbo.Transactions.
+  # NOT ContractFile (Status there is a different, thinner column) and NOT
+  # CustomerFile.QtyOut. Uses LEFT(STAT,1) with no LTRIM - see PorStatus.ps1.
   $openContracts = 0
   try {
     $openContracts = [int](Get-Scalar $conn @"
-SELECT COUNT(*) FROM dbo.ContractFile
-WHERE UPPER(LTRIM(RTRIM(CAST(Status AS nvarchar(10))))) IN (N'R', N'O')
+SELECT COUNT(*) FROM dbo.Transactions
+WHERE LEFT(CAST(STAT AS nvarchar(10)),1) IN (N'R', N'O')
+  AND ISNULL(Archived,0)=0 AND ISNULL(Cancelled,0)=0
 "@)
   } catch {
     Write-Log ("ContractFile openContracts unavailable: {0}" -f $_.Exception.Message) "WARN"
@@ -280,20 +327,23 @@ WHERE PickupDate IS NOT NULL
   $openReservations = 0
   $quotesWithin14 = 0
   try {
+    # Open quotes exclude secondary 'C' (cancelled) and 'T' (converted to contract).
+    # The old ContractFile filter reported every quote ever written, including
+    # ~8,350 converted and ~5,474 cancelled ones.
     $openQuotes = [int](Get-Scalar $conn @"
-SELECT COUNT(*) FROM dbo.ContractFile
-WHERE UPPER(LTRIM(RTRIM(CAST(Status AS nvarchar(10))))) IN (N'Q')
+SELECT COUNT(*) FROM dbo.Transactions
+WHERE $(Get-PorScopeSql 'OpenQuotes')
 "@)
     $openReservations = [int](Get-Scalar $conn @"
-SELECT COUNT(*) FROM dbo.ContractFile
-WHERE UPPER(LTRIM(RTRIM(CAST(Status AS nvarchar(10))))) IN (N'R')
+SELECT COUNT(*) FROM dbo.Transactions
+WHERE $(Get-PorScopeSql 'ActiveReservations')
 "@)
     $quotesWithin14 = [int](Get-Scalar $conn @"
-SELECT COUNT(*) FROM dbo.ContractFile
-WHERE UPPER(LTRIM(RTRIM(CAST(Status AS nvarchar(10))))) IN (N'Q')
-  AND BegDate IS NOT NULL
-  AND CAST(BegDate AS date) >= CAST(GETDATE() AS date)
-  AND CAST(BegDate AS date) <= DATEADD(day, 14, CAST(GETDATE() AS date))
+SELECT COUNT(*) FROM dbo.Transactions
+WHERE $(Get-PorScopeSql 'OpenQuotes')
+  AND DeliveryDate IS NOT NULL
+  AND CAST(DeliveryDate AS date) >= CAST(GETDATE() AS date)
+  AND CAST(DeliveryDate AS date) <= DATEADD(day, 14, CAST(GETDATE() AS date))
 "@)
     Write-Log ("ContractFile quotes={0} reservations={1} quotes<=14d={2}" -f $openQuotes, $openReservations, $quotesWithin14)
   } catch {
@@ -384,15 +434,20 @@ ORDER BY CategoryName, [Name]
   $reservationLines = @()
   $reservationsQueryOk = $false
   try {
+    $pictureSelect = Get-ItemFilePictureSelect -Connection $conn
     $fullRows = Read-Rows $conn @"
 SELECT
   CAST([KEY] AS nvarchar(64)) AS Sku,
   CAST([Name] AS nvarchar(200)) AS ItemName,
   CAST(ISNULL(Category, N'') AS nvarchar(64)) AS CategoryCode,
   CAST(ISNULL(NUM, N'') AS nvarchar(64)) AS Num,
+  CAST(ISNULL(TYPE, N' ') AS nvarchar(4)) AS ItemType,
+  ISNULL(RMIN, 0) AS RentalMinimum,
+  ISNULL(CaseQty, 0) AS CaseQty,
   CASE WHEN ISNULL(QTY,0) > 100000 THEN 0 ELSE ISNULL(QTY,0) END AS Quantity,
   CASE WHEN ISNULL(QYOT,0) > 100000 THEN 0 ELSE ISNULL(QYOT,0) END AS QtyOut,
   ISNULL(RATE1, ISNULL(SELL, 0)) AS Rate
+  $pictureSelect
 FROM dbo.ItemFile
 WHERE ISNULL(Inactive,0)=0
   AND LTRIM(RTRIM(ISNULL([Name], N''))) <> N''
@@ -403,7 +458,7 @@ ORDER BY [Name]
       $o = [double]$row.QtyOut
       $a = [math]::Max(0, $q - $o)
       $catCode = [string]$row.CategoryCode
-      $fullCatalogItems += @{
+      $item = @{
         sku = [string]$row.Sku
         name = [string]$row.ItemName
         categoryCode = $catCode
@@ -412,11 +467,62 @@ ORDER BY [Name]
         ratePerDay = [math]::Round([double]$row.Rate, 2)
         qty = [math]::Round($q, 2)
         available = [math]::Round($a, 2)
+        # itemType: 'K' = Rental - Package (a KIT HEADER, not dead stock). Kit
+        # headers legitimately carry qty 0 / rate 0 and resolve through ItemKits
+        # to real TYPE 'T' components. Never present a 'K' row as stock.
+        itemType = ([string]$row.ItemType).Trim().ToUpperInvariant()
+        rentalMinimum = [math]::Round([double]$row.RentalMinimum, 2)
+        caseQty = [int]$row.CaseQty
       }
+      if (Test-RentableCatalogItem -CategoryCode $catCode -Name $item.name) {
+        $picRef = $null
+        if ($row.ContainsKey('PictureRef') -and $row.PictureRef) {
+          $picRef = [string]$row.PictureRef
+        }
+        $imageUrl = Resolve-ProductImageUrl -PictureRef $picRef
+        if ($imageUrl) {
+          $item.imageUrl = $imageUrl
+        }
+      }
+      $fullCatalogItems += $item
     }
-    Write-Log ("Full catalog rows={0} withNum={1}" -f $fullCatalogItems.Count, @($fullCatalogItems | Where-Object { $_.num }).Count)
+    Write-Log ("Full catalog rows={0} withNum={1} kits={2}" -f $fullCatalogItems.Count, @($fullCatalogItems | Where-Object { $_.num }).Count, @($fullCatalogItems | Where-Object { $_.itemType -eq 'K' }).Count)
   } catch {
     Write-Log ("Full catalog (NUM) pull failed: {0}" -f $_.Exception.Message) "WARN"
+  }
+
+  # --- Kit membership: kit header (ItemFile.NUM) -> component (ItemFile.KEY) ---
+  # dbo.ItemKits.Num is the kit's NUM; dbo.ItemKits.ItemKey is the component's KEY.
+  # Quantity 0 with SelectType/MultiGroup means "operator chooses at order time" -
+  # so this is a SELECTION GROUP, not a fixed bundle. The UI must let the girl
+  # pick, exactly as Counter does. Never auto-pick a component.
+  $kitMembers = @()
+  try {
+    $kitRows = Read-Rows $conn @"
+SELECT
+  CAST(k.Num AS nvarchar(64)) AS KitNum,
+  CAST(k.ItemKey AS nvarchar(64)) AS ComponentKey,
+  ISNULL(k.Quantity, 0) AS Quantity,
+  CAST(ISNULL(k.SelectType, N'') AS nvarchar(16)) AS SelectType,
+  CAST(ISNULL(k.MultiGroup, N'') AS nvarchar(16)) AS MultiGroup,
+  ISNULL(k.UseSpecialRate, 0) AS UseSpecialRate,
+  ISNULL(k.DailyAmount, 0) AS DailyAmount
+FROM dbo.ItemKits k
+"@
+    foreach ($row in $kitRows) {
+      $kitMembers += @{
+        kitNum = ([string]$row.KitNum).Trim()
+        componentSku = ([string]$row.ComponentKey).Trim()
+        quantity = [math]::Round([double]$row.Quantity, 2)
+        selectType = ([string]$row.SelectType).Trim()
+        multiGroup = ([string]$row.MultiGroup).Trim()
+        useSpecialRate = [bool]$row.UseSpecialRate
+        dailyAmount = [math]::Round([double]$row.DailyAmount, 2)
+      }
+    }
+    Write-Log ("Kit membership rows={0} kits={1}" -f $kitMembers.Count, @($kitMembers | Select-Object -ExpandProperty kitNum -Unique).Count)
+  } catch {
+    Write-Log ("ItemKits pull failed: {0}" -f $_.Exception.Message) "WARN"
   }
 
   try {
@@ -538,11 +644,19 @@ WHERE ISNULL(ti.Archived,0)=0
         syncedAt = (Get-Date).ToUniversalTime().ToString("o")
         activeItems = $fullCatalogItems.Count
         items = $fullCatalogItems
+        kitMembers = $kitMembers
       }
       $catalogJson = $catalogPayload | ConvertTo-Json -Depth 6 -Compress
       $catResp = Invoke-RestMethod -Method Post -Uri "$baseUrl/api/por/sync/catalog" -Headers $headers -Body $catalogJson -TimeoutSec 180
       Write-Log ("Full catalog push OK. items={0}" -f $fullCatalogItems.Count)
       ($catResp | ConvertTo-Json -Depth 4 -Compress) | ForEach-Object { Write-Log $_ }
+      try {
+        $imgResp = Invoke-RestMethod -Method Post -Uri "$baseUrl/api/por/sync/catalog-images" -Headers $headers -TimeoutSec 180
+        Write-Log ("Catalog image ingest OK.")
+        ($imgResp | ConvertTo-Json -Depth 4 -Compress) | ForEach-Object { Write-Log $_ }
+      } catch {
+        Write-Log ("Catalog image ingest failed: {0}" -f $_.Exception.Message) "WARN"
+      }
     } catch {
       Write-Log ("Full catalog push failed: {0}" -f $_.Exception.Message) "WARN"
     }
@@ -803,7 +917,7 @@ SELECT
   CAST(Billed AS nvarchar(40)) AS Billed
 FROM dbo.Transactions
 WHERE
-  UPPER(LTRIM(RTRIM(CAST(STAT AS nvarchar(10))))) IN (N'R', N'O', N'Q')
+  $(Get-PorScopeSql 'ActivePipeline')
   OR (DeliveryDate IS NOT NULL AND DeliveryDate >= DATEADD(day, -$crmWindowDays, GETDATE()))
   OR (PickupDate IS NOT NULL AND PickupDate >= DATEADD(day, -$crmWindowDays, GETDATE()))
   OR (DeliveryDate IS NOT NULL AND DeliveryDate >= CAST(GETDATE() AS date))

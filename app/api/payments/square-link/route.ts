@@ -44,8 +44,16 @@ export async function POST(request: Request) {
     return NextResponse.json(link);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Failed to create payment link";
-    // Config errors → 503 so the UI can say "Square isn't set up yet"; others → 502.
+    console.error("[square-link]", message);
     const status = /not configured/i.test(message) ? 503 : 502;
-    return NextResponse.json({ error: message }, { status });
+    return NextResponse.json(
+      {
+        error:
+          status === 503
+            ? "Square isn’t configured yet."
+            : "Could not create payment link. Try again.",
+      },
+      { status },
+    );
   }
 }

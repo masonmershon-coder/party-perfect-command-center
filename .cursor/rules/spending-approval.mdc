@@ -1,0 +1,17 @@
+---
+description: Paid purchases and billing actions require explicit owner approval
+alwaysApply: true
+---
+
+# Spending needs approval
+
+Never buy, renew, upgrade, or charge money without a clear yes in the current message for that exact item.
+
+Includes: Twilio numbers, A2P/campaign fees, domains, hosting upgrades, SaaS seats, paid API tiers, releasing/replacing numbers, any console Buy/Purchase/Subscribe.
+
+1. Propose first: what, why, cost (exact or estimate), $0 alternatives.
+2. Wait for explicit approval. Login / "you're in" is not purchase approval.
+3. Buy only the approved item — no chain buys.
+4. Prefer reuse/fix/config over buying new.
+5. Free work is fine: webhooks, env vars, compliance form copy, code, docs.
+6. After an approved spend, report the actual charge.

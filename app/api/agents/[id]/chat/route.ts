@@ -1,6 +1,5 @@
 import {
   isAuthError,
-  readSession,
   requireSession,
 } from "@/lib/server-auth";
 import {
@@ -12,11 +11,13 @@ import {
 } from "@/lib/storage";
 import {
   buildAgentSystemPrompt,
+  buildPorCrmContextForAgent,
   createTextStream,
+  resolveChatModel,
   streamGrokResponse,
 } from "@/lib/grok";
 import { MIKE_OPERATIONS_AGENT_ID, MADISON_COMMS_AGENT_ID } from "@/lib/seed";
-import type { GrokModel, Message } from "@/lib/types";
+import type { Message } from "@/lib/types";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
@@ -51,7 +52,7 @@ export async function GET(_request: Request, context: RouteContext) {
     return NextResponse.json({ error: "Agent not found." }, { status: 404 });
   }
 
-  const conversation = await getConversation(id);
+  const conversation = await getConversation(id, gate.role);
   return NextResponse.json({ agent, conversation });
 }
 
@@ -80,13 +81,13 @@ export async function POST(request: Request, context: RouteContext) {
       return NextResponse.json({ error: "Agent not found." }, { status: 404 });
     }
 
-    const conversation = await getConversation(id);
+    const conversationRole = gate.role;
+    const conversation = await getConversation(id, conversationRole);
     const userMessage = createMessage("user", body.message.trim(), body.taskId);
     const assistantMessage = createMessage("assistant", "", body.taskId);
 
-    // Soft-persist: never block Mike/Madison replies if durable store is down.
     try {
-      await appendMessages(id, [userMessage, assistantMessage]);
+      await appendMessages(id, [userMessage, assistantMessage], conversationRole);
     } catch (persistError) {
       console.warn(
         "[agent-chat] appendMessages failed; continuing stream:",
@@ -99,35 +100,37 @@ export async function POST(request: Request, context: RouteContext) {
       // ignore
     }
 
-    const priorMessages = [
-      ...conversation.messages,
-      userMessage,
-    ]
+    const priorMessages = [...conversation.messages, userMessage]
       .slice(-30)
       .map(({ role, content }) => ({ role, content }));
 
-    // Mike/Madison chat uses Grok 4.3 even if Redis still has the old build model.
-    const chatModel: GrokModel =
+    const chatModel = resolveChatModel(
       id === MIKE_OPERATIONS_AGENT_ID || id === MADISON_COMMS_AGENT_ID
-        ? "grok-4.3"
-        : agent.model;
+        ? undefined
+        : agent.model,
+    );
 
     if (chatModel !== agent.model) {
       try {
         await updateAgent(id, { model: chatModel });
       } catch {
-        // ignore — stream still uses chatModel
+        // ignore
       }
     }
 
-    // Financials are server-derived from the session cookie — never trust client flag.
-    const session = await readSession();
-    const financialAccess = session?.role === "owner";
+    const financialAccess = conversationRole === "owner";
+
+    const porCrmContext = await buildPorCrmContextForAgent(
+      id,
+      body.message.trim(),
+      financialAccess,
+    );
 
     const stream = await streamGrokResponse({
       model: chatModel,
       systemPrompt: await buildAgentSystemPrompt(agent, {
         financialAccess,
+        porCrmContext,
       }),
       messages: priorMessages,
     });
@@ -139,13 +142,10 @@ export async function POST(request: Request, context: RouteContext) {
 
     const responseStream = new ReadableStream<Uint8Array>({
       async start(controller) {
-        const encoder = new TextEncoder();
-
         try {
           while (true) {
             const { done, value } = await reader.read();
             if (done) break;
-
             assistantContent += decoder.decode(value, { stream: true });
             controller.enqueue(value);
           }
@@ -155,9 +155,10 @@ export async function POST(request: Request, context: RouteContext) {
               id,
               assistantMessage.id,
               assistantContent,
+              conversationRole,
             );
           } catch {
-            // ignore persist failures after a successful reply
+            // ignore
           }
           try {
             await updateAgent(id, { status: "idle" });
@@ -171,6 +172,7 @@ export async function POST(request: Request, context: RouteContext) {
               id,
               assistantMessage.id,
               assistantContent || "Sorry, I encountered an error.",
+              conversationRole,
             );
           } catch {
             // ignore
@@ -194,8 +196,10 @@ export async function POST(request: Request, context: RouteContext) {
       },
     });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Failed to send message.";
-    return NextResponse.json({ error: message }, { status: 502 });
+    console.error("[agent-chat]", error);
+    return NextResponse.json(
+      { error: "Failed to send message. Try again." },
+      { status: 502 },
+    );
   }
 }

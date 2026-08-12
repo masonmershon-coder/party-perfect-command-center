@@ -166,10 +166,17 @@ export async function readSession(): Promise<AuthSession | null> {
   return decodeSession(jar.get(COOKIE_NAME)?.value);
 }
 
+const AUTH_NO_STORE = {
+  "Cache-Control": "private, no-store, max-age=0, must-revalidate",
+} as const;
+
 export async function requireSession(): Promise<AuthSession | NextResponse> {
   const session = await readSession();
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json(
+      { error: "Unauthorized" },
+      { status: 401, headers: AUTH_NO_STORE },
+    );
   }
   return session;
 }
@@ -178,7 +185,10 @@ export async function requireOwner(): Promise<AuthSession | NextResponse> {
   const session = await requireSession();
   if (session instanceof NextResponse) return session;
   if (session.role !== "owner") {
-    return NextResponse.json({ error: "Owner access required" }, { status: 403 });
+    return NextResponse.json(
+      { error: "Owner access required" },
+      { status: 403, headers: AUTH_NO_STORE },
+    );
   }
   return session;
 }

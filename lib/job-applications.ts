@@ -334,7 +334,7 @@ export async function getJobApplication(id: string) {
   return applications.find((app) => app.id === id) ?? null;
 }
 
-/** Merge optional extras onto an existing Quick Apply and re-score Mike. */
+/** Merge optional extras onto an existing application and re-score Mike. */
 export async function enrichJobApplication(
   id: string,
   patch: JobApplicationInput,

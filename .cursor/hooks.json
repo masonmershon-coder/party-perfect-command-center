@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "hooks": {
+    "sessionStart": [
+      {
+        "command": ".cursor/hooks/session-handoff.sh",
+        "timeout": 10
+      }
+    ],
+    "afterFileEdit": [
+      {
+        "command": ".cursor/hooks/handoff-after-edit.sh",
+        "timeout": 10
+      }
+    ]
+  }
+}

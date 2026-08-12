@@ -1,5 +1,6 @@
 "use client";
 
+import { ConnectorDemoBanner } from "@/app/components/dashboard/connector-demo-banner";
 import { PageHeader, LiveStatusBar } from "@/app/components/dashboard/page-header";
 import { MarkRepliedButton, RepliedBadge } from "@/app/components/dashboard/replied-badge";
 import { ReplyComposer } from "@/app/components/dashboard/reply-composer";
@@ -326,6 +327,20 @@ export function EmailsSection({
         lastCheckedAt={lastCheckedAt}
         isRefreshing={isRefreshing}
       />
+
+      {connection.mode === "demo" ? (
+        <ConnectorDemoBanner
+          label="Emails (IMAP)"
+          connectHint="Sign in to a GoDaddy mailbox below. Until then, this inbox is seed/demo data."
+          onConnect={() =>
+            void onConnectAccount(
+              accounts[0]?.id ?? "company",
+              accounts[0]?.label ?? "General",
+            )
+          }
+          connectLabel="Sign in"
+        />
+      ) : null}
 
       {needsReplyCount > 0 && (
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--pp-border)] bg-[var(--pp-bg)] px-4 py-3">

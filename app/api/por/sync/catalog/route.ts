@@ -4,6 +4,10 @@ import {
   isValidPorCatalogState,
   savePorCatalog,
 } from "@/lib/por-catalog";
+import {
+  recordPorSyncError,
+  recordPorSyncSuccess,
+} from "@/lib/por-sync-health";
 import type { PorCatalogState } from "@/lib/types";
 import { NextResponse } from "next/server";
 
@@ -36,6 +40,10 @@ export async function POST(request: Request) {
   try {
     const body = (await request.json()) as unknown;
     if (!isValidPorCatalogState(body)) {
+      await recordPorSyncError(
+        "catalog",
+        "Invalid catalog. Expected { items:[{sku,name,ratePerDay,qty,num?}], activeItems, source, syncedAt }.",
+      );
       return NextResponse.json(
         {
           error:
@@ -49,6 +57,10 @@ export async function POST(request: Request) {
       (i) => i.num != null && String(i.num).trim() !== "",
     ).length;
     if (withNum < body.items.length * 0.5) {
+      await recordPorSyncError(
+        "catalog",
+        `Catalog missing ItemFile.NUM on most rows (${withNum}/${body.items.length}). Availability join will fail.`,
+      );
       return NextResponse.json(
         {
           error: `Catalog missing ItemFile.NUM on most rows (${withNum}/${body.items.length}). Availability join will fail.`,
@@ -65,6 +77,7 @@ export async function POST(request: Request) {
     };
     clearPorCatalogCache();
     await savePorCatalog(state);
+    await recordPorSyncSuccess("catalog");
 
     return NextResponse.json({
       ok: true,
@@ -73,12 +86,9 @@ export async function POST(request: Request) {
       syncedAt: state.syncedAt,
     });
   } catch (error) {
-    return NextResponse.json(
-      {
-        error:
-          error instanceof Error ? error.message : "Failed to store catalog.",
-      },
-      { status: 500 },
-    );
+    const message =
+      error instanceof Error ? error.message : "Failed to store catalog.";
+    await recordPorSyncError("catalog", message);
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

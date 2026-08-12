@@ -1,3 +1,7 @@
+import {
+  isAuthError,
+  requireApiAuth,
+} from "@/lib/api-auth";
 import { buildLiveSnapshot } from "@/lib/live-snapshot";
 import { runMikeInboxCheck } from "@/lib/mike-ops";
 import { getEmailConnectionInfo } from "@/lib/email-accounts";
@@ -17,6 +21,9 @@ export const maxDuration = 60;
  * Pass ?sync=1 for the heavy IMAP + Meta pull (manual / infrequent).
  */
 export async function GET(request: Request) {
+  const gate = await requireApiAuth("admin");
+  if (isAuthError(gate)) return gate;
+
   const { searchParams } = new URL(request.url);
   const shouldSync = searchParams.get("sync") === "1";
 

@@ -47,6 +47,10 @@ export function DesignSection({
   const [lastNote, setLastNote] = useState<string | null>(null);
   const [engineNote, setEngineNote] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [realItems, setRealItems] = useState(true);
+  const [skuUpload, setSkuUpload] = useState("");
+  const [skuBusy, setSkuBusy] = useState(false);
+  const skuFileRef = useRef<HTMLInputElement>(null);
 
   const refresh = useCallback(async () => {
     const res = await fetch("/api/design");
@@ -271,6 +275,7 @@ export function DesignSection({
     try {
       const form = new FormData();
       form.set("command", text || "Match these photos to our rental inventory and suggest a tablescape.");
+      form.set("realItems", realItems ? "true" : "false");
       for (const p of pending) {
         form.append("files", p.file);
         if (p.frameFile) form.append("videoFrames", p.frameFile);
@@ -323,6 +328,36 @@ export function DesignSection({
       setError(err instanceof Error ? err.message : "Send failed.");
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function uploadSkuPhoto(file: File) {
+    const sku = skuUpload.trim();
+    if (!sku) {
+      setError("Enter a SKU before uploading a product photo.");
+      return;
+    }
+    setSkuBusy(true);
+    setError(null);
+    try {
+      const form = new FormData();
+      form.set("sku", sku);
+      form.set("file", file);
+      const res = await fetch("/api/design/product-photo", {
+        method: "POST",
+        body: form,
+      });
+      const data = (await res.json()) as { success?: boolean; error?: string };
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "SKU photo upload failed.");
+      }
+      setLastNote(`Saved real product photo for SKU ${sku}. Madison will use it first.`);
+      setSkuUpload("");
+      if (skuFileRef.current) skuFileRef.current.value = "";
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "SKU upload failed.");
+    } finally {
+      setSkuBusy(false);
     }
   }
 
@@ -508,6 +543,53 @@ export function DesignSection({
               {preset.label}
             </button>
           ))}
+        </div>
+
+        <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-[var(--pp-border)] bg-[var(--pp-bg)] px-3 py-3">
+          <input
+            type="checkbox"
+            checked={realItems}
+            onChange={(e) => setRealItems(e.target.checked)}
+            className="mt-1 h-4 w-4 accent-[var(--pp-accent)]"
+          />
+          <span className="text-sm leading-5 text-[var(--pp-text)]">
+            <span className="font-semibold">Design with real items</span>
+            <span className="block text-xs text-[var(--pp-text-muted)]">
+              June-style: anchor on our actual product photos (POR / website / your SKU upload) — generate only the scene around them.
+            </span>
+          </span>
+        </label>
+
+        <div className="rounded-xl border border-dashed border-[var(--pp-border)] px-3 py-3">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--pp-text-muted)]">
+            Real product photo by SKU
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <input
+              value={skuUpload}
+              onChange={(e) => setSkuUpload(e.target.value)}
+              placeholder="SKU or item name"
+              className="min-w-[140px] flex-1 rounded-lg border border-[var(--pp-border)] bg-[var(--pp-bg)] px-3 py-2 text-sm"
+            />
+            <input
+              ref={skuFileRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) void uploadSkuPhoto(file);
+              }}
+            />
+            <button
+              type="button"
+              disabled={skuBusy || !skuUpload.trim()}
+              onClick={() => skuFileRef.current?.click()}
+              className="rounded-lg border border-[var(--pp-border)] px-3 py-2 text-sm font-medium disabled:opacity-50"
+            >
+              {skuBusy ? "Saving…" : "Upload photo"}
+            </button>
+          </div>
         </div>
 
         <label className="block">

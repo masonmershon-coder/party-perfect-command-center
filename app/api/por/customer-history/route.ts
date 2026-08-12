@@ -37,7 +37,10 @@ export async function GET(request: Request) {
     }
     return NextResponse.json({ error: "Provide ?q= (search) or ?key= (history)" }, { status: 400 });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Query failed";
-    return NextResponse.json({ error: message }, { status: 502 });
+    console.error("[customer-history]", err);
+    return NextResponse.json(
+      { error: "Customer lookup failed. Try again." },
+      { status: 502 },
+    );
   }
 }

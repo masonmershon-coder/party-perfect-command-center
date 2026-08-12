@@ -170,8 +170,8 @@ async function buildStatusReply(includeFinancials: boolean) {
           includeFinancials,
         });
         return includeFinancials
-          ? `POR${porMeta.stale ? " (stale)" : ""}: AR $${Number(metrics.ar_open ?? 0).toFixed(0)} · out ${metrics.items_out_rentable} · deliveries ${metrics.deliveries_today} · returns ${metrics.returns_due}`
-          : `POR${porMeta.stale ? " (stale)" : ""}: out ${metrics.items_out_rentable} · deliveries ${metrics.deliveries_today} · returns ${metrics.returns_due} (AR locked — owner phone only)`;
+          ? `POR${porMeta.stale ? ` (${porMeta.ageLabel ?? "stale"})` : ""}: AR $${Number(metrics.ar_open ?? 0).toFixed(0)} · out ${metrics.items_out_rentable} · deliveries ${metrics.deliveries_today} · returns ${metrics.returns_due}`
+          : `POR${porMeta.stale ? ` (${porMeta.ageLabel ?? "stale"})` : ""}: out ${metrics.items_out_rentable} · deliveries ${metrics.deliveries_today} · returns ${metrics.returns_due} (AR locked — owner phone only)`;
       })()
     : "POR: no live snapshot yet";
 

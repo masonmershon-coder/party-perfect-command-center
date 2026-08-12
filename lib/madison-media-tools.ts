@@ -9,6 +9,7 @@ import type { DesignAspectRatio } from "@/lib/types";
 export type MadisonMediaKind = "image" | "video";
 
 export type MadisonMediaToolId =
+  | "bria-product-scene"
   | "flux-photoreal"
   | "flux-edit"
   | "xai-imagine"
@@ -37,11 +38,16 @@ export interface MadisonMediaTool {
 export interface MadisonMediaJob {
   prompt: string;
   aspectRatio?: DesignAspectRatio;
+  /** Staff showroom / phone uploads */
   referenceUrls?: string[];
+  /** Catalog product shots from getProductImage (June-style anchors) */
+  productReferenceUrls?: string[];
   n?: number;
   /** Prefer photoreal client proposal vs social lifestyle */
   goal?: "proposal" | "social" | "auto";
   preferVideo?: boolean;
+  /** Product-anchored mode — avoid text→image when real SKU photos resolve */
+  realItems?: boolean;
   /** Force a tool (tests / future UI); otherwise Madison auto-picks */
   forceToolId?: MadisonMediaToolId | "auto";
 }
@@ -79,6 +85,21 @@ export function listMadisonMediaTools(): MadisonMediaTool[] {
   const xai = Boolean(xaiKey());
 
   return [
+    {
+      id: "bria-product-scene",
+      label: "Bria Product Scene",
+      provider: "fal",
+      kind: "image",
+      photorealScore: 95,
+      inventoryFidelity: 98,
+      supportsTextOnly: false,
+      maxReferences: 1,
+      supportsVideo: false,
+      bestFor:
+        "Single real SKU photo → new venue/scene (June-style product anchor)",
+      configured: fal,
+      modelId: "fal-ai/bria/product-shot",
+    },
     {
       id: "flux-photoreal",
       label: "Flux Photoreal",
@@ -173,7 +194,9 @@ function scoreTool(tool: MadisonMediaTool, job: MadisonMediaJob): number {
   if (job.preferVideo && !tool.supportsVideo) return -1;
   if (!job.preferVideo && tool.kind === "video") return -1;
 
-  const refs = (job.referenceUrls || []).filter(Boolean).length;
+  const userRefs = (job.referenceUrls || []).filter(Boolean).length;
+  const productRefs = (job.productReferenceUrls || []).filter(Boolean).length;
+  const refs = userRefs + productRefs;
   if (refs > 0 && tool.maxReferences === 0 && !tool.supportsTextOnly) {
     return -1;
   }
@@ -194,6 +217,21 @@ function scoreTool(tool: MadisonMediaTool, job: MadisonMediaJob): number {
   if (goal === "social") {
     score += tool.photorealScore * 0.2;
   }
+
+  if (job.realItems) {
+    if (tool.id === "flux-photoreal" || tool.id === "xai-imagine") {
+      score -= userRefs === 0 && productRefs > 0 ? 120 : 40;
+    }
+    if (
+      tool.id === "bria-product-scene" &&
+      productRefs === 1 &&
+      userRefs === 0
+    ) {
+      score += 90;
+    }
+    if (tool.id === "flux-edit" && productRefs > 0) score += 55;
+  }
+
   if (refs > 0 && tool.id === "flux-edit") score += 40;
   if (refs === 0 && tool.id === "flux-photoreal") score += 25;
   if (tool.id === "xai-imagine") score -= 15; // prefer Flux when both live
@@ -238,11 +276,15 @@ export function selectMadisonMediaTool(job: MadisonMediaJob): {
   }
 
   const best = ranked[0];
-  const refs = (job.referenceUrls || []).filter(Boolean).length;
+  const userRefs = (job.referenceUrls || []).filter(Boolean).length;
+  const productRefs = (job.productReferenceUrls || []).filter(Boolean).length;
+  const refs = userRefs + productRefs;
   const why =
-    refs > 0
-      ? `${best.tool.label} — strongest inventory fidelity for your look board (${refs} refs).`
-      : `${best.tool.label} — best photoreal score for text → proposal looks.`;
+    job.realItems && productRefs > 0
+      ? `${best.tool.label} — real inventory anchor (${productRefs} SKU photo${productRefs === 1 ? "" : "s"}).`
+      : refs > 0
+        ? `${best.tool.label} — strongest inventory fidelity for your look board (${refs} refs).`
+        : `${best.tool.label} — best photoreal score for text → proposal looks.`;
 
   return {
     tool: best.tool,

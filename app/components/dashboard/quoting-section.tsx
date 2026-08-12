@@ -34,6 +34,7 @@ import type {
   SavedQuote,
 } from "@/lib/types";
 import { formatCurrency, formatTime } from "@/lib/ui";
+import { missingPorSyncMeta } from "@/lib/por-freshness";
 import { useCallback, useEffect, useState } from "react";
 
 type CaptureMode = "type" | "photo" | "browse";
@@ -721,23 +722,7 @@ export function QuotingSection({
     step === "capture" ? 0 : step === "pick" ? 1 : step === "customer" ? 2 : 3;
   const catalogSource: "por" | "local" =
     catalogSynced || porMeta?.present ? "por" : "local";
-  const catalogMeta: PorSyncMeta =
-    porMeta ??
-    (catalogSynced
-      ? {
-          present: true,
-          stale: false,
-          syncedAt: null,
-          ageMs: null,
-          sourceHost: null,
-        }
-      : {
-          present: false,
-          stale: false,
-          syncedAt: null,
-          ageMs: null,
-          sourceHost: null,
-        });
+  const catalogMeta: PorSyncMeta = porMeta ?? missingPorSyncMeta();
 
   return (
     <div>
@@ -771,17 +756,7 @@ export function QuotingSection({
 
       <PorSyncBanner
         source={catalogSynced === false ? "local" : catalogSource}
-        porMeta={
-          catalogSynced === false
-            ? {
-                present: false,
-                stale: false,
-                syncedAt: null,
-                ageMs: null,
-                sourceHost: null,
-              }
-            : catalogMeta
-        }
+        porMeta={catalogSynced === false ? missingPorSyncMeta() : catalogMeta}
         label="catalog"
       />
       {catalogSynced === false ? (

@@ -1,11 +1,19 @@
 import {
+  isAuthError,
+  requireApiAuth,
+} from "@/lib/api-auth";
+import {
   listDesignAssets,
   madisonGenerateImage,
   prepareReferenceImageForMadison,
+  saveMadisonMediaResult,
   storeDesignUpload,
 } from "@/lib/design-studio";
+import { runDesignPipeline } from "@/lib/design-pipeline";
+import { extractEventDateFromCommand } from "@/lib/design-availability";
 import { madisonLinkInventoryForLook } from "@/lib/madison-inventory-match";
 import { commandWantsSceneChange } from "@/lib/madison-media-tools";
+import { resolveProductImagesForText } from "@/lib/product-images";
 import { grokClient } from "@/lib/grok";
 import type { DesignAspectRatio, DesignMatchedItem } from "@/lib/types";
 import { getWebsiteCatalogItemsByKeys } from "@/lib/website-catalog";
@@ -36,6 +44,9 @@ const MAX_CATALOG_PICKS = 6;
  * → 2 looks grounded in the desired mood board / inventory.
  */
 export async function POST(request: Request) {
+  const gate = await requireApiAuth("design");
+  if (isAuthError(gate)) return gate;
+
   try {
     // Madison may use Flux (FAL_KEY) and/or Grok Imagine (XAI_API_KEY).
     if (
@@ -60,6 +71,13 @@ export async function POST(request: Request) {
     const createdBy =
       typeof createdByRaw === "string"
         ? createdByRaw.trim().slice(0, 60)
+        : undefined;
+    const realItemsRaw = String(form.get("realItems") || "true").toLowerCase();
+    const realItems = realItemsRaw !== "false" && realItemsRaw !== "0";
+    const eventDateRaw = form.get("eventDate");
+    const eventDate =
+      typeof eventDateRaw === "string" && eventDateRaw.trim()
+        ? eventDateRaw.trim().slice(0, 10)
         : undefined;
 
     if (!command) {
@@ -151,7 +169,32 @@ export async function POST(request: Request) {
       preferredKeys: catalogKeys,
       limit: MAX_CATALOG_PICKS,
     });
-    const matchedItems: DesignMatchedItem[] = linked.matchedItems;
+    let matchedItems: DesignMatchedItem[] = linked.matchedItems;
+
+    const productRefs: string[] = [];
+    if (realItems) {
+      const resolved = await resolveProductImagesForText(command, MAX_CATALOG_PICKS);
+      for (const hit of resolved) {
+        if (!hit.url || productRefs.includes(hit.url)) continue;
+        productRefs.push(hit.url);
+        if (
+          !matchedItems.some(
+            (m) => m.imageUrl === hit.url || m.name === hit.name,
+          )
+        ) {
+          matchedItems = [
+            ...matchedItems,
+            {
+              key: hit.sku || hit.name || "product",
+              name: hit.name || hit.sku || "Product",
+              imageUrl: hit.url,
+              source: hit.source === "por" ? "por" : hit.source === "website" ? "website" : "both",
+              score: 100,
+            },
+          ];
+        }
+      }
+    }
 
     // Staff look-board photos stay first (identity). Website / POR product
     // shots append as SKU truth — Madison picks these herself when possible.
@@ -159,6 +202,7 @@ export async function POST(request: Request) {
       if (preparedImages.length >= MAX_LOOK_BOARD) break;
       if (!match.imageUrl) continue;
       if (preparedImages.includes(match.imageUrl)) continue;
+      if (realItems && productRefs.includes(match.imageUrl)) continue;
       preparedImages.push(match.imageUrl);
     }
 
@@ -171,6 +215,16 @@ export async function POST(request: Request) {
     }
 
     const referenceUrls = preparedImages;
+    let productReferenceUrls: string[] = realItems ? [...productRefs] : [];
+    if (realItems && productReferenceUrls.length === 0) {
+      for (const match of matchedItems) {
+        if (!match.imageUrl) continue;
+        if (referenceUrls.includes(match.imageUrl)) continue;
+        productReferenceUrls.push(match.imageUrl);
+        if (productReferenceUrls.length >= MAX_CATALOG_PICKS) break;
+      }
+      productReferenceUrls = [...new Set(productReferenceUrls)];
+    }
 
     if (sawImage && sawVideo) mediaKind = "mixed";
     else if (sawImage) mediaKind = "image";
@@ -208,15 +262,80 @@ export async function POST(request: Request) {
       prompt = `${prompt}\n\nStaff look board has ${boardCount || showroomRefs.length} visual(s). First images are the showroom tablescape — keep those products exact. Extra refs are website product shots Madison linked for SKU truth.`;
     }
 
+    // Pipeline path: text-only + real items → resolver → availability → staging (single FAL call).
+    if (realItems && boardCount === 0 && referenceUrls.length === 0) {
+      const pipeline = await runDesignPipeline({
+        command,
+        eventDate: eventDate || extractEventDateFromCommand(command),
+        realItems: true,
+        n: 2,
+      });
+
+      if (pipeline.media?.urls.length) {
+        const assets = await saveMadisonMediaResult({
+          urls: pipeline.media.urls,
+          prompt: pipeline.stagingPrompt,
+          aspectRatio: "auto",
+          matchedItems: pipeline.matchedItems,
+          createdBy,
+          generatorId: pipeline.media.toolId,
+          generatorLabel: pipeline.media.toolLabel,
+          generatorReason: pipeline.media.reason,
+        });
+        const all = await listDesignAssets();
+        return NextResponse.json({
+          success: true,
+          command,
+          promptUsed: pipeline.stagingPrompt,
+          mediaKind: "none",
+          boardCount: 0,
+          referenceCount: pipeline.cutoutUrls.length,
+          productReferenceCount: pipeline.cutoutUrls.length,
+          realItems: true,
+          pipeline: {
+            confidence: pipeline.confidence,
+            escalated: pipeline.escalated,
+            resolved: pipeline.resolved.map((r) => ({
+              sku: r.sku,
+              name: r.name,
+              cutout: Boolean(r.cutoutUrl),
+            })),
+            swaps: pipeline.adjusted
+              .filter((a) => a.swapReason)
+              .map((a) => a.swapReason),
+          },
+          matchedItems: pipeline.matchedItems,
+          generatorId: pipeline.media.toolId,
+          generatorLabel: pipeline.media.toolLabel,
+          generatorReason: pipeline.media.reason,
+          engine: pipeline.media.toolLabel,
+          assets,
+          board: all.slice(0, 24),
+        });
+      }
+
+      productReferenceUrls = [...pipeline.cutoutUrls];
+      if (productReferenceUrls.length === 0) {
+        for (const m of pipeline.matchedItems) {
+          if (m.imageUrl) productReferenceUrls.push(m.imageUrl);
+        }
+        productReferenceUrls = [...new Set(productReferenceUrls)];
+      }
+      matchedItems = pipeline.matchedItems;
+      prompt = pipeline.stagingPrompt;
+    }
+
     const assets = await madisonGenerateImage({
       prompt,
       aspectRatio: "auto" as DesignAspectRatio,
       referenceUrls,
+      productReferenceUrls,
       sourceAssetId: sourceAssetIds[0],
       sourceAssetIds: sourceAssetIds.length ? sourceAssetIds : undefined,
       matchedItems: matchedItems.length ? matchedItems : undefined,
       createdBy,
       n: 2,
+      realItems,
     });
 
     const all = await listDesignAssets();
@@ -228,7 +347,9 @@ export async function POST(request: Request) {
       uploadedId,
       mediaKind,
       boardCount,
-      referenceCount: referenceUrls.length,
+      referenceCount: referenceUrls.length + productReferenceUrls.length,
+      productReferenceCount: productReferenceUrls.length,
+      realItems,
       preparedCount: preparedImages.length,
       matchedItems,
       madisonLinkedInventory: {

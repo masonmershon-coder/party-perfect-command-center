@@ -1,3 +1,8 @@
+import {
+  isAuthError,
+  privateJson,
+  requireApiAuth,
+} from "@/lib/api-auth";
 import { getTask, updateTask } from "@/lib/storage";
 import type { TaskStatus } from "@/lib/types";
 import { NextResponse } from "next/server";
@@ -9,6 +14,9 @@ type RouteContext = {
 };
 
 export async function PATCH(request: Request, context: RouteContext) {
+  const gate = await requireApiAuth("tasks");
+  if (isAuthError(gate)) return gate;
+
   const { id } = await context.params;
 
   try {
@@ -35,13 +43,16 @@ export async function PATCH(request: Request, context: RouteContext) {
 }
 
 export async function DELETE(_request: Request, context: RouteContext) {
+  const gate = await requireApiAuth("tasks");
+  if (isAuthError(gate)) return gate;
+
   const { id } = await context.params;
   const task = await getTask(id);
 
   if (!task) {
-    return NextResponse.json({ error: "Task not found." }, { status: 404 });
+    return privateJson({ error: "Task not found." }, { status: 404 });
   }
 
   await updateTask(id, { status: "done", progress: task.progress });
-  return NextResponse.json({ success: true });
+  return privateJson({ success: true });
 }

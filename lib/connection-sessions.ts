@@ -37,11 +37,18 @@ async function writeConnections(connections: StoredConnection[]) {
   await writeDurableJson(CONNECTIONS_KEY, connections);
 }
 
+/**
+ * List connections.
+ * - omit filter → all rows (server-internal / owner metadata only — never return tokens)
+ * - empty array filter → [] (never dump all when client sends no tokens)
+ * - non-empty → filter to matching session tokens
+ */
 export async function listConnections(
   sessionTokens?: string[],
 ): Promise<StoredConnection[]> {
   const connections = await readConnections();
-  if (!sessionTokens?.length) return connections;
+  if (sessionTokens === undefined) return connections;
+  if (!sessionTokens.length) return [];
   const tokenSet = new Set(sessionTokens);
   return connections.filter((connection) =>
     tokenSet.has(connection.sessionToken),
@@ -125,16 +132,38 @@ export async function disconnectBySessionToken(
   return true;
 }
 
-/** Strip secrets before sending to client */
-export function sanitizeConnection(connection: StoredConnection) {
-  return {
+export type SanitizedConnection = {
+  id: string;
+  type: ConnectionType;
+  accountKey: string;
+  label: string;
+  connectedAt: string;
+  expiresAt?: string;
+  hasOAuthToken: boolean;
+  /** Only present on create/reconnect — never on list responses. */
+  sessionToken?: string;
+};
+
+/**
+ * Strip secrets before sending to client.
+ * `includeSessionToken` only for POST create so the browser can store the opaque id.
+ * List/GET must never echo sessionToken (client already has tokens it sent).
+ */
+export function sanitizeConnection(
+  connection: StoredConnection,
+  opts?: { includeSessionToken?: boolean },
+): SanitizedConnection {
+  const base: SanitizedConnection = {
     id: connection.id,
     type: connection.type,
     accountKey: connection.accountKey,
     label: connection.label,
     connectedAt: connection.connectedAt,
-    sessionToken: connection.sessionToken,
     expiresAt: connection.expiresAt,
     hasOAuthToken: Boolean(connection.oauthAccessToken),
   };
+  if (opts?.includeSessionToken) {
+    return { ...base, sessionToken: connection.sessionToken };
+  }
+  return base;
 }

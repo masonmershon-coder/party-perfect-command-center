@@ -1,6 +1,7 @@
 "use client";
 
 import { CatchUpPanel } from "@/app/components/dashboard/catch-up-panel";
+import { ConnectorDemoBanner } from "@/app/components/dashboard/connector-demo-banner";
 import { MetaConnectSetup } from "@/app/components/dashboard/meta-connect-setup";
 import { MetaDurableEnvPanel } from "@/app/components/dashboard/meta-durable-env-panel";
 import { PageHeader, LiveStatusBar } from "@/app/components/dashboard/page-header";
@@ -326,17 +327,17 @@ export function SocialSection({
                     : "bg-[var(--pp-border)] text-[var(--pp-text-muted)]"
                 }`}
               >
-                {connection.madisonLive ? "Live FB/IG" : "Demo"}
+                {connection.madisonLive ? "Live Careers" : "Demo"}
               </span>
             </div>
             <p className="text-xs text-[var(--pp-text-muted)]">
               {connection.madisonLive
-                ? `Warm replies for live Facebook${connection.instagramUsername ? ` + ${connection.instagramUsername}` : " + Instagram"}${
+                ? `Hiring / Careers Meta live${connection.pageName ? ` · ${connection.pageName}` : ""}${
                     connection.lastSyncedAt
                       ? ` · last sync ${formatTime(connection.lastSyncedAt)}`
                       : ""
-                  }`
-                : "Connect Meta below so Madison can run live Facebook + Instagram."}
+                  }. Brand FB/IG needs a second app later.`
+                : "Connect hiring Meta below (Careers Page). Brand Facebook + Instagram need a second Developer app later."}
             </p>
           </div>
           <button
@@ -355,6 +356,18 @@ export function SocialSection({
         lastCheckedAt={lastCheckedAt}
         isRefreshing={isRefreshing}
       />
+
+      {connection.mode === "demo" ? (
+        <ConnectorDemoBanner
+          label="Social (Meta)"
+          connectHint="Connect Facebook below. Until then, comments and DMs are demo."
+          onConnect={() => {
+            const first = accounts[0];
+            if (first) void onConnect(first.platform, oauthUrls[first.platform]);
+          }}
+          connectLabel="Connect Meta"
+        />
+      ) : null}
 
       {needsReplyComments > 0 && (
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--pp-border)] bg-[var(--pp-bg)] px-4 py-3">
@@ -449,7 +462,7 @@ export function SocialSection({
                       : "bg-[var(--pp-accent-muted)] text-[var(--pp-text-muted)]"
                   }`}
                 >
-                  {connected ? "Connected" : "Not connected"}
+                  {connected ? "Connected" : "Not connected — demo data"}
                 </span>
               </div>
               <div className="mt-4 flex gap-2">

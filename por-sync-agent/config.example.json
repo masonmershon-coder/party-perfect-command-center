@@ -1,10 +1,11 @@
 {
   "CommandCenterUrl": "https://partyperfect.app",
   "PorSyncSecret": "REPLACE_WITH_SAME_SECRET_AS_VERCEL_POR_SYNC_SECRET",
-  "SqlServer": "localhost\\SQLEXP",
+  "SqlServer": "ENTERPRISE,9676",
   "SqlDatabase": "POR",
   "SqlUser": "",
   "SqlPassword": "",
   "UseWindowsAuth": true,
-  "SourceHost": "ENTERPRISE"
+  "SourceHost": "ENTERPRISE",
+  "CrmWindowDays": 90
 }

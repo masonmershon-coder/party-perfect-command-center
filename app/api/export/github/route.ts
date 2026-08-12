@@ -1,3 +1,7 @@
+import {
+  isAuthError,
+  requireApiAuth,
+} from "@/lib/api-auth";
 import { exportDashboardToGitHub } from "@/lib/github";
 import { loadDashboardExport } from "@/lib/storage";
 import type { GitHubExportInput } from "@/lib/types";
@@ -6,6 +10,9 @@ import { NextResponse } from "next/server";
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
+  const gate = await requireApiAuth("admin");
+  if (isAuthError(gate)) return gate;
+
   const token = process.env.GITHUB_TOKEN;
 
   if (!token) {

@@ -1,5 +1,6 @@
 "use client";
 
+import { ConnectorDemoBanner } from "@/app/components/dashboard/connector-demo-banner";
 import { PageHeader, LiveStatusBar } from "@/app/components/dashboard/page-header";
 import { StatusBadge } from "@/app/components/status-badge";
 import type { Agent, Task, TaskStatus } from "@/lib/types";
@@ -83,6 +84,11 @@ export function TasksSection({
         checking={isRefreshing}
         lastCheckedAt={lastCheckedAt}
         isRefreshing={isRefreshing}
+      />
+
+      <ConnectorDemoBanner
+        label="Tasks"
+        connectHint="The task board is Command Center-local, not POR. There is no external work-order connector yet."
       />
 
       <form

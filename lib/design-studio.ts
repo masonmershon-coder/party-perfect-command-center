@@ -460,6 +460,40 @@ async function persistGeneratedImage(input: {
   });
 }
 
+/** Save FAL/xAI output URLs into Design Studio history. */
+export async function saveMadisonMediaResult(input: {
+  urls: string[];
+  prompt: string;
+  aspectRatio?: DesignAspectRatio;
+  sourceAssetId?: string;
+  sourceAssetIds?: string[];
+  matchedItems?: DesignMatchedItem[];
+  createdBy?: string;
+  generatorId?: string;
+  generatorLabel?: string;
+  generatorReason?: string;
+}): Promise<DesignAsset[]> {
+  const aspectRatio = input.aspectRatio || "auto";
+  const assets: DesignAsset[] = [];
+  for (const sourceUrl of input.urls) {
+    assets.push(
+      await persistGeneratedImage({
+        sourceUrl,
+        prompt: input.prompt,
+        aspectRatio,
+        sourceAssetId: input.sourceAssetId,
+        sourceAssetIds: input.sourceAssetIds,
+        matchedItems: input.matchedItems,
+        createdBy: input.createdBy,
+        generatorId: input.generatorId,
+        generatorLabel: input.generatorLabel,
+        generatorReason: input.generatorReason,
+      }),
+    );
+  }
+  return assets;
+}
+
 function dataUriToBuffer(dataUri: string): Buffer | null {
   const match = /^data:([^;]+);base64,([\s\S]+)$/.exec(dataUri.trim());
   if (!match) return null;
@@ -548,7 +582,10 @@ export async function madisonGenerateImage(input: {
   aspectRatio?: DesignAspectRatio;
   /** @deprecated prefer referenceUrls */
   referenceUrl?: string;
+  /** Staff showroom / phone uploads */
   referenceUrls?: string[];
+  /** Real SKU product shots (June-style) */
+  productReferenceUrls?: string[];
   sourceAssetId?: string;
   sourceAssetIds?: string[];
   matchedItems?: DesignMatchedItem[];
@@ -556,6 +593,7 @@ export async function madisonGenerateImage(input: {
   n?: number;
   goal?: "proposal" | "social" | "auto";
   preferVideo?: boolean;
+  realItems?: boolean;
 }): Promise<DesignAsset[]> {
   const { madisonCreateMedia } = await import("@/lib/madison-media");
 
@@ -564,25 +602,25 @@ export async function madisonGenerateImage(input: {
 
   const aspectRatio = input.aspectRatio || "auto";
   const n = Math.min(Math.max(input.n ?? 2, 1), 4);
-  const rawRefs = [
+  const rawUserRefs = [
     ...(input.referenceUrls || []),
     ...(input.referenceUrl ? [input.referenceUrl] : []),
   ]
     .map((u) => u.trim())
     .filter(Boolean);
-
-  // Pack large look boards for engines with low ref limits; Flux edit can take more.
-  const packedForXai = await packReferenceImagesForMadison(rawRefs);
-  const refsForJob =
-    rawRefs.length > 3 ? rawRefs.slice(0, 8) : packedForXai.length ? packedForXai : rawRefs;
+  const rawProductRefs = (input.productReferenceUrls || [])
+    .map((u) => u.trim())
+    .filter(Boolean);
 
   const media = await madisonCreateMedia({
     prompt: basePrompt,
     aspectRatio,
-    referenceUrls: refsForJob,
+    referenceUrls: rawUserRefs.slice(0, 8),
+    productReferenceUrls: rawProductRefs.slice(0, 8),
     n,
     goal: input.goal || "proposal",
     preferVideo: input.preferVideo,
+    realItems: input.realItems,
   });
 
   const assets: DesignAsset[] = [];

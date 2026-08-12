@@ -1,5 +1,7 @@
 import { isApplicationBackupEmailConfigured } from "@/lib/application-mail";
 import { getAppVersionPayload } from "@/lib/app-version";
+import { isAiCoreConfigured } from "@/lib/ai-core";
+import { probeSupabaseReadOnly } from "@/lib/supabase-probe";
 import { getTwilioPublicStatus } from "@/lib/twilio";
 import { isVercelRuntime } from "@/lib/data-dir";
 import {
@@ -67,6 +69,7 @@ async function fetchTwilioCompliance() {
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const deep = searchParams.get("probe") === "1";
+  const dbProbe = searchParams.get("probe") === "db";
 
   const twilio = getTwilioPublicStatus();
   const version = getAppVersionPayload();
@@ -75,6 +78,7 @@ export async function GET(request: Request) {
   const googleAdsStatus = publicGoogleAdsStatus(
     await readGoogleAdsCredentials(),
   );
+  const database = dbProbe ? await probeSupabaseReadOnly() : undefined;
 
   const compliance = deep ? await fetchTwilioCompliance() : null;
   const jobsStore = deep
@@ -105,7 +109,10 @@ export async function GET(request: Request) {
     porSyncConfigured: isPorSyncConfigured(),
     porSnapshotPresent: porMeta.present,
     porSnapshotStale: porMeta.stale,
+    porSnapshotVeryStale: porMeta.veryStale,
+    porSnapshotFreshness: porMeta.freshness,
     porSyncedAt: porMeta.syncedAt,
+    porSyncedAgo: porMeta.ageLabel,
     version: version.version,
     releasedAt: version.releasedAt,
     versionLabel: version.label,
@@ -119,6 +126,8 @@ export async function GET(request: Request) {
     googleAdsOAuth: googleAdsStatus.hasRefreshToken,
     googleAdsAccount: googleAdsStatus.accountEmail,
     managerPhone: twilio.toDisplay,
+    aiCoreConfigured: isAiCoreConfigured(),
     checkedAt: new Date().toISOString(),
+    ...(database ? { database } : {}),
   });
 }

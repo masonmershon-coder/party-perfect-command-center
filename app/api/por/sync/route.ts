@@ -1,10 +1,18 @@
 import {
+  isAuthError,
+  requireApiAuth,
+} from "@/lib/api-auth";
+import {
   getPorSnapshot,
   getPorSyncMeta,
   isPorSyncConfigured,
   isValidPorSnapshot,
   savePorSnapshot,
 } from "@/lib/por-snapshot";
+import {
+  recordPorSyncError,
+  recordPorSyncSuccess,
+} from "@/lib/por-sync-health";
 import type { PorSnapshot } from "@/lib/types";
 import { NextResponse } from "next/server";
 
@@ -21,6 +29,9 @@ function authorize(request: Request) {
 
 /** Latest POR snapshot for Command Center UI (read-only). */
 export async function GET() {
+  const gate = await requireApiAuth("por");
+  if (isAuthError(gate)) return gate;
+
   const snapshot = await getPorSnapshot();
   const meta = getPorSyncMeta(snapshot);
   return NextResponse.json({
@@ -52,6 +63,10 @@ export async function POST(request: Request) {
   try {
     const body = (await request.json()) as unknown;
     if (!isValidPorSnapshot(body)) {
+      await recordPorSyncError(
+        "snapshot",
+        "Invalid POR snapshot. Expected version:1 with inventory, money, and ops.",
+      );
       return NextResponse.json(
         {
           error:
@@ -67,6 +82,7 @@ export async function POST(request: Request) {
     };
 
     await savePorSnapshot(snapshot);
+    await recordPorSyncSuccess("snapshot");
     const meta = getPorSyncMeta(snapshot);
 
     return NextResponse.json({
@@ -77,6 +93,7 @@ export async function POST(request: Request) {
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Failed to store POR snapshot.";
+    await recordPorSyncError("snapshot", message);
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

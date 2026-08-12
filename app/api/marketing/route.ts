@@ -1,4 +1,9 @@
 import {
+  isAuthError,
+  privateJson,
+  requireApiAuth,
+} from "@/lib/api-auth";
+import {
   createMarketingItem,
   listMarketing,
   updateMarketingItem,
@@ -9,11 +14,17 @@ import { NextResponse } from "next/server";
 export const runtime = "nodejs";
 
 export async function GET() {
+  const gate = await requireApiAuth("marketing");
+  if (isAuthError(gate)) return gate;
+
   const marketing = await listMarketing();
-  return NextResponse.json({ marketing });
+  return privateJson({ marketing });
 }
 
 export async function POST(request: Request) {
+  const gate = await requireApiAuth("marketing");
+  if (isAuthError(gate)) return gate;
+
   try {
     const body = (await request.json()) as CreateMarketingInput;
 
@@ -34,6 +45,9 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
+  const gate = await requireApiAuth("marketing");
+  if (isAuthError(gate)) return gate;
+
   try {
     const body = (await request.json()) as {
       id: string;

@@ -1,3 +1,8 @@
+import {
+  isAuthError,
+  privateJson,
+  requireApiAuth,
+} from "@/lib/api-auth";
 import { createAgent, listAgents } from "@/lib/storage";
 import type { CreateAgentInput } from "@/lib/types";
 import { NextResponse } from "next/server";
@@ -5,11 +10,17 @@ import { NextResponse } from "next/server";
 export const runtime = "nodejs";
 
 export async function GET() {
+  const gate = await requireApiAuth("agents");
+  if (isAuthError(gate)) return gate;
+
   const agents = await listAgents();
-  return NextResponse.json({ agents });
+  return privateJson({ agents });
 }
 
 export async function POST(request: Request) {
+  const gate = await requireApiAuth("agents");
+  if (isAuthError(gate)) return gate;
+
   try {
     const body = (await request.json()) as CreateAgentInput;
 

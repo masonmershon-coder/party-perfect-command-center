@@ -1,0 +1,34 @@
+---
+description: Always orient from Party Perfect AI-HANDOFF before substantive work
+alwaysApply: true
+---
+
+# Party Perfect AI handoff (required startup)
+
+You are **Cursor** on the Party Perfect Command Center. Claude Code is your teammate. Mason is the decision-maker.
+
+## Before substantive work (every chat)
+
+1. Read `AI-HANDOFF/CURRENT_TASK.md`
+2. Read `AI-HANDOFF/CLAUDE_TO_CURSOR.md` (newest Claude handoff)
+3. Read `AI-HANDOFF/PING.json` if present (latest turn signal)
+4. Read `AI-HANDOFF/DECISIONS.md` and `AI-HANDOFF/BLOCKERS.md`
+5. Skim `AI-HANDOFF/REVIEW_QUEUE.md`
+6. Run `git status` / note branch — do not destroy uncommitted work
+7. Only then act
+
+If `CURRENT_TASK` is `READY_FOR_CURSOR`, that is your job unless Mason overrides.
+
+## After meaningful work
+
+Update `AI-HANDOFF/CURSOR_TO_CLAUDE.md` and `CURRENT_TASK.md` status. Optionally run `scripts/ai-handoff-ping.sh --from cursor --to claude --status … --summary "…" --notify`. Never finish substantial work with only “Done.”
+
+Live sync details: `AI-HANDOFF/RELAY.md`.
+
+## Never in handoff files
+
+Passwords, API keys, tokens, customer PII, card data. Use env var names only.
+
+## Source of truth
+
+POR on ENTERPRISE is authoritative. Do not invent business numbers. No POR write-back without Mason approval.

@@ -134,6 +134,55 @@ async function runKontextOnce(
 }
 
 /**
+ * June-style: one real product photo → new scene. Keeps product pixels intact.
+ */
+export async function runBriaProductScene(
+  tool: MadisonMediaTool,
+  job: MadisonMediaJob,
+): Promise<MadisonMediaResult> {
+  const productRefs = prepareRefs(job.productReferenceUrls || [], 1);
+  const fallbackRefs = prepareRefs(job.referenceUrls || [], 1);
+  const productUrl = productRefs[0] || fallbackRefs[0];
+  if (!productUrl) {
+    throw new Error("Bria product scene needs a real SKU product photo URL.");
+  }
+
+  const n = Math.min(Math.max(job.n ?? 2, 1), 4);
+  const scene = job.prompt.trim().slice(0, 480);
+
+  const payload = await falRun(tool.modelId, {
+    image_url: productUrl,
+    scene_description: scene,
+    fast: true,
+    optimize_description: true,
+    num_results: Math.min(n, 2),
+    placement_type: "automatic",
+  });
+  let urls = collectUrls(payload);
+
+  if (urls.length < n && n > 1) {
+    const alt = await falRun(tool.modelId, {
+      image_url: productUrl,
+      scene_description: `${scene}. Alternate camera angle, golden hour Tulsa event lighting.`,
+      fast: true,
+      optimize_description: false,
+      num_results: 1,
+      placement_type: "automatic",
+    });
+    urls = [...urls, ...collectUrls(alt)];
+  }
+
+  if (!urls.length) throw new Error("Bria product scene returned no images.");
+  return {
+    urls: urls.slice(0, n),
+    toolId: tool.id,
+    toolLabel: tool.label,
+    modelId: tool.modelId,
+    reason: "Bria product-shot — real SKU anchor, generated scene only",
+  };
+}
+
+/**
  * Multi-reference inventory edit. Falls back to single-image kontext if needed.
  * When staff uploads a look board, run two edit strengths so results stay
  * product-true instead of rebuilding a glossy AI venue.
@@ -143,7 +192,13 @@ export async function runFluxEdit(
   job: MadisonMediaJob,
 ): Promise<MadisonMediaResult> {
   const n = Math.min(Math.max(job.n ?? 2, 1), 4);
-  const refs = prepareRefs(job.referenceUrls || [], tool.maxReferences);
+  const refs = prepareRefs(
+    [
+      ...(job.referenceUrls || []),
+      ...(job.productReferenceUrls || []),
+    ],
+    tool.maxReferences,
+  );
   if (!refs.length) {
     throw new Error("Flux edit needs at least one reference photo.");
   }

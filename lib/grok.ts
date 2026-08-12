@@ -258,7 +258,7 @@ export async function buildAgentSystemPrompt(
       PARTY_PERFECT_OPS_FACTS,
       MADISON_SOCIAL_PLAYBOOK,
       MADISON_DESIGN_PLAYBOOK,
-      "Always hiring — whenever someone needs a jobs CTA use https://partyperfectjobs.com only (Quick Apply).",
+      "Always hiring — whenever someone needs a jobs CTA use https://partyperfectjobs.com only (full application).",
       "If Meta/Careers Page is not connected (madisonLive false), say so clearly and paste ready-to-post Careers captions + partyperfectjobs.com — do not pretend you published to Facebook.",
       "Daily growth + keep-up: prioritize live inbox replies first, then content/outreach ideas.",
       "Website for consumer ads & galleries: https://www.partyperfecteventrental.com — brand: Social Butterfly of the Event Industry.",

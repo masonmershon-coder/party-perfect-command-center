@@ -1118,6 +1118,10 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     por: {
       syncedAt: porMeta.syncedAt,
       stale: porMeta.stale,
+      veryStale: porMeta.veryStale,
+      freshness: porMeta.freshness,
+      ageMs: porMeta.ageMs,
+      ageLabel: porMeta.ageLabel,
       arOpenBalance: canonical?.ar_open ?? por?.money.arOpenBalance ?? null,
       openContracts: canonical?.open_contracts ?? null,
       deliveriesToday: canonical?.deliveries_today ?? null,

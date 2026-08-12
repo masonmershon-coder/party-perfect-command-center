@@ -1,5 +1,6 @@
 import { assertGrokConfigured } from "@/lib/grok";
 import {
+  runBriaProductScene,
   runFluxEdit,
   runFluxPhotoreal,
   runKlingVideo,
@@ -140,6 +141,8 @@ async function executeTool(
   job: MadisonMediaJob,
 ): Promise<MadisonMediaResult> {
   switch (tool.id) {
+    case "bria-product-scene":
+      return runBriaProductScene(tool, job);
     case "flux-photoreal":
       return runFluxPhotoreal(tool, job);
     case "flux-edit":
@@ -179,9 +182,19 @@ export async function madisonCreateMedia(
   for (const tool of queue) {
     if (tool.kind === "video" && !job.preferVideo) continue;
     if (tool.kind === "image" && job.preferVideo) continue;
-    const refs = (job.referenceUrls || []).filter(Boolean).length;
+    const userRefs = (job.referenceUrls || []).filter(Boolean).length;
+    const productRefs = (job.productReferenceUrls || []).filter(Boolean).length;
+    const refs = userRefs + productRefs;
     if (refs === 0 && !tool.supportsTextOnly) continue;
     if (refs > 0 && tool.maxReferences === 0) continue;
+    if (
+      job.realItems &&
+      productRefs === 0 &&
+      userRefs === 0 &&
+      (tool.id === "flux-photoreal" || tool.id === "xai-imagine")
+    ) {
+      continue;
+    }
 
     tried.push(tool.id);
     try {

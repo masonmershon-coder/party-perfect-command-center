@@ -1,4 +1,8 @@
 import {
+  isAuthError,
+  requireApiAuth,
+} from "@/lib/api-auth";
+import {
   buildCatchUpPrompt,
   fallbackCatchUpSummary,
   gatherCatchUpItems,
@@ -12,6 +16,9 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 export async function GET() {
+  const gate = await requireApiAuth("emails");
+  if (isAuthError(gate)) return gate;
+
   const items = await gatherCatchUpItems();
   const { emailCount, socialCount, totalCount } = buildCatchUpPrompt(items);
 
@@ -28,6 +35,9 @@ export async function GET() {
 }
 
 export async function POST() {
+  const gate = await requireApiAuth("emails");
+  if (isAuthError(gate)) return gate;
+
   try {
     const items = await gatherCatchUpItems();
     const prompt = buildCatchUpPrompt(items);

@@ -1,3 +1,7 @@
+import {
+  isAuthError,
+  requireApiAuth,
+} from "@/lib/api-auth";
 import { updateSocialComment, updateSocialMessage } from "@/lib/storage";
 import type { SocialInteractionStatus } from "@/lib/types";
 import { NextResponse } from "next/server";
@@ -9,6 +13,9 @@ type RouteContext = {
 };
 
 export async function PATCH(request: Request, context: RouteContext) {
+  const gate = await requireApiAuth("social");
+  if (isAuthError(gate)) return gate;
+
   const { kind, id } = await context.params;
 
   try {

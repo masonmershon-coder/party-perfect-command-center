@@ -12,6 +12,7 @@
  * Requires: pg. Degrades gracefully (throws a clear error) until DATABASE_URL is set.
  */
 import pg from "pg";
+import { isValidTransactionPoolerUri } from "./supabase-probe";
 
 let pool: pg.Pool | null = null;
 function db(): pg.Pool {
@@ -23,7 +24,7 @@ function db(): pg.Pool {
 }
 
 export function isPorDbConfigured(): boolean {
-  return Boolean(process.env.DATABASE_URL?.trim());
+  return isValidTransactionPoolerUri(process.env.DATABASE_URL);
 }
 
 export type CustomerHit = {

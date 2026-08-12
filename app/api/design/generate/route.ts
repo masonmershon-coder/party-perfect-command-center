@@ -1,4 +1,8 @@
 import {
+  isAuthError,
+  requireApiAuth,
+} from "@/lib/api-auth";
+import {
   listDesignAssets,
   madisonGenerateImage,
   resolveDesignImageForLlm,
@@ -9,6 +13,10 @@ import {
   matchInventoryForDesign,
   toMatchedDesignItems,
 } from "@/lib/website-catalog";
+import {
+  getProductImage,
+  resolveProductImagesForText,
+} from "@/lib/product-images";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
@@ -24,6 +32,9 @@ const ASPECTS = new Set<DesignAspectRatio>([
 ]);
 
 export async function POST(request: Request) {
+  const gate = await requireApiAuth("design");
+  if (isAuthError(gate)) return gate;
+
   try {
     const body = (await request.json().catch(() => null)) as {
       prompt?: string;
@@ -33,6 +44,7 @@ export async function POST(request: Request) {
       catalogKeys?: string[];
       createdBy?: string;
       n?: number;
+      realItems?: boolean;
     } | null;
 
     const prompt = body?.prompt?.trim() || "";
@@ -46,6 +58,8 @@ export async function POST(request: Request) {
     const aspectRatio = ASPECTS.has(body?.aspectRatio as DesignAspectRatio)
       ? (body!.aspectRatio as DesignAspectRatio)
       : "auto";
+
+    const realItems = body?.realItems !== false;
 
     const allAssets = await listDesignAssets();
     const refIds = [
@@ -96,14 +110,41 @@ export async function POST(request: Request) {
           )
         : await matchInventoryForDesign(prompt, 6);
 
+    const productReferenceUrls: string[] = [];
+    if (realItems && refIds.length === 0) {
+      const resolved = await resolveProductImagesForText(prompt, 6);
+      for (const hit of resolved) {
+        if (hit.url && !productReferenceUrls.includes(hit.url)) {
+          productReferenceUrls.push(hit.url);
+        }
+      }
+    }
+
     // Auto-attach strong catalog photos only when no studio uploads were given.
-    if (refIds.length === 0 && catalogItems.length === 0) {
+    if (refIds.length === 0 && catalogItems.length === 0 && !realItems) {
       for (const match of matchedItems) {
         if (referenceUrls.length >= 3) break;
         if (!match.imageUrl) continue;
         if ((match.score ?? 0) < 50) continue;
         if (referenceUrls.includes(match.imageUrl)) continue;
         referenceUrls.push(match.imageUrl);
+      }
+    }
+
+    if (realItems && productReferenceUrls.length === 0 && refIds.length === 0) {
+      for (const match of matchedItems) {
+        if (!match.imageUrl) continue;
+        if ((match.score ?? 0) < 40) continue;
+        if (productReferenceUrls.includes(match.imageUrl)) continue;
+        productReferenceUrls.push(match.imageUrl);
+        if (productReferenceUrls.length >= 3) break;
+      }
+    }
+
+    for (const key of catalogKeys) {
+      const hit = await getProductImage(key);
+      if (hit.url && !productReferenceUrls.includes(hit.url)) {
+        productReferenceUrls.push(hit.url);
       }
     }
 
@@ -119,18 +160,22 @@ export async function POST(request: Request) {
       prompt: `${prompt}${inventoryNote}`,
       aspectRatio,
       referenceUrls,
+      productReferenceUrls,
       sourceAssetId: sourceAssetIds[0],
       sourceAssetIds: sourceAssetIds.length ? sourceAssetIds : undefined,
       matchedItems: matchedItems.length ? matchedItems : undefined,
       createdBy: body?.createdBy?.trim().slice(0, 60),
       n: body?.n,
+      realItems,
     });
 
     return NextResponse.json({
       success: true,
       assets,
       matchedItems,
-      referenceCount: referenceUrls.length,
+      referenceCount: referenceUrls.length + productReferenceUrls.length,
+      productReferenceCount: productReferenceUrls.length,
+      realItems,
     });
   } catch (error) {
     const message =

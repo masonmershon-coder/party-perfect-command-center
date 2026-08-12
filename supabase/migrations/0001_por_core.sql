@@ -22,9 +22,11 @@ create table if not exists por.salesmen (
   imported_at timestamptz not null default now()
 );
 
--- --- customers (CustomerFile.csv; PK = KEY) ---
+-- --- customers (CustomerFile.csv)
+-- PK `key` = trimmed CNUM (joins Transactions.CUSN). CSV KEY (often phone) → alt_key.
 create table if not exists por.customers (
-  key              text primary key,
+  key              text primary key,  -- CNUM
+  alt_key          text,              -- CustomerFile.KEY when distinct
   name             text,
   first_name       text,
   last_name        text,
@@ -85,9 +87,9 @@ create index if not exists contracts_date_idx     on por.contracts (txn_date);
 create index if not exists contracts_status_idx   on por.contracts (status);
 create index if not exists contracts_salesman_idx on por.contracts (salesman);
 
--- --- line items (TransactionItems.csv; PK = Id) ---
+-- --- line items (TransactionItems.csv; PK = Id — POR composite string, not bigint) ---
 create table if not exists por.contract_items (
-  id             bigint primary key,
+  id             text primary key,
   cntr           text,            -- -> contracts.cntr
   item           text,            -- ITEM -> items.num
   qty            numeric(14,2),

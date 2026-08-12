@@ -1,34 +1,49 @@
-# Design Studio (Madison)
+# Madison Design Studio — subbot pipeline
 
-Sidebar tab **Design Studio** for showroom / décor team (Selina + showgirls).
+June-style flow: **real catalog images → cached cutouts → one FAL staging call**.
 
-## Phone flow
-1. Build a **look board** — up to 8 photos/videos (multi-select)
-2. Optional: pick **website inventory** pieces so looks match real rentals
-3. Type a **command** → **Send to Madison** → she returns **2 looks**
+```
+LIVE CATALOG SYNC (~10 min)
+  └─ rentable item: qty + rate + imageUrl
+        │
+   ┌────┴─ IMAGE-INGEST (`/api/por/sync/catalog-images`)
+   │        sourceUrl hash unchanged? → SKIP
+   │        new/changed? → fetch once → Blob mirror (`product-catalog/{sku}`)
+   │
+   ├─ CUTOUT (`fal-ai/birefnet/v2`, once per content hash)
+   │        → transparent PNG in Blob (`product-cutouts/{hash}.png`)
+   │
+   … showroom: "blush + gold garden tablescape, gold chargers, white linen" …
+   │
+   ├─ RESOLVER (`lib/design-resolver.ts`) — local fuzzy match → SKUs + cutouts
+   ├─ AVAILABILITY (`lib/design-availability.ts`) — in stock on date? swap sibling SKU
+   ├─ STAGING (`lib/design-staging.ts`) — **only FAL spend** in happy path
+   │     1 cutout → `fal-ai/bria/product-shot`
+   │     2+ cutouts → `fal-ai/flux-pro/kontext/multi`
+   └─ ESCALATE (Grok) — only when resolver confidence low or hard layout/style ask
+```
 
-## Media router (photoreal operators)
-Madison keeps social/leads on Grok. For photos/videos she **scans** configured engines and picks the best fit:
+## Ops
 
-| Tool | Needs | Best for |
-|------|--------|----------|
-| **Flux Inventory Edit** | `FAL_KEY` | Look board / catalog refs → photoreal proposals |
-| **Flux Photoreal** | `FAL_KEY` | Text → photoreal when no refs |
-| **Grok Imagine** | `XAI_API_KEY` | Fallback / secondary |
-| **Kling Video** | `FAL_KEY` | Optional still → short motion (future UI) |
+After each catalog push, ENTERPRISE agent calls:
 
-Override with `MADISON_IMAGE_ENGINE=auto|flux|xai`.
+`POST /api/por/sync/catalog-images` (Bearer `POR_SYNC_SECRET`)
 
-`GET /api/design/tools` — what Madison can use right now.
+Processes **40 SKUs per call** (round-robin cursor). Full catalog fills over successive sync cycles.
 
-## APIs
-- `POST /api/design/command` — multipart `command` + `files` / `videoFrames` + optional `catalogKeys`
-- `GET /api/design` — board
-- `GET /api/design/tools` — engine scan
-- `POST /api/design/catalog` — sync website inventory photos
-- `DELETE /api/design` — `{ id }`
+## Cache keys
 
-Storage: durable JSON + private Vercel Blob when configured.
+| Store | Key |
+|-------|-----|
+| SKU → mirror/cutout | `product-image-cache.json` |
+| Ingest cursor | `product-image-ingest-meta.json` |
 
-## Access
-Open to employees (no owner PIN) — same as Social / Hiring.
+## Design command
+
+Text-only + **Design with real items** uses `runDesignPipeline()` in `/api/design/command`.
+
+Staff photos still use look-board + Kontext; pipeline cutouts append as product refs.
+
+## Website CTA
+
+Replace tryjune → `https://partyperfect.app/?section=design` after quality sign-off.

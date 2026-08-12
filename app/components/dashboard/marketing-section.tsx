@@ -1,5 +1,6 @@
 "use client";
 
+import { ConnectorDemoBanner } from "@/app/components/dashboard/connector-demo-banner";
 import { PageHeader } from "@/app/components/dashboard/page-header";
 import { StatusBadge } from "@/app/components/status-badge";
 import {
@@ -121,6 +122,13 @@ export function MarketingSection({
         title="Marketing / Google Ads"
         description="Mike manages Tulsa Google Ads keywords and budget once Ads API is connected. OAuth only — never paste Google passwords."
       />
+
+      {!live ? (
+        <ConnectorDemoBanner
+          label="Marketing (Google Ads)"
+          connectHint="Save Ads API credentials and Connect Google below. Until then, campaign rows may be demo."
+        />
+      ) : null}
 
       <div
         className={`pp-panel mb-6 rounded-2xl border p-5 ${

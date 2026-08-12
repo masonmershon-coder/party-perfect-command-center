@@ -1,0 +1,123 @@
+{
+  "tasks": {
+    "POR-STAT-VERIFY-001": {
+      "task_id": "POR-STAT-VERIFY-001",
+      "created_at": "2026-08-12T20:52:03.740Z",
+      "created_by": "claude",
+      "owner_agent": "claude",
+      "verifier_agent": "codex",
+      "subsystem": "por",
+      "objective": "Verify POR Transactions.STAT 2-char (primary+secondary) decoding against raw SSD lookups",
+      "priority": "high",
+      "risk_tier": 0,
+      "dependencies": null,
+      "approval_required": false,
+      "status": "READY_FOR_VERIFICATION",
+      "expected_evidence": "Every distinct value in POR-STATUS-CODES.csv decomposes via TransactionStatus + TransactionSecondaryStatus",
+      "evidence_paths": [
+        "AI-HANDOFF/EVIDENCE/POR-STAT-VERIFY-001.md",
+        "/Volumes/PARTYPERF/PARTY-PERFECT-BRAIN/15-RAW-EXPORTS/2026-08-07_catalog-reservations-schema/POR-STATUS-CODES.csv",
+        "12 - Build - Modern Checkout/POR_OPERATING_SYSTEM_MAP.md#12"
+      ],
+      "result": null,
+      "error": null,
+      "next_action": null,
+      "last_updated_at": "2026-08-12T20:52:04.117Z",
+      "claim": "STAT = 2-char primary+secondary; decodes via TransactionStatus + TransactionSecondaryStatus lookups",
+      "known_limitations": null,
+      "unverified": [
+        "WW-char2-W",
+        "QC-char2",
+        "OJ-char2",
+        "blank-vs-O-vs-D"
+      ],
+      "files": null
+    },
+    "COMMAND-CENTER-0C476A": {
+      "task_id": "COMMAND-CENTER-0C476A",
+      "created_at": "2026-08-12T20:52:04.236Z",
+      "created_by": "claude",
+      "owner_agent": "cursor",
+      "verifier_agent": "codex",
+      "subsystem": "command-center",
+      "objective": "Surface AI control-plane dashboard in /matter (Agent/Task/Owner/Verifier/Status/Approval/Blocker from MASTER_STATE.json + HEARTBEATS.json)",
+      "priority": "normal",
+      "risk_tier": 1,
+      "dependencies": null,
+      "approval_required": false,
+      "status": "WAITING_FOR_WORKER",
+      "expected_evidence": null,
+      "evidence_paths": null,
+      "result": null,
+      "error": null,
+      "next_action": null,
+      "last_updated_at": "2026-08-12T21:03:40.127Z",
+      "claim": null,
+      "known_limitations": null,
+      "unverified": null,
+      "files": null
+    },
+    "POR-KITS-VERIFY-001": {
+      "task_id": "POR-KITS-VERIFY-001",
+      "created_at": "2026-08-12T21:03:39.022Z",
+      "created_by": "claude",
+      "owner_agent": "claude",
+      "verifier_agent": "codex",
+      "subsystem": "por",
+      "objective": "Verify POR kit semantics (ItemKits: parent Num -> component ItemKey x Quantity) against raw SSD",
+      "priority": "high",
+      "risk_tier": 0,
+      "dependencies": null,
+      "approval_required": false,
+      "status": "READY_FOR_VERIFICATION",
+      "expected_evidence": "ItemKits decomposes to real ItemFile components",
+      "evidence_paths": [
+        "AI-HANDOFF/EVIDENCE/POR-KITS-VERIFY-001.md",
+        "/Volumes/PARTYPERF/PARTY-PERFECT-BRAIN/15-RAW-EXPORTS/2026-08-10_POR-FULL-DATA/ItemKits.csv"
+      ],
+      "result": null,
+      "error": null,
+      "next_action": null,
+      "last_updated_at": "2026-08-12T21:03:39.505Z",
+      "claim": "ItemKits.Num(parent)->ItemKey(component) x Quantity, ordered by SubField; rate overrides per component",
+      "known_limitations": null,
+      "unverified": [
+        "SelectType",
+        "MultiGroup",
+        "ActionType",
+        "ItemFile.TYPE-kit-flag",
+        "kit-expansion-on-TransactionItems"
+      ],
+      "files": null
+    },
+    "CERT-HARNESS-VERIFY-001": {
+      "task_id": "CERT-HARNESS-VERIFY-001",
+      "created_at": "2026-08-12T21:03:39.634Z",
+      "created_by": "claude",
+      "owner_agent": "claude",
+      "verifier_agent": "codex",
+      "subsystem": "bridge",
+      "objective": "Codex adversarially audits the certification harness (find any false CERTIFIED_PASS path)",
+      "priority": "high",
+      "risk_tier": 0,
+      "dependencies": null,
+      "approval_required": false,
+      "status": "READY_FOR_VERIFICATION",
+      "expected_evidence": "No path to a false CERTIFIED_PASS; 7/7 tests + real-CNTR proof reproduce",
+      "evidence_paths": [
+        "AI-HANDOFF/EVIDENCE/CERT-HARNESS-VERIFY-001.md",
+        "/Users/mikeai/Matter/por-bridge/por-verifier.mjs",
+        "/Users/mikeai/Matter/por-bridge/por-verifier.test.mjs"
+      ],
+      "result": null,
+      "error": null,
+      "next_action": null,
+      "last_updated_at": "2026-08-12T21:03:39.941Z",
+      "claim": "harness independent+honest; blocks self-cert; catches missing/false/corrupted; UNVERIFIED on unreadable required fields",
+      "known_limitations": null,
+      "unverified": null,
+      "files": null
+    }
+  },
+  "updatedAt": "2026-08-12T21:03:40.128Z"
+}

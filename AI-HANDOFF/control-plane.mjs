@@ -34,7 +34,7 @@ const ownerFor = (subsystem) => SUBSYSTEM_OWNER[String(subsystem || "").toLowerC
 const NEXT = {
   NEW: ["CLAIMED", "WAITING_FOR_WORKER"], CLAIMED: ["IN_PROGRESS", "NEW"],
   IN_PROGRESS: ["READY_FOR_VERIFICATION", "BLOCKED", "NEEDS_FIX"],
-  READY_FOR_VERIFICATION: ["VERIFYING"], VERIFYING: ["CERTIFIED_PASS", "FAILED"],
+  READY_FOR_VERIFICATION: ["VERIFYING"], VERIFYING: ["CERTIFIED_PASS", "FAILED", "BLOCKED"],
   FAILED: ["NEEDS_FIX"], NEEDS_FIX: ["CLAIMED", "IN_PROGRESS"],
   BLOCKED: ["IN_PROGRESS", "CLAIMED"], CERTIFIED_PASS: [],
   WAITING_FOR_WORKER: ["CLAIMED"],   // parked until an autonomous worker for the owner exists
@@ -150,6 +150,12 @@ function cmdBlock(taskId, agent, reason, escalate) {
   const st = loadState(); const t = st.tasks[taskId];
   if (!t) throw new Error(`no task ${taskId}`);
   if (!(NEXT[t.status] || []).includes("BLOCKED")) throw new Error(`cannot BLOCK from ${t.status}`);
+  // A verifier blocking from VERIFYING must be the assigned verifier (it may not
+  // block a task it owns — that would be self-certification by another name).
+  if (t.status === "VERIFYING") {
+    if (agent !== t.verifier_agent) throw new Error(`only verifier (${t.verifier_agent}) may BLOCK from VERIFYING`);
+    if (agent === t.owner_agent) throw new Error(`SELF-CERTIFY BLOCKED: executor cannot verify its own work`);
+  }
   t.status = "BLOCKED"; t.error = reason; t.last_updated_at = now();
   const OWNER_ONLY = ["login", "2fa", "password", "physical", "business-rule", "approval", "vendor"];
   const toMason = OWNER_ONLY.some((k) => (escalate || "").toLowerCase().includes(k)) || escalate === "mason";

@@ -6,15 +6,15 @@
     "last_seen": "2026-08-12T21:03:40.217Z"
   },
   "codex": {
-    "current_task": null,
-    "state": "IDLE",
+    "current_task": "TRIGGER-1786569948",
+    "state": "verifying",
     "blocked_reason": null,
-    "last_seen": "2026-08-12T20:52:04.469Z"
+    "last_seen": "2026-08-12T21:26:19.777Z"
   },
   "cursor": {
     "current_task": null,
-    "state": "IDLE",
+    "state": "OFFLINE",
     "blocked_reason": null,
-    "last_seen": "2026-08-12T20:52:05.458Z"
+    "last_seen": "2026-08-12T21:10:12.678Z"
   }
 }

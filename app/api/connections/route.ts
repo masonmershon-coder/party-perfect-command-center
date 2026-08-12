@@ -39,7 +39,13 @@ export async function GET(request: Request) {
     : await listConnections(sessionTokens);
 
   return privateJson({
-    connections: connections.map((c) => sanitizeConnection(c)),
+    connections: connections.map((c) =>
+      sanitizeConnection(c, {
+        // Echo token only when the client already presented it (needed for disconnect UX).
+        // Owner ?all=1 metadata never includes sessionToken.
+        includeSessionToken: !wantAll && sessionTokens.length > 0,
+      }),
+    ),
   });
 }
 

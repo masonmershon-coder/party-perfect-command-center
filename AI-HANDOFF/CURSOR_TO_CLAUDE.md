@@ -1,31 +1,41 @@
-# Cursor → Claude · 2026-08-12 · PP-SEC-001 route gating
+# Cursor → Claude (2026-08-12) — PP-SEC-001 P0 API auth
 
-**Status:** `CURSOR_WORKING` (route batch done; auth matrix tests still open)  
+**Status:** READY_FOR_CLAUDE_REVIEW  
 **Branch:** `claude/por-stat-classification`  
-**TASK:** PP-SEC-001 — P0 API authorization lockdown
+**Do not certify production** — Codex does post-deploy cert.
 
-## Done this turn
-Gated mapped Command Center API routes with canonical `requireApiAuth` / `isAuthError` / `privateJson` from `lib/api-auth.ts`. Business logic unchanged.
+## What shipped in source
+Application-wide API authorization fix (not connections-only).
 
-### Session permissions
-agents, tasks, emails (catch-up + draft-reply), design (all listed design/*), social (list + item + reply + draft), por catalog search, quoting (all quote/*), grok → `"session"`.
+| Piece | Location |
+|-------|----------|
+| Canonical gate | `lib/api-auth.ts` — `requireApiAuth`, `privateJson`, permissions |
+| Cookie session | `lib/server-auth.ts` — 401/403 now `private, no-store` |
+| Inventory | `AI-HANDOFF/API_AUTH_INVENTORY.md` |
+| Tests | `npm run test:api-auth` → `scripts/test-api-auth-matrix.mjs` |
+| Connections harden | `app/api/connections/route.ts` + `lib/connection-sessions.ts` |
 
-### Owner permissions
-marketing → `"marketing"` · meta setup / durable-env / google-ads setup / live-check / export github → `"admin"` · send-sms → `"sms_ops"`.
+### Behavior
+- Unauthenticated private routes → **401**
+- Authenticated employee on owner-only (`marketing`, `admin`, `sms_ops`, …) → **403**
+- Public remain: auth/session, OAuth callbacks, jobs/apply, health, sms/inbound (Twilio sig)
+- Machine remain: POR sync POST (`POR_SYNC_SECRET`), cron (`CRON_SECRET`)
+- Sensitive cache: `private, no-store` via `NO_STORE_HEADERS` / `privateJson`
 
-### POR sync GET-only
-- `por/sync` GET → `"por"` (POST Bearer `POR_SYNC_SECRET` untouched)
-- `por/sync/crm` GET → `"por"`
-- `por/sync/postgres` GET → `"por"`
+### Connections DTO
+- GET unauthenticated → 401  
+- GET no `X-PP-Session-Tokens` → `[]` (no full dump)  
+- GET with tokens → matching rows; may echo `sessionToken` client already sent  
+- POST create → returns `sessionToken` once (required for localStorage)  
+- Owner `?all=1` → metadata **without** tokens  
 
-### Skipped (intentional)
-- `connections` — already gated
-- Routes already using `requireSession` / `requireOwner`
-- PUBLIC: auth/session, OAuth callbacks, jobs/apply, health, sms/inbound
-- `por/sync/catalog-images` GET — already machine-auth via `authorize(POR_SYNC_SECRET)`
-- Machine POSTs on sync/* — left alone
+### Please review
+1. Permission map vs UI role sections (`lib/user-roles.ts`)  
+2. live-check: session for poll; `?sync=1` owner-only (SMS risk)  
+3. Whether any PUBLIC/MACHINE classification is wrong  
+4. Confirm no POR write-back / no migration sneak-in  
 
-## Still open on PP-SEC-001
-Auth matrix automated tests · Codex cert · Mason prod deploy approval.
+## Deploy
+Waiting Mason **yes deploy PP-SEC-001**. Then Codex read-only retest for `SECURITY_FIX_CERTIFIED_PASS`.
 
-Keep secrets out of this file.
+No secrets in this file.

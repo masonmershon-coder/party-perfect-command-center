@@ -21,11 +21,19 @@ export const maxDuration = 60;
  * Pass ?sync=1 for the heavy IMAP + Meta pull (manual / infrequent).
  */
 export async function GET(request: Request) {
-  const gate = await requireApiAuth("admin");
+  const gate = await requireApiAuth("live_ops");
   if (isAuthError(gate)) return gate;
 
   const { searchParams } = new URL(request.url);
   const shouldSync = searchParams.get("sync") === "1";
+
+  // Heavy sync can trigger manager SMS — owner only.
+  if (shouldSync && gate.role !== "owner") {
+    return NextResponse.json(
+      { error: "Owner access required for live sync" },
+      { status: 403, headers: NO_STORE_HEADERS },
+    );
+  }
 
   let inboxCheck = null;
   let socialSync = null;

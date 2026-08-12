@@ -15,6 +15,7 @@ import {
 } from "@/lib/por-sync-health";
 import type { PorSnapshot } from "@/lib/types";
 import { NextResponse } from "next/server";
+import { NO_STORE_HEADERS } from "@/lib/no-store";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -38,7 +39,7 @@ export async function GET() {
     syncConfigured: isPorSyncConfigured(),
     meta,
     snapshot,
-  });
+  }, { headers: NO_STORE_HEADERS });
 }
 
 /**

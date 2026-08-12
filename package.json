@@ -14,7 +14,8 @@
     "por:health": "node scripts/check-por-health.mjs",
     "por:probe-db": "node scripts/probe-supabase-readonly.mjs",
     "ai-core:apply-0003": "node --env-file=.env.local scripts/apply-0003-ai-core.mjs",
-    "por:ingest": "node --env-file=.env.local scripts/ingest-por-full.mjs"
+    "por:ingest": "node --env-file=.env.local scripts/ingest-por-full.mjs",
+    "test:api-auth": "node scripts/test-api-auth-matrix.mjs"
   },
   "engines": {
     "node": ">=20"

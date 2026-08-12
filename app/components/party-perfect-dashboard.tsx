@@ -354,6 +354,9 @@ export default function PartyPerfectDashboard() {
       label: string;
     }) => {
       const connection = await connectAccount(input);
+      if (!connection.sessionToken) {
+        throw new Error("Connection created without a session token.");
+      }
       saveLocalConnectionToken(connection.sessionToken);
       await refreshConnections();
     },
@@ -369,7 +372,7 @@ export default function PartyPerfectDashboard() {
         (entry) =>
           entry.type === input.type && entry.accountKey === input.accountKey,
       );
-      if (existing) {
+      if (existing?.sessionToken) {
         await disconnectAccount({ sessionToken: existing.sessionToken });
         removeLocalConnectionToken(existing.sessionToken);
       } else {

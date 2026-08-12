@@ -1,0 +1,2 @@
+{"at":"2026-08-12T21:23:03.396Z","task_id":"CERTIFY-1786569780","verdict":"FAILED","by":"codex","result":"stub verifier: intentional failure to prove repair routing","evidence":["AI-HANDOFF/codex/certify.sh","AI-HANDOFF/codex/.runs/CERTIFY-1786569780.out.txt"]}
+{"at":"2026-08-12T21:24:43.688Z","task_id":"CERTIFY-1786569879","verdict":"FAILED","by":"codex","result":"stub verifier: intentional failure to prove repair routing","evidence":["AI-HANDOFF/codex/certify.sh","AI-HANDOFF/codex/.runs/CERTIFY-1786569879.out.txt"]}

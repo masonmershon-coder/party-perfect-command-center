@@ -12,3 +12,41 @@
 {"at":"2026-08-12T21:03:39.847Z","type":"transition","task_id":"CERT-HARNESS-VERIFY-001","by":"claude","status":"IN_PROGRESS","result":null}
 {"at":"2026-08-12T21:03:39.945Z","type":"transition","task_id":"CERT-HARNESS-VERIFY-001","by":"claude","status":"READY_FOR_VERIFICATION","result":null}
 {"at":"2026-08-12T21:03:40.129Z","type":"park","task_id":"COMMAND-CENTER-0C476A","status":"WAITING_FOR_WORKER","owner":"cursor"}
+{"at":"2026-08-12T21:10:11.730Z","type":"create","task_id":"CC-AUTH-P0-001","by":"claude","status":"NEW"}
+{"at":"2026-08-12T21:10:11.956Z","type":"park","task_id":"CC-AUTH-P0-001","status":"WAITING_FOR_WORKER","owner":"cursor"}
+{"at":"2026-08-12T21:23:01.083Z","type":"create","task_id":"CERTIFY-1786569780","by":"claude","status":"NEW"}
+{"at":"2026-08-12T21:23:01.374Z","type":"claim","task_id":"CERTIFY-1786569780","by":"claude","status":"CLAIMED"}
+{"at":"2026-08-12T21:23:01.694Z","type":"transition","task_id":"CERTIFY-1786569780","by":"claude","status":"IN_PROGRESS","result":null}
+{"at":"2026-08-12T21:23:01.919Z","type":"transition","task_id":"CERTIFY-1786569780","by":"claude","status":"READY_FOR_VERIFICATION","result":null}
+{"at":"2026-08-12T21:23:02.620Z","type":"transition","task_id":"CERTIFY-1786569780","by":"codex","status":"VERIFYING","result":null}
+{"at":"2026-08-12T21:23:03.396Z","type":"transition","task_id":"CERTIFY-1786569780","by":"codex","status":"FAILED","result":"stub verifier: intentional failure to prove repair routing"}
+{"at":"2026-08-12T21:23:03.590Z","type":"transition","task_id":"CERTIFY-1786569780","by":"codex","status":"NEEDS_FIX","result":"stub verifier: intentional failure to prove repair routing"}
+{"at":"2026-08-12T21:23:04.083Z","type":"claim","task_id":"CERTIFY-1786569780","by":"claude","status":"CLAIMED"}
+{"at":"2026-08-12T21:23:04.196Z","type":"transition","task_id":"CERTIFY-1786569780","by":"claude","status":"IN_PROGRESS","result":"stub verifier: intentional failure to prove repair routing"}
+{"at":"2026-08-12T21:23:04.303Z","type":"transition","task_id":"CERTIFY-1786569780","by":"claude","status":"READY_FOR_VERIFICATION","result":"stub verifier: intentional failure to prove repair routing"}
+{"at":"2026-08-12T21:24:39.578Z","type":"create","task_id":"CERTIFY-1786569879","by":"claude","status":"NEW"}
+{"at":"2026-08-12T21:24:39.855Z","type":"claim","task_id":"CERTIFY-1786569879","by":"claude","status":"CLAIMED"}
+{"at":"2026-08-12T21:24:40.309Z","type":"transition","task_id":"CERTIFY-1786569879","by":"claude","status":"IN_PROGRESS","result":null}
+{"at":"2026-08-12T21:24:40.627Z","type":"transition","task_id":"CERTIFY-1786569879","by":"claude","status":"READY_FOR_VERIFICATION","result":null}
+{"at":"2026-08-12T21:24:41.192Z","type":"transition","task_id":"POR-STAT-VERIFY-001","by":"codex","status":"VERIFYING","result":null}
+{"at":"2026-08-12T21:24:42.747Z","type":"transition","task_id":"CERTIFY-1786569879","by":"codex","status":"VERIFYING","result":null}
+{"at":"2026-08-12T21:24:42.987Z","type":"block","task_id":"POR-STAT-VERIFY-001","by":"codex","status":"BLOCKED","escalate":"agent"}
+{"at":"2026-08-12T21:24:43.688Z","type":"transition","task_id":"CERTIFY-1786569879","by":"codex","status":"FAILED","result":"stub verifier: intentional failure to prove repair routing"}
+{"at":"2026-08-12T21:24:43.899Z","type":"transition","task_id":"CERTIFY-1786569879","by":"codex","status":"NEEDS_FIX","result":"stub verifier: intentional failure to prove repair routing"}
+{"at":"2026-08-12T21:24:43.962Z","type":"transition","task_id":"POR-KITS-VERIFY-001","by":"codex","status":"VERIFYING","result":null}
+{"at":"2026-08-12T21:24:44.408Z","type":"block","task_id":"POR-KITS-VERIFY-001","by":"codex","status":"BLOCKED","escalate":"agent"}
+{"at":"2026-08-12T21:24:44.630Z","type":"claim","task_id":"CERTIFY-1786569879","by":"claude","status":"CLAIMED"}
+{"at":"2026-08-12T21:24:44.744Z","type":"transition","task_id":"CERT-HARNESS-VERIFY-001","by":"codex","status":"VERIFYING","result":null}
+{"at":"2026-08-12T21:24:44.778Z","type":"transition","task_id":"CERTIFY-1786569879","by":"claude","status":"IN_PROGRESS","result":"stub verifier: intentional failure to prove repair routing"}
+{"at":"2026-08-12T21:24:44.924Z","type":"transition","task_id":"CERTIFY-1786569879","by":"claude","status":"READY_FOR_VERIFICATION","result":"stub verifier: intentional failure to prove repair routing"}
+{"at":"2026-08-12T21:24:45.063Z","type":"block","task_id":"CERT-HARNESS-VERIFY-001","by":"codex","status":"BLOCKED","escalate":"agent"}
+{"at":"2026-08-12T21:24:45.358Z","type":"transition","task_id":"CERTIFY-1786569780","by":"codex","status":"VERIFYING","result":"stub verifier: intentional failure to prove repair routing"}
+{"at":"2026-08-12T21:24:45.683Z","type":"block","task_id":"CERTIFY-1786569780","by":"codex","status":"BLOCKED","escalate":"agent"}
+{"at":"2026-08-12T21:25:11.664Z","type":"transition","task_id":"CERTIFY-1786569879","by":"codex","status":"VERIFYING","result":"stub verifier: intentional failure to prove repair routing"}
+{"at":"2026-08-12T21:25:12.448Z","type":"block","task_id":"CERTIFY-1786569879","by":"codex","status":"BLOCKED","escalate":"agent"}
+{"at":"2026-08-12T21:25:49.060Z","type":"create","task_id":"TRIGGER-1786569948","by":"claude","status":"NEW"}
+{"at":"2026-08-12T21:25:49.602Z","type":"claim","task_id":"TRIGGER-1786569948","by":"claude","status":"CLAIMED"}
+{"at":"2026-08-12T21:25:50.243Z","type":"transition","task_id":"TRIGGER-1786569948","by":"claude","status":"IN_PROGRESS","result":null}
+{"at":"2026-08-12T21:25:50.462Z","type":"transition","task_id":"TRIGGER-1786569948","by":"claude","status":"READY_FOR_VERIFICATION","result":null}
+{"at":"2026-08-12T21:26:19.664Z","type":"transition","task_id":"TRIGGER-1786569948","by":"codex","status":"VERIFYING","result":null}
+{"at":"2026-08-12T21:26:19.911Z","type":"block","task_id":"TRIGGER-1786569948","by":"codex","status":"BLOCKED","escalate":"agent"}

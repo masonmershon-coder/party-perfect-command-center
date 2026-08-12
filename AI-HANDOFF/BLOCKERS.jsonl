@@ -1,0 +1,6 @@
+{"at":"2026-08-12T21:24:42.986Z","task_id":"POR-STAT-VERIFY-001","by":"codex","reason":"Codex CLI not found on PATH (looked for \"codex\")","escalate":"agent"}
+{"at":"2026-08-12T21:24:44.408Z","task_id":"POR-KITS-VERIFY-001","by":"codex","reason":"Codex CLI not found on PATH (looked for \"codex\")","escalate":"agent"}
+{"at":"2026-08-12T21:24:45.063Z","task_id":"CERT-HARNESS-VERIFY-001","by":"codex","reason":"Codex CLI not found on PATH (looked for \"codex\")","escalate":"agent"}
+{"at":"2026-08-12T21:24:45.683Z","task_id":"CERTIFY-1786569780","by":"codex","reason":"Codex CLI not found on PATH (looked for \"codex\")","escalate":"agent"}
+{"at":"2026-08-12T21:25:12.448Z","task_id":"CERTIFY-1786569879","by":"codex","reason":"Codex CLI not found on PATH (looked for \"codex\")","escalate":"agent"}
+{"at":"2026-08-12T21:26:19.910Z","task_id":"TRIGGER-1786569948","by":"codex","reason":"Codex CLI not found on PATH (looked for \"codex\")","escalate":"agent"}

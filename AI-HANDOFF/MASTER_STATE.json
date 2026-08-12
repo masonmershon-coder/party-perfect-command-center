@@ -12,7 +12,7 @@
       "risk_tier": 0,
       "dependencies": null,
       "approval_required": false,
-      "status": "READY_FOR_VERIFICATION",
+      "status": "BLOCKED",
       "expected_evidence": "Every distinct value in POR-STATUS-CODES.csv decomposes via TransactionStatus + TransactionSecondaryStatus",
       "evidence_paths": [
         "AI-HANDOFF/EVIDENCE/POR-STAT-VERIFY-001.md",
@@ -20,9 +20,9 @@
         "12 - Build - Modern Checkout/POR_OPERATING_SYSTEM_MAP.md#12"
       ],
       "result": null,
-      "error": null,
+      "error": "Codex CLI not found on PATH (looked for \"codex\")",
       "next_action": null,
-      "last_updated_at": "2026-08-12T20:52:04.117Z",
+      "last_updated_at": "2026-08-12T21:24:42.980Z",
       "claim": "STAT = 2-char primary+secondary; decodes via TransactionStatus + TransactionSecondaryStatus lookups",
       "known_limitations": null,
       "unverified": [
@@ -69,16 +69,16 @@
       "risk_tier": 0,
       "dependencies": null,
       "approval_required": false,
-      "status": "READY_FOR_VERIFICATION",
+      "status": "BLOCKED",
       "expected_evidence": "ItemKits decomposes to real ItemFile components",
       "evidence_paths": [
         "AI-HANDOFF/EVIDENCE/POR-KITS-VERIFY-001.md",
         "/Volumes/PARTYPERF/PARTY-PERFECT-BRAIN/15-RAW-EXPORTS/2026-08-10_POR-FULL-DATA/ItemKits.csv"
       ],
       "result": null,
-      "error": null,
+      "error": "Codex CLI not found on PATH (looked for \"codex\")",
       "next_action": null,
-      "last_updated_at": "2026-08-12T21:03:39.505Z",
+      "last_updated_at": "2026-08-12T21:24:44.404Z",
       "claim": "ItemKits.Num(parent)->ItemKey(component) x Quantity, ordered by SubField; rate overrides per component",
       "known_limitations": null,
       "unverified": [
@@ -102,7 +102,7 @@
       "risk_tier": 0,
       "dependencies": null,
       "approval_required": false,
-      "status": "READY_FOR_VERIFICATION",
+      "status": "BLOCKED",
       "expected_evidence": "No path to a false CERTIFIED_PASS; 7/7 tests + real-CNTR proof reproduce",
       "evidence_paths": [
         "AI-HANDOFF/EVIDENCE/CERT-HARNESS-VERIFY-001.md",
@@ -110,14 +110,41 @@
         "/Users/mikeai/Matter/por-bridge/por-verifier.test.mjs"
       ],
       "result": null,
+      "error": "Codex CLI not found on PATH (looked for \"codex\")",
+      "next_action": null,
+      "last_updated_at": "2026-08-12T21:24:45.060Z",
+      "claim": "harness independent+honest; blocks self-cert; catches missing/false/corrupted; UNVERIFIED on unreadable required fields",
+      "known_limitations": null,
+      "unverified": null,
+      "files": null
+    },
+    "CC-AUTH-P0-001": {
+      "task_id": "CC-AUTH-P0-001",
+      "created_at": "2026-08-12T21:10:11.727Z",
+      "created_by": "claude",
+      "owner_agent": "cursor",
+      "verifier_agent": "codex",
+      "subsystem": "api",
+      "objective": "Centralize server-side authorization across all API routes; remove secret response fields; fix sensitive caching; add auth tests (no deploy)",
+      "priority": "high",
+      "risk_tier": 2,
+      "dependencies": null,
+      "approval_required": false,
+      "status": "WAITING_FOR_WORKER",
+      "expected_evidence": "Every app/api route uniformly authed; financials owner-only; auth tests green; draft PR on agent/cursor/CC-AUTH-P0-001",
+      "evidence_paths": [
+        "AI-HANDOFF/EVIDENCE/CC-AUTH-P0-001.md",
+        "AI-HANDOFF/REVIEW_FINDINGS_2026-08-11.md"
+      ],
+      "result": null,
       "error": null,
       "next_action": null,
-      "last_updated_at": "2026-08-12T21:03:39.941Z",
-      "claim": "harness independent+honest; blocks self-cert; catches missing/false/corrupted; UNVERIFIED on unreadable required fields",
+      "last_updated_at": "2026-08-12T21:10:11.954Z",
+      "claim": null,
       "known_limitations": null,
       "unverified": null,
       "files": null
     }
   },
-  "updatedAt": "2026-08-12T21:03:40.128Z"
+  "updatedAt": "2026-08-12T21:26:19.909Z"
 }

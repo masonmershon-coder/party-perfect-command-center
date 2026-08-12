@@ -1,0 +1,53 @@
+{
+  "_note": "Local worker registry. A worker without a runnable launch command is NOT_INSTALLED and the dispatcher will NOT fake it. Real agents drop in here when Mason installs+auths them.",
+  "workers": {
+    "claude-local": {
+      "role": "por-enterprise-engineer",
+      "runtime": "this-session",
+      "status": "ACTIVE",
+      "workspace": "local (SSD/ENTERPRISE/AI-HANDOFF)",
+      "launch": null,
+      "production_write": false,
+      "deploy_allowed": false
+    },
+    "cursor-local": {
+      "role": "command-center-engineer",
+      "runtime": "cursor-agent (Cursor headless CLI)",
+      "install_owner_action": "Install Cursor CLI agent + authenticate (owner). Then set launch to the real `cursor-agent` command.",
+      "launch": "node workers/cursor-worker.mjs",
+      "workspace": "/Users/mikeai/grok-dashboard",
+      "verifier": "codex-local",
+      "production_write": false,
+      "deploy_allowed": false,
+      "isolation": "git worktree agent/cursor/<TASK_ID>",
+      "detect": "cursor-agent --version",
+      "auth": "CURSOR_API_KEY (env or runtime/.cursor-secret) or `cursor-agent login`"
+    },
+    "codex-local": {
+      "role": "verifier (local read of Cursor-produced work)",
+      "runtime": "openai codex CLI",
+      "status": "NOT_INSTALLED",
+      "install_owner_action": "Install a local Codex CLI + authenticate (owner). Then set launch.",
+      "launch": null,
+      "workspace": "local",
+      "readonly_production": true
+    },
+    "codex-cloud": {
+      "role": "verifier (production web/API audit, git-synced evidence)",
+      "runtime": "cloud",
+      "status": "EXTERNAL",
+      "access": "git/shared evidence only — NO SSD/ENTERPRISE/local-process access",
+      "note": "reads control-plane state via a git-synced mirror; cannot watch the local queue directly"
+    },
+    "stub-cursor": {
+      "role": "HARNESS-TEST-ONLY (not a real agent)",
+      "status": "ACTIVE",
+      "launch": "node workers/stub-cursor.mjs"
+    },
+    "stub-codex": {
+      "role": "HARNESS-TEST-ONLY (not a real agent)",
+      "status": "ACTIVE",
+      "launch": "node workers/stub-codex.mjs"
+    }
+  }
+}

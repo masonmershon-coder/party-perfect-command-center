@@ -1,3 +1,7 @@
+import {
+  isAuthError,
+  requireApiAuth,
+} from "@/lib/api-auth";
 import { getMetaDurableEnvExport } from "@/lib/meta-durable-env";
 import { NextResponse } from "next/server";
 
@@ -9,6 +13,9 @@ export const runtime = "nodejs";
  * Do not expose secrets=1 publicly without auth in production long-term.
  */
 export async function GET(request: Request) {
+  const gate = await requireApiAuth("admin");
+  if (isAuthError(gate)) return gate;
+
   const { searchParams } = new URL(request.url);
   const includeSecrets = searchParams.get("secrets") === "1";
   const payload = await getMetaDurableEnvExport(includeSecrets);

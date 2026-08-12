@@ -1,12 +1,18 @@
+import {
+  isAuthError,
+  requireApiAuth,
+} from "@/lib/api-auth";
 import { buildLiveSnapshot } from "@/lib/live-snapshot";
 import { runMikeInboxCheck } from "@/lib/mike-ops";
 import { getEmailConnectionInfo } from "@/lib/email-accounts";
+import { NO_STORE_HEADERS } from "@/lib/no-store";
 import { getMetaConnectionInfo } from "@/lib/social-accounts";
 import { isMetaLiveConfigured } from "@/lib/meta-graph";
 import { syncMetaSocial } from "@/lib/meta-sync";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 /**
@@ -15,8 +21,19 @@ export const maxDuration = 60;
  * Pass ?sync=1 for the heavy IMAP + Meta pull (manual / infrequent).
  */
 export async function GET(request: Request) {
+  const gate = await requireApiAuth("live_ops");
+  if (isAuthError(gate)) return gate;
+
   const { searchParams } = new URL(request.url);
   const shouldSync = searchParams.get("sync") === "1";
+
+  // Heavy sync can trigger manager SMS — owner only.
+  if (shouldSync && gate.role !== "owner") {
+    return NextResponse.json(
+      { error: "Owner access required for live sync" },
+      { status: 403, headers: NO_STORE_HEADERS },
+    );
+  }
 
   let inboxCheck = null;
   let socialSync = null;
@@ -46,14 +63,17 @@ export async function GET(request: Request) {
   const emailConnection = getEmailConnectionInfo();
   const metaConnection = await getMetaConnectionInfo(request.url);
 
-  return NextResponse.json({
-    snapshot,
-    inboxCheck,
-    socialSync,
-    synced: shouldSync,
-    connections: {
-      email: emailConnection,
-      social: metaConnection,
+  return NextResponse.json(
+    {
+      snapshot,
+      inboxCheck,
+      socialSync,
+      synced: shouldSync,
+      connections: {
+        email: emailConnection,
+        social: metaConnection,
+      },
     },
-  });
+    { headers: NO_STORE_HEADERS },
+  );
 }

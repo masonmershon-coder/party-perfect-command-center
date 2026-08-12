@@ -1,4 +1,8 @@
 import {
+  isAuthError,
+  requireApiAuth,
+} from "@/lib/api-auth";
+import {
   appendMessages,
   getAgent,
   getTask,
@@ -32,6 +36,9 @@ function createMessage(role: Message["role"], content: string, taskId: string) {
 }
 
 export async function POST(_request: Request, context: RouteContext) {
+  const gate = await requireApiAuth("tasks");
+  if (isAuthError(gate)) return gate;
+
   const { id: taskId } = await context.params;
 
   try {

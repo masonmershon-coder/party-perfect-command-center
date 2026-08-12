@@ -1,4 +1,8 @@
 import {
+  isAuthError,
+  requireApiAuth,
+} from "@/lib/api-auth";
+import {
   listDesignAssets,
   madisonGenerateImage,
   prepareReferenceImageForMadison,
@@ -36,6 +40,9 @@ const MAX_CATALOG_PICKS = 6;
  * → 2 looks grounded in the desired mood board / inventory.
  */
 export async function POST(request: Request) {
+  const gate = await requireApiAuth("design");
+  if (isAuthError(gate)) return gate;
+
   try {
     // Madison may use Flux (FAL_KEY) and/or Grok Imagine (XAI_API_KEY).
     if (

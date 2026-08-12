@@ -1,3 +1,7 @@
+import {
+  isAuthError,
+  requireApiAuth,
+} from "@/lib/api-auth";
 import { getMetaConnectionInfo, getSocialAccounts } from "@/lib/social-accounts";
 import { syncMetaSocial } from "@/lib/meta-sync";
 import { isMetaLiveConfigured } from "@/lib/meta-graph";
@@ -9,6 +13,9 @@ export const runtime = "nodejs";
 export const maxDuration = 60;
 
 export async function GET(request: Request) {
+  const gate = await requireApiAuth("social");
+  if (isAuthError(gate)) return gate;
+
   const { searchParams } = new URL(request.url);
   // Default off — Live Mode / boot must stay Redis-cheap. Pass sync=1 to pull Meta.
   const shouldSync = searchParams.get("sync") === "1";

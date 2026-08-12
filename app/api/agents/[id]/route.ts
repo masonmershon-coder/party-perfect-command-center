@@ -1,3 +1,8 @@
+import {
+  isAuthError,
+  privateJson,
+  requireApiAuth,
+} from "@/lib/api-auth";
 import { deleteAgent, getAgent, updateAgent } from "@/lib/storage";
 import type { GrokModel } from "@/lib/types";
 import { NextResponse } from "next/server";
@@ -9,17 +14,23 @@ type RouteContext = {
 };
 
 export async function GET(_request: Request, context: RouteContext) {
+  const gate = await requireApiAuth("agents");
+  if (isAuthError(gate)) return gate;
+
   const { id } = await context.params;
   const agent = await getAgent(id);
 
   if (!agent) {
-    return NextResponse.json({ error: "Agent not found." }, { status: 404 });
+    return privateJson({ error: "Agent not found." }, { status: 404 });
   }
 
-  return NextResponse.json({ agent });
+  return privateJson({ agent });
 }
 
 export async function PATCH(request: Request, context: RouteContext) {
+  const gate = await requireApiAuth("agents");
+  if (isAuthError(gate)) return gate;
+
   const { id } = await context.params;
 
   try {
@@ -45,12 +56,15 @@ export async function PATCH(request: Request, context: RouteContext) {
 }
 
 export async function DELETE(_request: Request, context: RouteContext) {
+  const gate = await requireApiAuth("agents");
+  if (isAuthError(gate)) return gate;
+
   const { id } = await context.params;
   const deleted = await deleteAgent(id);
 
   if (!deleted) {
-    return NextResponse.json({ error: "Agent not found." }, { status: 404 });
+    return privateJson({ error: "Agent not found." }, { status: 404 });
   }
 
-  return NextResponse.json({ success: true });
+  return privateJson({ success: true });
 }

@@ -1,3 +1,7 @@
+import {
+  isAuthError,
+  requireApiAuth,
+} from "@/lib/api-auth";
 import { MADISON_VOICE } from "@/lib/agent-voices";
 import { getSocialAccount } from "@/lib/social-accounts";
 import { assertGrokConfigured, createTextStream, grokClient } from "@/lib/grok";
@@ -15,6 +19,9 @@ type RouteContext = {
 const DRAFT_MODEL: GrokModel = "grok-build-0.1";
 
 export async function POST(request: Request, context: RouteContext) {
+  const gate = await requireApiAuth("social");
+  if (isAuthError(gate)) return gate;
+
   const { kind, id } = await context.params;
 
   try {

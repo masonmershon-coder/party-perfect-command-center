@@ -1,3 +1,7 @@
+import {
+  isAuthError,
+  requireApiAuth,
+} from "@/lib/api-auth";
 import { getRawDesignAsset } from "@/lib/design-studio";
 import { isDurableBlobConfigured } from "@/lib/durable-json";
 import { NextResponse } from "next/server";
@@ -12,6 +16,9 @@ export async function GET(
   _request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
+  const gate = await requireApiAuth("design");
+  if (isAuthError(gate)) return gate;
+
   try {
     const { id } = await context.params;
     const asset = await getRawDesignAsset(id);

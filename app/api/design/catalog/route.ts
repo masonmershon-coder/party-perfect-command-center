@@ -1,4 +1,8 @@
 import {
+  isAuthError,
+  requireApiAuth,
+} from "@/lib/api-auth";
+import {
   getWebsiteCatalog,
   isWebsiteCatalogStale,
   searchWebsiteCatalog,
@@ -11,6 +15,9 @@ export const maxDuration = 300;
 
 /** Search / inspect the public website rental catalog (cached). */
 export async function GET(request: Request) {
+  const gate = await requireApiAuth("design");
+  if (isAuthError(gate)) return gate;
+
   try {
     const { searchParams } = new URL(request.url);
     const q = searchParams.get("q")?.trim() || "";
@@ -42,6 +49,9 @@ export async function GET(request: Request) {
 
 /** Crawl partyperfecteventrental.com and refresh the cached catalog index. */
 export async function POST() {
+  const gate = await requireApiAuth("design");
+  if (isAuthError(gate)) return gate;
+
   try {
     const catalog = await syncWebsiteCatalog();
     return NextResponse.json({

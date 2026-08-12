@@ -1,11 +1,18 @@
+import {
+  isAuthError,
+  privateJson,
+  requireApiAuth,
+} from "@/lib/api-auth";
 import { madisonMediaToolsStatus } from "@/lib/madison-media-tools";
-import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 
 /** Madison scans which photo/video engines she can use right now. */
 export async function GET() {
-  return NextResponse.json({
+  const gate = await requireApiAuth("design");
+  if (isAuthError(gate)) return gate;
+
+  return privateJson({
     success: true,
     ...madisonMediaToolsStatus(),
   });

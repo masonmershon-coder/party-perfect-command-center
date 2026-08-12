@@ -1,4 +1,8 @@
 import {
+  isAuthError,
+  requireApiAuth,
+} from "@/lib/api-auth";
+import {
   listDesignAssets,
   madisonGenerateImage,
   resolveDesignImageForLlm,
@@ -24,6 +28,9 @@ const ASPECTS = new Set<DesignAspectRatio>([
 ]);
 
 export async function POST(request: Request) {
+  const gate = await requireApiAuth("design");
+  if (isAuthError(gate)) return gate;
+
   try {
     const body = (await request.json().catch(() => null)) as {
       prompt?: string;

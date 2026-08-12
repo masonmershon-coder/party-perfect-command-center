@@ -1,4 +1,8 @@
 import {
+  isAuthError,
+  requireApiAuth,
+} from "@/lib/api-auth";
+import {
   publicMetaCredentialStatus,
   readMetaCredentials,
   writeMetaCredentials,
@@ -10,6 +14,9 @@ import { NextResponse } from "next/server";
 export const runtime = "nodejs";
 
 export async function GET(request: Request) {
+  const gate = await requireApiAuth("admin");
+  if (isAuthError(gate)) return gate;
+
   const creds = await readMetaCredentials();
   const status = publicMetaCredentialStatus(creds);
   const live = Boolean(await resolveMetaConfig());
@@ -31,6 +38,9 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const gate = await requireApiAuth("admin");
+  if (isAuthError(gate)) return gate;
+
   try {
     const body = (await request.json().catch(() => null)) as {
       appId?: string;

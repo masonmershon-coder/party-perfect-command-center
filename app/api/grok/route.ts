@@ -1,3 +1,7 @@
+import {
+  isAuthError,
+  requireApiAuth,
+} from "@/lib/api-auth";
 import OpenAI from "openai";
 
 export const runtime = "nodejs";
@@ -15,6 +19,9 @@ type ChatMessage = {
 };
 
 export async function POST(request: Request) {
+  const gate = await requireApiAuth("session");
+  if (isAuthError(gate)) return gate;
+
   if (!process.env.XAI_API_KEY) {
     return Response.json(
       { error: "XAI_API_KEY is not configured. Add it to .env.local." },

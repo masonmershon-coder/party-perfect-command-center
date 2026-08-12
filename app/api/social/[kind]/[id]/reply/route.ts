@@ -1,4 +1,8 @@
 import {
+  isAuthError,
+  requireApiAuth,
+} from "@/lib/api-auth";
+import {
   formatMetaUserError,
   resolveMetaConfig,
   MetaGraphError,
@@ -16,6 +20,9 @@ type RouteContext = {
 };
 
 export async function POST(request: Request, context: RouteContext) {
+  const gate = await requireApiAuth("social");
+  if (isAuthError(gate)) return gate;
+
   const { kind, id } = await context.params;
 
   if (kind !== "comments") {

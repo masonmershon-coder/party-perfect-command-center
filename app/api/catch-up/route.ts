@@ -1,28 +1,43 @@
 import {
+  isAuthError,
+  requireApiAuth,
+} from "@/lib/api-auth";
+import {
   buildCatchUpPrompt,
   fallbackCatchUpSummary,
   gatherCatchUpItems,
 } from "@/lib/catch-up";
 import { assertGrokConfigured, grokClient } from "@/lib/grok";
+import { NO_STORE_HEADERS } from "@/lib/no-store";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 export async function GET() {
+  const gate = await requireApiAuth("emails");
+  if (isAuthError(gate)) return gate;
+
   const items = await gatherCatchUpItems();
   const { emailCount, socialCount, totalCount } = buildCatchUpPrompt(items);
 
-  return NextResponse.json({
-    totalCount,
-    emailCount,
-    socialCount,
-    items,
-    lookbackMonths: 6,
-  });
+  return NextResponse.json(
+    {
+      totalCount,
+      emailCount,
+      socialCount,
+      items,
+      lookbackMonths: 6,
+    },
+    { headers: NO_STORE_HEADERS },
+  );
 }
 
 export async function POST() {
+  const gate = await requireApiAuth("emails");
+  if (isAuthError(gate)) return gate;
+
   try {
     const items = await gatherCatchUpItems();
     const prompt = buildCatchUpPrompt(items);

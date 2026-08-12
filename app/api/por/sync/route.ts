@@ -1,4 +1,8 @@
 import {
+  isAuthError,
+  requireApiAuth,
+} from "@/lib/api-auth";
+import {
   getPorSnapshot,
   getPorSyncMeta,
   isPorSyncConfigured,
@@ -7,6 +11,7 @@ import {
 } from "@/lib/por-snapshot";
 import type { PorSnapshot } from "@/lib/types";
 import { NextResponse } from "next/server";
+import { NO_STORE_HEADERS } from "@/lib/no-store";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -21,13 +26,16 @@ function authorize(request: Request) {
 
 /** Latest POR snapshot for Command Center UI (read-only). */
 export async function GET() {
+  const gate = await requireApiAuth("por");
+  if (isAuthError(gate)) return gate;
+
   const snapshot = await getPorSnapshot();
   const meta = getPorSyncMeta(snapshot);
   return NextResponse.json({
     syncConfigured: isPorSyncConfigured(),
     meta,
     snapshot,
-  });
+  }, { headers: NO_STORE_HEADERS });
 }
 
 /**

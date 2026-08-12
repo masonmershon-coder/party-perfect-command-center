@@ -1,3 +1,8 @@
+import {
+  isAuthError,
+  privateJson,
+  requireApiAuth,
+} from "@/lib/api-auth";
 import { getPorCatalog, porCatalogIsSynced, searchPorCatalog } from "@/lib/por-catalog";
 import { NextResponse } from "next/server";
 
@@ -5,6 +10,9 @@ export const runtime = "nodejs";
 
 /** GET ?q=gold+charger&limit=8 — catalog browse for Quoting tab. */
 export async function GET(request: Request) {
+  const gate = await requireApiAuth("por");
+  if (isAuthError(gate)) return gate;
+
   try {
     const { searchParams } = new URL(request.url);
     const q = searchParams.get("q") || "";

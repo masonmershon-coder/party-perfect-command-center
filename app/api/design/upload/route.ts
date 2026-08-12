@@ -1,3 +1,7 @@
+import {
+  isAuthError,
+  requireApiAuth,
+} from "@/lib/api-auth";
 import { storeDesignUpload } from "@/lib/design-studio";
 import { NextResponse } from "next/server";
 
@@ -17,6 +21,9 @@ const ALLOWED = new Set([
 ]);
 
 export async function POST(request: Request) {
+  const gate = await requireApiAuth("design");
+  if (isAuthError(gate)) return gate;
+
   try {
     const form = await request.formData();
     const file = form.get("file");

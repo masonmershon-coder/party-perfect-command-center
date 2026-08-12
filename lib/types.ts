@@ -252,7 +252,8 @@ export interface SanitizedConnection {
   accountKey: string;
   label: string;
   connectedAt: string;
-  sessionToken: string;
+  /** Present on create and when client already sent the token; omitted from owner metadata dumps. */
+  sessionToken?: string;
   expiresAt?: string;
   hasOAuthToken?: boolean;
 }

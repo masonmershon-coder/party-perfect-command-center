@@ -1,4 +1,8 @@
 import {
+  isAuthError,
+  requireApiAuth,
+} from "@/lib/api-auth";
+import {
   publicGoogleAdsStatus,
   readGoogleAdsCredentials,
   writeGoogleAdsCredentials,
@@ -14,6 +18,9 @@ import { NextResponse } from "next/server";
 export const runtime = "nodejs";
 
 export async function GET(request: Request) {
+  const gate = await requireApiAuth("admin");
+  if (isAuthError(gate)) return gate;
+
   const creds = await readGoogleAdsCredentials();
   const status = publicGoogleAdsStatus(creds);
   const oauthUrl = await buildGoogleAdsOAuthUrl(request.url);
@@ -35,6 +42,9 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const gate = await requireApiAuth("admin");
+  if (isAuthError(gate)) return gate;
+
   try {
     const body = (await request.json().catch(() => null)) as {
       action?: string;

@@ -1,4 +1,8 @@
 import {
+  isAuthError,
+  requireApiAuth,
+} from "@/lib/api-auth";
+import {
   formatPhoneDisplay,
   getAuthorizedManagerPhones,
   getTwilioPublicStatus,
@@ -55,6 +59,9 @@ function resolveRecipient(requestedTo?: string) {
 }
 
 export async function GET() {
+  const gate = await requireApiAuth("sms_ops");
+  if (isAuthError(gate)) return gate;
+
   return NextResponse.json({
     twilio: getTwilioPublicStatus(),
     managers: getAuthorizedManagerPhones().map(formatPhoneDisplay),
@@ -62,6 +69,9 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const gate = await requireApiAuth("sms_ops");
+  if (isAuthError(gate)) return gate;
+
   try {
     const body = (await request.json().catch(() => null)) as {
       action?: string;

@@ -11,7 +11,8 @@
     "meta:push-env": "node scripts/push-meta-env-vercel.mjs",
     "store:migrate": "node --env-file=.env.local scripts/migrate-blob-to-redis.mjs",
     "jobs:migrate": "node --env-file=.env.local scripts/migrate-jobs-append.mjs",
-    "por:health": "node scripts/check-por-health.mjs"
+    "por:health": "node scripts/check-por-health.mjs",
+    "test:api-auth": "node scripts/test-api-auth-matrix.mjs"
   },
   "engines": {
     "node": ">=20"

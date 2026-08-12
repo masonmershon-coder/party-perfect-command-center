@@ -1,4 +1,8 @@
-import { NextResponse } from "next/server";
+import {
+  isAuthError,
+  privateJson,
+  requireApiAuth,
+} from "@/lib/api-auth";
 import {
   formatQuoteEmail,
   formatQuoteTicket,
@@ -9,6 +13,9 @@ import type { QuoteLineInput } from "@/lib/types";
 
 /** POST { command, serviceLines?, customerName?, eventDate?, salesRep? } -> { quote, ticketText, emailDraft } */
 export async function POST(req: Request) {
+  const gate = await requireApiAuth("quoting");
+  if (isAuthError(gate)) return gate;
+
   try {
     const body = (await req.json()) as {
       command?: string;
@@ -27,12 +34,12 @@ export async function POST(req: Request) {
       serviceLines: Array.isArray(body?.serviceLines) ? body.serviceLines : [],
       meta,
     });
-    return NextResponse.json({
+    return privateJson({
       quote,
       ticketText: formatQuoteTicket(quote, meta),
       emailDraft: formatQuoteEmail(quote, meta),
     });
   } catch (err) {
-    return NextResponse.json({ error: (err as Error).message }, { status: 400 });
+    return privateJson({ error: (err as Error).message }, { status: 400 });
   }
 }

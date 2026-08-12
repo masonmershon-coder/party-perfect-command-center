@@ -1,0 +1,28 @@
+{
+  "autonomous_paid_compute": "OFF",
+  "approved_by": null,
+  "approved_at": null,
+  "budget": {
+    "currency": "USD",
+    "monthly_ceiling": null,
+    "daily_ceiling": null,
+    "per_task_ceiling": null,
+    "per_agent_ceiling": {}
+  },
+  "limits": {
+    "max_retries": 1,
+    "max_repair_loops": 2,
+    "max_runtime_seconds": 600,
+    "max_concurrent_paid_agents": 1
+  },
+  "fixed_monthly_baseline": {
+    "note": "Owner-reported. Do not modify without Mason.",
+    "supabase": 25,
+    "claude": 100,
+    "chatgpt": 20,
+    "grok": 99,
+    "vercel_domain_yearly": 10,
+    "effective_monthly": 244.83,
+    "effective_yearly": 2938
+  }
+}

@@ -67,7 +67,7 @@ function launch(agent, action, task) {
 // main loop — deterministic scan for actionable local work
 for (let i = 0; i < MAX; i++) {
   const tasks = Object.values(state().tasks);
-  const impl = tasks.find((t) => MAP[t.owner_agent] && ["NEW", "WAITING_FOR_WORKER"].includes(t.status));
+  const impl = tasks.find((t) => MAP[t.owner_agent] && t.status === "NEW"); // NEW = explicitly released for autonomous run (parked WAITING_FOR_WORKER never auto-fires)
   const repair = tasks.find((t) => MAP[t.owner_agent] && t.status === "NEEDS_FIX");
   const verify = tasks.find((t) => MAP[t.verifier_agent] && t.status === "READY_FOR_VERIFICATION");
   let acted = false;

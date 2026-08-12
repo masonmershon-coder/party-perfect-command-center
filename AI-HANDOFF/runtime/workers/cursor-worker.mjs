@@ -15,11 +15,15 @@ const cp = (...a) => spawnSync("node", [path.join(CP_DIR, "control-plane.mjs"), 
 // --- runtime availability (install + auth) — no faking ---
 const has = spawnSync("cursor-agent", ["--version"], { encoding: "utf8" });
 if (has.status !== 0) { console.error("BLOCKED: cursor-agent CLI not installed (owner: install the Cursor CLI)"); process.exit(3); }
-// API key: env, else gitignored secret file (value read internally, never printed)
+// Auth: prefer a persisted `cursor-agent login`; fall back to CURSOR_API_KEY / gitignored secret file.
 let apiKey = process.env.CURSOR_API_KEY || "";
 const secretFile = path.join(path.dirname(new URL(import.meta.url).pathname), "..", ".cursor-secret");
 if (!apiKey && existsSync(secretFile)) apiKey = readFileSync(secretFile, "utf8").trim();
-if (!apiKey) { console.error("BLOCKED: cursor-agent not authenticated (owner: set CURSOR_API_KEY or run `cursor-agent login`)"); process.exit(3); }
+if (!apiKey) {
+  const st = spawnSync("cursor-agent", ["status"], { encoding: "utf8", timeout: 15000 });
+  const loggedIn = st.status === 0 && /logged in/i.test((st.stdout || "") + (st.stderr || ""));
+  if (!loggedIn) { console.error("BLOCKED: cursor-agent not authenticated (owner: `cursor-agent login` or set CURSOR_API_KEY)"); process.exit(3); }
+}
 
 // --- task prompt (tight, harmless, isolated) ---
 const prompts = {
@@ -32,8 +36,9 @@ cp("claim", TASK_ID, "cursor");
 cp("transition", TASK_ID, "cursor", "IN_PROGRESS");
 
 // run the real Cursor agent headless, applying changes, in the worktree
+const runEnv = { ...process.env }; if (apiKey) runEnv.CURSOR_API_KEY = apiKey; // else rely on persisted login
 const run = spawnSync("cursor-agent", ["-p", "--force", "--output-format", "text", prompt], {
-  encoding: "utf8", cwd: WORKTREE, timeout: 180000, env: { ...process.env, CURSOR_API_KEY: apiKey },
+  encoding: "utf8", cwd: WORKTREE, timeout: 180000, env: runEnv,
 });
 
 // evidence: the agent's summary + the actual git diff it produced (deterministic proof)

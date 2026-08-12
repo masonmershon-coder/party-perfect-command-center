@@ -4,3 +4,8 @@
 {"at":"2026-08-12T21:24:45.683Z","task_id":"CERTIFY-1786569780","by":"codex","reason":"Codex CLI not found on PATH (looked for \"codex\")","escalate":"agent"}
 {"at":"2026-08-12T21:25:12.448Z","task_id":"CERTIFY-1786569879","by":"codex","reason":"Codex CLI not found on PATH (looked for \"codex\")","escalate":"agent"}
 {"at":"2026-08-12T21:26:19.910Z","task_id":"TRIGGER-1786569948","by":"codex","reason":"Codex CLI not found on PATH (looked for \"codex\")","escalate":"agent"}
+{"at":"2026-08-12T21:42:46.398Z","task_id":"CC-AUTH-P0-001","by":"cursor","reason":"Cursor runtime failed: ","escalate":"agent"}
+{"at":"2026-08-12T21:43:51.284Z","task_id":"CONTROL-PLANE-CURSOR-SMOKE-001","by":"codex","reason":"Codex CLI not found on PATH (looked for \"codex\")","escalate":"agent"}
+{"at":"2026-08-12T21:50:30.140Z","task_id":"PP-SEC-001","by":"codex","reason":"Codex CLI not found on PATH (looked for \"codex\")","escalate":"agent"}
+{"at":"2026-08-12T21:55:10.764Z","task_id":"GOV-INT-001","by":"codex","reason":"Codex CLI not found on PATH (looked for \"codex\")","escalate":"agent"}
+{"at":"2026-08-12T21:56:40.559Z","task_id":"GOV-INT-001","by":"codex","reason":"Codex CLI not found on PATH (looked for \"codex\")","escalate":"agent"}

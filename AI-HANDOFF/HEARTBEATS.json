@@ -6,15 +6,21 @@
     "last_seen": "2026-08-12T21:03:40.217Z"
   },
   "codex": {
-    "current_task": "TRIGGER-1786569948",
+    "current_task": "GOV-INT-001",
     "state": "verifying",
     "blocked_reason": null,
-    "last_seen": "2026-08-12T21:26:19.777Z"
+    "last_seen": "2026-08-12T21:56:40.436Z"
   },
   "cursor": {
     "current_task": null,
-    "state": "OFFLINE",
+    "state": "IDLE",
     "blocked_reason": null,
-    "last_seen": "2026-08-12T21:10:12.678Z"
+    "last_seen": "2026-08-12T21:58:17.523Z"
+  },
+  "dispatcher": {
+    "current_task": null,
+    "state": "IDLE",
+    "blocked_reason": null,
+    "last_seen": "2026-08-12T21:58:18.815Z"
   }
 }

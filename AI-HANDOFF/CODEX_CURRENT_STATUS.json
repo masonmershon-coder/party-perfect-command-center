@@ -1,19 +1,19 @@
 {
   "health": "RED",
-  "generated_at": "2026-08-12T21:28:58.299Z",
-  "last_verified_at": "2026-08-12T21:24:45.075Z",
+  "generated_at": "2026-08-12T21:58:10.460Z",
+  "last_verified_at": "2026-08-12T21:56:40.570Z",
   "counts": {
     "open_p0": 0,
-    "open_p1": 1,
+    "open_p1": 2,
     "awaiting_verification": 0,
     "codex_verifying": 0,
     "needs_fix": 0,
-    "blocked_total": 3,
+    "blocked_total": 7,
     "blocked_on_mason": 0,
     "claude_tasks": 3,
-    "cursor_tasks": 2,
+    "cursor_tasks": 6,
     "certified_pass": 0,
-    "total_tasks": 5
+    "total_tasks": 9
   },
   "open_p0": [],
   "open_p1": [
@@ -25,22 +25,31 @@
       "summary": "13 commit(s) on 'claude/por-stat-classification' not in main — fixes are written but not deployed",
       "evidence": "git rev-list main..claude/por-stat-classification",
       "opened_at": "2026-08-12T21:28:24.446Z"
+    },
+    {
+      "key": "CONTROL-PLANE-CURSOR-SMOKE-001:missing-evidence-artifact",
+      "task_id": "CONTROL-PLANE-CURSOR-SMOKE-001",
+      "severity": "P1",
+      "code": "missing-evidence-artifact",
+      "summary": "Cursor did not produce the required artifact",
+      "evidence": "AI-HANDOFF/EVIDENCE/",
+      "opened_at": "2026-08-12T21:37:52.249Z"
     }
   ],
   "awaiting_verification": [],
   "blocked_on_mason": [],
   "worker_health": {
-    "codex-cloud": {
+    "codex-local": {
       "available": false,
       "reason": "Codex CLI not found on PATH (looked for \"codex\")",
-      "checked_at": "2026-08-12T21:26:19.787Z"
+      "checked_at": "2026-08-12T21:56:40.446Z"
     }
   },
   "codex_heartbeat": {
-    "current_task": "TRIGGER-1786569948",
+    "current_task": "GOV-INT-001",
     "state": "verifying",
     "blocked_reason": null,
-    "last_seen": "2026-08-12T21:26:19.777Z"
+    "last_seen": "2026-08-12T21:56:40.436Z"
   },
   "codex_silent": false,
   "confidence": {

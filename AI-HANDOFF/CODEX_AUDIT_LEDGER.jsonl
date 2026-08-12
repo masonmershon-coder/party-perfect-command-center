@@ -12,3 +12,20 @@
 {"at":"2026-08-12T21:25:12.519Z","type":"verification","task_id":"CERTIFY-1786569879","verdict":"BLOCKED","worker":"codex-cloud","reason":"Codex CLI not found on PATH (looked for \"codex\")"}
 {"at":"2026-08-12T21:26:19.406Z","type":"dispatch","task_id":"TRIGGER-1786569948","worker":"codex-cloud"}
 {"at":"2026-08-12T21:26:19.921Z","type":"verification","task_id":"TRIGGER-1786569948","verdict":"BLOCKED","worker":"codex-cloud","reason":"Codex CLI not found on PATH (looked for \"codex\")"}
+{"at":"2026-08-12T21:36:09.016Z","type":"dispatch","task_id":"CONTROL-PLANE-CURSOR-SMOKE-001","worker":"codex-cloud"}
+{"at":"2026-08-12T21:36:09.834Z","type":"verification","task_id":"CONTROL-PLANE-CURSOR-SMOKE-001","verdict":"NEEDS_FIX","worker":"codex-cloud","started_at":"2026-08-12T21:36:09.126Z","summary":"required evidence artifact is missing","findings":1,"checked":["artifact existence"],"evidence":"AI-HANDOFF/codex/.runs/CONTROL-PLANE-CURSOR-SMOKE-001.out.txt","codex_version":"stub-codex 0.0.0"}
+{"at":"2026-08-12T21:36:16.823Z","type":"dispatch","task_id":"CONTROL-PLANE-CURSOR-SMOKE-001","worker":"codex-cloud"}
+{"at":"2026-08-12T21:36:18.760Z","type":"verification","task_id":"CONTROL-PLANE-CURSOR-SMOKE-001","verdict":"CERTIFIED_PASS","worker":"codex-cloud","started_at":"2026-08-12T21:36:17.681Z","summary":"required evidence artifact present; tests recorded","findings":0,"checked":["artifact exists","evidence file written"],"evidence":"AI-HANDOFF/codex/.runs/CONTROL-PLANE-CURSOR-SMOKE-001.out.txt","codex_version":"stub-codex 0.0.0"}
+{"at":"2026-08-12T21:36:50.500Z","type":"dispatch","task_id":"CONTROL-PLANE-CURSOR-SMOKE-001","worker":"codex-cloud"}
+{"at":"2026-08-12T21:36:51.317Z","type":"verification","task_id":"CONTROL-PLANE-CURSOR-SMOKE-001","verdict":"NEEDS_FIX","worker":"codex-cloud","started_at":"2026-08-12T21:36:50.613Z","summary":"required evidence artifact is missing","findings":1,"checked":["artifact existence"],"evidence":"AI-HANDOFF/codex/.runs/CONTROL-PLANE-CURSOR-SMOKE-001.out.txt","codex_version":"stub-codex 0.0.0"}
+{"at":"2026-08-12T21:36:55.764Z","type":"dispatch","task_id":"CONTROL-PLANE-CURSOR-SMOKE-001","worker":"codex-cloud"}
+{"at":"2026-08-12T21:36:56.207Z","type":"verification","task_id":"CONTROL-PLANE-CURSOR-SMOKE-001","verdict":"CERTIFIED_PASS","worker":"codex-cloud","started_at":"2026-08-12T21:36:55.859Z","summary":"required evidence artifact present; tests recorded","findings":0,"checked":["artifact exists","evidence file written"],"evidence":"AI-HANDOFF/codex/.runs/CONTROL-PLANE-CURSOR-SMOKE-001.out.txt","codex_version":"stub-codex 0.0.0"}
+{"at":"2026-08-12T21:37:51.743Z","type":"dispatch","task_id":"CONTROL-PLANE-CURSOR-SMOKE-001","worker":"codex-cloud"}
+{"at":"2026-08-12T21:43:48.159Z","type":"dispatch","task_id":"CONTROL-PLANE-CURSOR-SMOKE-001","worker":"codex-local"}
+{"at":"2026-08-12T21:43:51.297Z","type":"verification","task_id":"CONTROL-PLANE-CURSOR-SMOKE-001","verdict":"BLOCKED","worker":"codex-local","reason":"Codex CLI not found on PATH (looked for \"codex\")"}
+{"at":"2026-08-12T21:50:19.583Z","type":"dispatch","task_id":"PP-SEC-001","worker":"codex-cloud"}
+{"at":"2026-08-12T21:50:30.187Z","type":"verification","task_id":"PP-SEC-001","verdict":"BLOCKED","worker":"codex-cloud","reason":"Codex CLI not found on PATH (looked for \"codex\")"}
+{"at":"2026-08-12T21:55:08.284Z","type":"dispatch","task_id":"GOV-INT-001","worker":"codex-local"}
+{"at":"2026-08-12T21:55:10.774Z","type":"verification","task_id":"GOV-INT-001","verdict":"BLOCKED","worker":"codex-local","reason":"Codex CLI not found on PATH (looked for \"codex\")"}
+{"at":"2026-08-12T21:56:40.106Z","type":"dispatch","task_id":"GOV-INT-001","worker":"codex-local"}
+{"at":"2026-08-12T21:56:40.570Z","type":"verification","task_id":"GOV-INT-001","verdict":"BLOCKED","worker":"codex-local","reason":"Codex CLI not found on PATH (looked for \"codex\")"}

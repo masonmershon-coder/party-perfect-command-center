@@ -51,3 +51,4 @@ por-sync-agent/logs/
 
 # AI-HANDOFF relay local state (acks, wake times, logs)
 AI-HANDOFF/.relay-state/
+.wt-pp-sec-001/

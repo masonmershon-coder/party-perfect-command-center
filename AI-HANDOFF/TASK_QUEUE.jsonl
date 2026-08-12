@@ -50,3 +50,65 @@
 {"at":"2026-08-12T21:25:50.462Z","type":"transition","task_id":"TRIGGER-1786569948","by":"claude","status":"READY_FOR_VERIFICATION","result":null}
 {"at":"2026-08-12T21:26:19.664Z","type":"transition","task_id":"TRIGGER-1786569948","by":"codex","status":"VERIFYING","result":null}
 {"at":"2026-08-12T21:26:19.911Z","type":"block","task_id":"TRIGGER-1786569948","by":"codex","status":"BLOCKED","escalate":"agent"}
+{"at":"2026-08-12T21:36:03.645Z","type":"create","task_id":"CONTROL-PLANE-CURSOR-SMOKE-001","by":"claude","status":"NEW"}
+{"at":"2026-08-12T21:36:04.222Z","type":"claim","task_id":"CONTROL-PLANE-CURSOR-SMOKE-001","by":"cursor","status":"CLAIMED"}
+{"at":"2026-08-12T21:36:04.314Z","type":"transition","task_id":"CONTROL-PLANE-CURSOR-SMOKE-001","by":"cursor","status":"IN_PROGRESS","result":null}
+{"at":"2026-08-12T21:36:08.523Z","type":"transition","task_id":"CONTROL-PLANE-CURSOR-SMOKE-001","by":"cursor","status":"READY_FOR_VERIFICATION","result":null}
+{"at":"2026-08-12T21:36:09.244Z","type":"transition","task_id":"CONTROL-PLANE-CURSOR-SMOKE-001","by":"codex","status":"VERIFYING","result":null}
+{"at":"2026-08-12T21:36:09.733Z","type":"transition","task_id":"CONTROL-PLANE-CURSOR-SMOKE-001","by":"codex","status":"FAILED","result":"required evidence artifact is missing"}
+{"at":"2026-08-12T21:36:09.829Z","type":"transition","task_id":"CONTROL-PLANE-CURSOR-SMOKE-001","by":"codex","status":"NEEDS_FIX","result":"required evidence artifact is missing"}
+{"at":"2026-08-12T21:36:12.833Z","type":"claim","task_id":"CONTROL-PLANE-CURSOR-SMOKE-001","by":"cursor","status":"CLAIMED"}
+{"at":"2026-08-12T21:36:13.178Z","type":"transition","task_id":"CONTROL-PLANE-CURSOR-SMOKE-001","by":"cursor","status":"IN_PROGRESS","result":"required evidence artifact is missing"}
+{"at":"2026-08-12T21:36:15.742Z","type":"transition","task_id":"CONTROL-PLANE-CURSOR-SMOKE-001","by":"cursor","status":"READY_FOR_VERIFICATION","result":"required evidence artifact is missing"}
+{"at":"2026-08-12T21:36:17.983Z","type":"transition","task_id":"CONTROL-PLANE-CURSOR-SMOKE-001","by":"codex","status":"VERIFYING","result":"required evidence artifact is missing"}
+{"at":"2026-08-12T21:36:18.751Z","type":"transition","task_id":"CONTROL-PLANE-CURSOR-SMOKE-001","by":"codex","status":"CERTIFIED_PASS","result":"required evidence artifact present; tests recorded"}
+{"at":"2026-08-12T21:36:38.890Z","type":"create","task_id":"CONTROL-PLANE-CURSOR-SMOKE-001","by":"claude","status":"NEW"}
+{"at":"2026-08-12T21:36:40.787Z","type":"claim","task_id":"CONTROL-PLANE-CURSOR-SMOKE-001","by":"cursor","status":"CLAIMED"}
+{"at":"2026-08-12T21:36:41.087Z","type":"transition","task_id":"CONTROL-PLANE-CURSOR-SMOKE-001","by":"cursor","status":"IN_PROGRESS","result":null}
+{"at":"2026-08-12T21:36:49.907Z","type":"transition","task_id":"CONTROL-PLANE-CURSOR-SMOKE-001","by":"cursor","status":"READY_FOR_VERIFICATION","result":null}
+{"at":"2026-08-12T21:36:50.727Z","type":"transition","task_id":"CONTROL-PLANE-CURSOR-SMOKE-001","by":"codex","status":"VERIFYING","result":null}
+{"at":"2026-08-12T21:36:51.139Z","type":"transition","task_id":"CONTROL-PLANE-CURSOR-SMOKE-001","by":"codex","status":"FAILED","result":"required evidence artifact is missing"}
+{"at":"2026-08-12T21:36:51.310Z","type":"transition","task_id":"CONTROL-PLANE-CURSOR-SMOKE-001","by":"codex","status":"NEEDS_FIX","result":"required evidence artifact is missing"}
+{"at":"2026-08-12T21:36:52.300Z","type":"claim","task_id":"CONTROL-PLANE-CURSOR-SMOKE-001","by":"cursor","status":"CLAIMED"}
+{"at":"2026-08-12T21:36:52.417Z","type":"transition","task_id":"CONTROL-PLANE-CURSOR-SMOKE-001","by":"cursor","status":"IN_PROGRESS","result":"required evidence artifact is missing"}
+{"at":"2026-08-12T21:36:55.452Z","type":"transition","task_id":"CONTROL-PLANE-CURSOR-SMOKE-001","by":"cursor","status":"READY_FOR_VERIFICATION","result":"required evidence artifact is missing"}
+{"at":"2026-08-12T21:36:55.970Z","type":"transition","task_id":"CONTROL-PLANE-CURSOR-SMOKE-001","by":"codex","status":"VERIFYING","result":"required evidence artifact is missing"}
+{"at":"2026-08-12T21:36:56.200Z","type":"transition","task_id":"CONTROL-PLANE-CURSOR-SMOKE-001","by":"codex","status":"CERTIFIED_PASS","result":"required evidence artifact present; tests recorded"}
+{"at":"2026-08-12T21:37:44.134Z","type":"create","task_id":"CONTROL-PLANE-CURSOR-SMOKE-001","by":"claude","status":"NEW"}
+{"at":"2026-08-12T21:37:44.496Z","type":"claim","task_id":"CONTROL-PLANE-CURSOR-SMOKE-001","by":"cursor","status":"CLAIMED"}
+{"at":"2026-08-12T21:37:44.621Z","type":"transition","task_id":"CONTROL-PLANE-CURSOR-SMOKE-001","by":"cursor","status":"IN_PROGRESS","result":null}
+{"at":"2026-08-12T21:37:51.036Z","type":"transition","task_id":"CONTROL-PLANE-CURSOR-SMOKE-001","by":"cursor","status":"READY_FOR_VERIFICATION","result":null}
+{"at":"2026-08-12T21:37:51.984Z","type":"transition","task_id":"CONTROL-PLANE-CURSOR-SMOKE-001","by":"codex","status":"VERIFYING","result":null}
+{"at":"2026-08-12T21:37:52.435Z","type":"transition","task_id":"CONTROL-PLANE-CURSOR-SMOKE-001","by":"codex","status":"FAILED","result":"required evidence artifact is missing"}
+{"at":"2026-08-12T21:37:52.436Z","type":"claim","task_id":"CC-AUTH-P0-001","by":"cursor","status":"CLAIMED"}
+{"at":"2026-08-12T21:37:53.578Z","type":"transition","task_id":"CC-AUTH-P0-001","by":"cursor","status":"IN_PROGRESS","result":null}
+{"at":"2026-08-12T21:38:02.662Z","type":"create","task_id":"CONTROL-PLANE-CURSOR-SMOKE-001","by":"claude","status":"NEW"}
+{"at":"2026-08-12T21:39:32.463Z","type":"claim","task_id":"CC-AUTH-P0-001","by":"cursor","status":"CLAIMED"}
+{"at":"2026-08-12T21:39:33.151Z","type":"transition","task_id":"CC-AUTH-P0-001","by":"cursor","status":"IN_PROGRESS","result":null}
+{"at":"2026-08-12T21:42:46.399Z","type":"block","task_id":"CC-AUTH-P0-001","by":"cursor","status":"BLOCKED","escalate":"agent"}
+{"at":"2026-08-12T21:43:10.862Z","type":"claim","task_id":"CONTROL-PLANE-CURSOR-SMOKE-001","by":"cursor","status":"CLAIMED"}
+{"at":"2026-08-12T21:43:11.611Z","type":"transition","task_id":"CONTROL-PLANE-CURSOR-SMOKE-001","by":"cursor","status":"IN_PROGRESS","result":null}
+{"at":"2026-08-12T21:43:26.632Z","type":"transition","task_id":"CONTROL-PLANE-CURSOR-SMOKE-001","by":"cursor","status":"READY_FOR_VERIFICATION","result":null}
+{"at":"2026-08-12T21:43:48.740Z","type":"transition","task_id":"CONTROL-PLANE-CURSOR-SMOKE-001","by":"codex","status":"VERIFYING","result":null}
+{"at":"2026-08-12T21:43:51.285Z","type":"block","task_id":"CONTROL-PLANE-CURSOR-SMOKE-001","by":"codex","status":"BLOCKED","escalate":"agent"}
+{"at":"2026-08-12T21:50:00.435Z","type":"create","task_id":"PP-SEC-001","by":"cursor","status":"NEW"}
+{"at":"2026-08-12T21:50:04.641Z","type":"claim","task_id":"PP-SEC-001","by":"cursor","status":"CLAIMED"}
+{"at":"2026-08-12T21:50:10.539Z","type":"transition","task_id":"PP-SEC-001","by":"cursor","status":"IN_PROGRESS","result":null}
+{"at":"2026-08-12T21:50:11.838Z","type":"transition","task_id":"PP-SEC-001","by":"cursor","status":"READY_FOR_VERIFICATION","result":null}
+{"at":"2026-08-12T21:50:21.261Z","type":"transition","task_id":"PP-SEC-001","by":"codex","status":"VERIFYING","result":null}
+{"at":"2026-08-12T21:50:30.140Z","type":"block","task_id":"PP-SEC-001","by":"codex","status":"BLOCKED","escalate":"agent"}
+{"at":"2026-08-12T21:54:37.007Z","type":"create","task_id":"GOV-INT-001","by":"claude","status":"NEW","severity":null}
+{"at":"2026-08-12T21:54:47.137Z","type":"claim","task_id":"GOV-INT-001","by":"cursor","status":"CLAIMED"}
+{"at":"2026-08-12T21:54:48.032Z","type":"transition","task_id":"GOV-INT-001","by":"cursor","status":"IN_PROGRESS","result":null,"verification_status":"UNVERIFIED","fail_count":0}
+{"at":"2026-08-12T21:55:06.516Z","type":"transition","task_id":"GOV-INT-001","by":"cursor","status":"READY_FOR_VERIFICATION","result":null,"verification_status":"UNVERIFIED","fail_count":0}
+{"at":"2026-08-12T21:55:09.017Z","type":"transition","task_id":"GOV-INT-001","by":"codex","status":"VERIFYING","result":null,"verification_status":"UNVERIFIED","fail_count":0}
+{"at":"2026-08-12T21:55:10.765Z","type":"block","task_id":"GOV-INT-001","by":"codex","status":"BLOCKED","escalate":"agent"}
+{"at":"2026-08-12T21:55:54.599Z","type":"claim","task_id":"GOV-INT-001","by":"cursor","status":"CLAIMED"}
+{"at":"2026-08-12T21:55:55.990Z","type":"transition","task_id":"GOV-INT-001","by":"cursor","status":"IN_PROGRESS","result":null,"verification_status":"UNVERIFIED","fail_count":0}
+{"at":"2026-08-12T21:56:15.485Z","type":"transition","task_id":"GOV-INT-001","by":"cursor","status":"READY_FOR_VERIFICATION","result":null,"verification_status":"UNVERIFIED","fail_count":0}
+{"at":"2026-08-12T21:56:40.317Z","type":"transition","task_id":"GOV-INT-001","by":"codex","status":"VERIFYING","result":null,"verification_status":"UNVERIFIED","fail_count":0}
+{"at":"2026-08-12T21:56:40.559Z","type":"block","task_id":"GOV-INT-001","by":"codex","status":"BLOCKED","escalate":"agent"}
+{"at":"2026-08-12T21:57:37.809Z","type":"defect","task_id":"COMMAND-CENTER-EE42DA","by":"codex","owner":"cursor","severity":"P3","status":"NEW"}
+{"at":"2026-08-12T21:57:52.889Z","type":"claim","task_id":"COMMAND-CENTER-EE42DA","by":"cursor","status":"CLAIMED"}
+{"at":"2026-08-12T21:57:54.911Z","type":"transition","task_id":"COMMAND-CENTER-EE42DA","by":"cursor","status":"IN_PROGRESS","result":null,"verification_status":"UNVERIFIED","fail_count":0}
+{"at":"2026-08-12T21:58:14.608Z","type":"transition","task_id":"COMMAND-CENTER-EE42DA","by":"cursor","status":"READY_FOR_VERIFICATION","result":null,"verification_status":"UNVERIFIED","fail_count":0}

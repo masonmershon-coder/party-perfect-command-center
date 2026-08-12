@@ -14,6 +14,7 @@
 import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import path from "node:path";
+import { runPaidRuntime } from "../governor/runner.mjs";
 import {
   HANDOFF_DIR,
   REPO_DIR,
@@ -161,39 +162,27 @@ function codexAvailable() {
   return { available: true, version: (probe.stdout || "").trim() };
 }
 
-function runCodex(prompt, taskId) {
+async function runCodexGoverned(prompt, task) {
   mkdirSync(RUN_DIR, { recursive: true });
-  const promptFile = path.join(RUN_DIR, `${taskId}.prompt.txt`);
-  const outFile = path.join(RUN_DIR, `${taskId}.out.txt`);
+  const promptFile = path.join(RUN_DIR, `${task.task_id}.prompt.txt`);
+  const outFile = path.join(RUN_DIR, `${task.task_id}.out.txt`);
   writeFileSync(promptFile, prompt);
-
-  // exec: non-interactive, read-only sandbox, never auto-approve writes.
   const args = process.env.CODEX_ARGS
     ? process.env.CODEX_ARGS.split(" ").filter(Boolean)
     : ["exec", "--sandbox", "read-only", "--skip-git-repo-check"];
 
-  const res = spawnSync(CODEX_BIN, [...args, prompt], {
-    cwd: REPO_DIR,
-    encoding: "utf8",
-    timeout: TIMEOUT_MS,
-    maxBuffer: 32 * 1024 * 1024,
+  // Verification is paid compute too. Same gate, no exceptions for "it's only
+  // a check" -- a verifier loop can burn money exactly like an implementer.
+  const paid = await runPaidRuntime({
+    task, agent: AGENT, runtime: "codex", bin: CODEX_BIN,
+    args: [...args, prompt], cwd: REPO_DIR,
+    reason: `verify ${task.task_id}`,
   });
-
-  const stdout = res.stdout || "";
-  writeFileSync(outFile, `${stdout}\n--- stderr ---\n${res.stderr || ""}`);
-
-  if (res.error) {
-    if (res.error.code === "ETIMEDOUT")
-      return { ok: false, reason: `Codex timed out after ${TIMEOUT_MS}ms`, outFile };
-    return { ok: false, reason: `Codex failed: ${res.error.message}`, outFile };
-  }
-  if (res.status !== 0)
-    return {
-      ok: false,
-      reason: `Codex exited ${res.status}: ${(res.stderr || "").trim().slice(0, 300)}`,
-      outFile,
-    };
-  return { ok: true, stdout, outFile };
+  if (!paid.ran) return { ok: false, refused: true, reason: `${paid.code}: ${paid.reason}`, code: paid.code, outFile };
+  writeFileSync(outFile, `${paid.stdout}\n--- stderr ---\n${paid.stderr}`);
+  if (paid.code !== "COMPLETED")
+    return { ok: false, reason: paid.timedOut ? "Codex timed out and was killed" : `Codex exited ${paid.exitCode}`, outFile };
+  return { ok: true, stdout: paid.stdout, outFile };
 }
 
 /** Last complete JSON object in the output. Codex narrates before it answers. */
@@ -238,7 +227,7 @@ function fail(taskId, reason, worker) {
   console.log(`${taskId} BLOCKED: ${reason}`);
 }
 
-export function verifyTask(taskId) {
+export async function verifyTask(taskId) {
   const task = loadTasks().find((t) => t.task_id === taskId);
   if (!task) throw new Error(`no task ${taskId}`);
   if (task.status !== "READY_FOR_VERIFICATION")
@@ -268,7 +257,7 @@ export function verifyTask(taskId) {
     return "BLOCKED";
   }
 
-  const run = runCodex(buildPrompt(task, worker), taskId);
+  const run = await runCodexGoverned(buildPrompt(task, worker), task);
   if (!run.ok) {
     fail(taskId, run.reason, worker);
     return "BLOCKED";
@@ -321,7 +310,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     process.exit(2);
   }
   try {
-    const verdict = verifyTask(taskId);
+    const verdict = await verifyTask(taskId);
     process.exit(verdict === "CERTIFIED_PASS" ? 0 : 1);
   } catch (e) {
     console.error("ERR:", e.message);

@@ -1,24 +1,21 @@
 # CURRENT TASK
 
-**TASK ID:** PP-SEC-001 — P0 API authorization lockdown  
-**STATUS:** READY_FOR_CLAUDE_REVIEW (+ WAITING_FOR_MASON on prod deploy)  
+**TASK ID:** PP-SEC-001  
+**STATUS:** BLOCKED (awaiting Codex CLI) — deploy is LIVE  
 **UPDATED:** 2026-08-12  
-**BRANCH:** `claude/por-stat-classification`
+**OWNER:** cursor · **VERIFIER:** codex  
 
-## Done (source — not yet production)
-- Inventory: `AI-HANDOFF/API_AUTH_INVENTORY.md` (74 routes)
-- Canonical gate: `lib/api-auth.ts` → `requireApiAuth(permission)` + `privateJson` + permission map
-- 401/403 responses carry `Cache-Control: private, no-store`
-- Formerly-open Codex samples gated (connections, catch-up, agents, tasks, design*, live-check, marketing, social, meta/setup, por/catalog/search, …)
-- `/api/connections`: auth required; empty tokens → []; list does not dump store; `sessionToken` only on create or when client already sent tokens
-- POR sync GET session-gated; POST still `POR_SYNC_SECRET`
-- Tests: `npm run test:api-auth` **PASS**
-- No migrations · no POR write-back · no credential rotation yet
+## Deployed (done)
+- **Commit SHA:** `ddfadc10208ce56bdd926d63c1a695de85959d59`
+- **Branch:** `deploy/pp-sec-001` (from `main`; no POR/feature dirty tree)
+- **Production:** https://partyperfect.app → deployment `c3vw22vgq` (+ promote `2XdoEQgv11RHwyjFFTQwLJbDcvpr`)
 
-## Rotation note (for Mason)
-Exposed connection `sessionToken` values are opaque connection ids (not CC cookie / not Twilio / not DB). After deploy they are useless without a logged-in session. Optional hygiene: disconnect/reconnect email+social accounts in Command Center. **Do not** rotate `AUTH_PASSWORD` / `SESSION_SECRET` / Twilio unless Mason requests.
+## Cursor smoke (not certification)
+Unauth private GETs → **401** + `Cache-Control: private, no-store, max-age=0, must-revalidate`.
 
-## Next
-1. Claude review of auth architecture  
-2. Mason **yes deploy PP-SEC-001** to production  
-3. Codex independent retest → `SECURITY_FIX_CERTIFIED_PASS`
+## Certification gate
+Control plane handed to Codex at `READY_FOR_VERIFICATION`.  
+`codex/dispatch.mjs` set **BLOCKED**: Codex CLI not on PATH.  
+Cursor **will not** self-certify. Install Codex → re-run `node AI-HANDOFF/codex/dispatch.mjs`.
+
+Evidence: `AI-HANDOFF/EVIDENCE/PP-SEC-001-DEPLOY.md`

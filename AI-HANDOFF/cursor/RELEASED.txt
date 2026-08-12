@@ -1,0 +1,6 @@
+# Tasks explicitly released for autonomous Cursor execution.
+# One task id per line. Everything above CURSOR_MAX_AUTO_TIER (default 0) is
+# HELD until it is listed here. Queue membership is not consent.
+#
+# CC-AUTH-P0-001 is deliberately NOT listed: spec §12 releases it only after
+# the smoke/rejection/repair loop is proven with the real runtime.

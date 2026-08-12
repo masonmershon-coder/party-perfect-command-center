@@ -1,0 +1,18 @@
+dispatch: isolated worktree agent/cursor/CONTROL-PLANE-CURSOR-SMOKE-001 -> /Users/mikeai/.pp-worktrees/CONTROL-PLANE-CURSOR-SMOKE-001
+dispatch: retry CONTROL-PLANE-CURSOR-SMOKE-001 (cursor-local) after: BLOCKED: cursor-agent not authenticated (owner: set CURSOR_API_KEY or run `curso
+dispatch: ERROR CONTROL-PLANE-CURSOR-SMOKE-001 (cursor-local) exit 3
+dispatch: retry CONTROL-PLANE-CURSOR-SMOKE-001 (cursor-local) after: BLOCKED: cursor-agent not authenticated (owner: set CURSOR_API_KEY or run `curso
+dispatch: ERROR CONTROL-PLANE-CURSOR-SMOKE-001 (cursor-local) exit 3
+dispatch: retry CONTROL-PLANE-CURSOR-SMOKE-001 (cursor-local) after: BLOCKED: cursor-agent CLI not installed (owner: install the Cursor CLI)
+dispatch: no actionable local work
+dispatch: no actionable local work
+dispatch: no actionable local work
+dispatch: no actionable local work
+dispatch: no actionable local work
+dispatch: isolated worktree agent/cursor/GOV-INT-001 -> /Users/mikeai/.pp-worktrees/GOV-INT-001
+dispatch: no actionable local work
+dispatch: no actionable local work
+dispatch: no actionable local work
+dispatch: no actionable local work
+dispatch: isolated worktree agent/cursor/COMMAND-CENTER-EE42DA -> /Users/mikeai/.pp-worktrees/COMMAND-CENTER-EE42DA
+dispatch: no actionable local work

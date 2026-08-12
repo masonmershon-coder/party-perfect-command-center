@@ -2,10 +2,13 @@
 
 import { PartyPerfectLogo } from "@/app/components/dashboard/party-perfect-logo";
 import { BRAND } from "@/lib/brand";
+import { availabilityLabelFromSlots } from "@/lib/job-apply-validate";
 import {
   JOB_REFERRAL_SOURCES,
   JOB_ROLES,
+  type AvailabilitySlot,
   type CollegeStatus,
+  type DaysMissedBucket,
   type JobReferralSourceId,
   type JobRoleId,
   type WorkHistoryEntry,
@@ -28,6 +31,11 @@ interface FormState {
   schoolingNotes: string;
   referralSource: JobReferralSourceId;
   referralName: string;
+  hasReliableTransport: "yes" | "no" | "";
+  physicalOutdoorOk: "yes" | "no" | "";
+  earliestStartDate: string;
+  daysMissedLast3Months: DaysMissedBucket;
+  availabilitySlots: AvailabilitySlot[];
   availability: string;
   physicalAbility: string;
   whyPartyPerfect: string;
@@ -59,6 +67,11 @@ const EMPTY_FORM: FormState = {
   schoolingNotes: "",
   referralSource: "",
   referralName: "",
+  hasReliableTransport: "",
+  physicalOutdoorOk: "",
+  earliestStartDate: "",
+  daysMissedLast3Months: "",
+  availabilitySlots: [],
   availability: "",
   physicalAbility: "",
   whyPartyPerfect: "",
@@ -66,6 +79,21 @@ const EMPTY_FORM: FormState = {
   workHistory: [{ ...EMPTY_JOB }],
   videoUrl: "",
 };
+
+const AVAILABILITY_OPTIONS: { id: AvailabilitySlot; label: string }[] = [
+  { id: "weekday_am", label: "Weekday mornings" },
+  { id: "weekends", label: "Weekends" },
+  { id: "early_am", label: "Early mornings" },
+];
+
+const DAYS_MISSED_OPTIONS: {
+  id: Exclude<DaysMissedBucket, "">;
+  label: string;
+}[] = [
+  { id: "0", label: "None" },
+  { id: "1-2", label: "1–2 days" },
+  { id: "3+", label: "3+ days" },
+];
 
 export function JobsApplication() {
   const [stage, setStage] = useState<Stage>("hero");
@@ -138,71 +166,29 @@ export function JobsApplication() {
     setError(null);
   }
 
-  function focusSchooling() {
-    window.requestAnimationFrame(() => {
-      document
-        .getElementById("jobs-schooling")
-        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+  function toggleAvailabilitySlot(slot: AvailabilitySlot) {
+    setForm((current) => {
+      const has = current.availabilitySlots.includes(slot);
+      const availabilitySlots = has
+        ? current.availabilitySlots.filter((s) => s !== slot)
+        : [...current.availabilitySlots, slot];
+      return {
+        ...current,
+        availabilitySlots,
+        availability:
+          availabilityLabelFromSlots(availabilitySlots) || current.availability,
+      };
     });
+    setError(null);
   }
 
   function validateStep(step: FormStep) {
+    // Hard-required on step 1 only: name, phone, email. All other questions stay on the form.
     if (step === 1) {
       if (!form.fullName.trim() || !form.phone.trim() || !form.email.trim()) {
         return "Add your name, phone, and email to keep going.";
       }
       if (!form.email.includes("@")) return "That email doesn’t look right yet.";
-      if (form.eligibleToWork !== "yes" || form.over18 !== "yes") {
-        return "You need to be 18+ and eligible to work in the U.S.";
-      }
-      if (form.validDriverLicense !== "yes" && form.validDriverLicense !== "no") {
-        return "Tell us if you have a valid driver’s license.";
-      }
-      if (
-        form.highSchoolGraduated !== "yes" &&
-        form.highSchoolGraduated !== "no"
-      ) {
-        focusSchooling();
-        return "Please answer whether you graduated high school (or GED) in the Schooling box below.";
-      }
-      if (!form.collegeStatus) {
-        focusSchooling();
-        return "Pick a college option in the Schooling box (No college is fine).";
-      }
-      if (!form.referralSource) {
-        window.requestAnimationFrame(() => {
-          document
-            .getElementById("jobs-referral")
-            ?.scrollIntoView({ behavior: "smooth", block: "center" });
-        });
-        return "Quick tap — how’d you hear about us?";
-      }
-      if (
-        form.referralSource === "friend" &&
-        form.referralName.trim().length < 2
-      ) {
-        return "Who referred you? First name is perfect.";
-      }
-    }
-    if (step === 2) {
-      if (!form.availability.trim() || !form.physicalAbility.trim()) {
-        return "Tell us about availability and physical ability.";
-      }
-      if (form.whyPartyPerfect.trim().length < 8) {
-        return "Give us a quick “Why Party Perfect?” (even one sentence works).";
-      }
-    }
-    if (step === 3) {
-      const incomplete = form.workHistory.find((entry) => {
-        if (!entry.employer.trim() || !entry.startDate.trim() || !entry.startPay.trim()) {
-          return true;
-        }
-        if (entry.stillEmployed) return !entry.endPay.trim();
-        return !entry.endDate.trim() || !entry.endPay.trim();
-      });
-      if (incomplete) {
-        return "For each job, add employer, start date, start pay, and end pay (or current pay if still there).";
-      }
     }
     return null;
   }
@@ -217,6 +203,9 @@ export function JobsApplication() {
         applyMode: "full" as const,
         videoUrl: form.videoUrl.trim() || undefined,
         schoolingNotes: form.schoolingNotes.trim() || undefined,
+        availability:
+          availabilityLabelFromSlots(form.availabilitySlots) ||
+          form.availability.trim(),
       };
       const body = new FormData();
       body.set("payload", JSON.stringify(payload));
@@ -419,7 +408,7 @@ export function JobsApplication() {
                 </p>
               )}
               <Field
-                label="Full name"
+                label="Full name · required"
                 value={form.fullName}
                 onChange={(value) => updateField("fullName", value)}
                 placeholder="Alex Rivera"
@@ -427,7 +416,7 @@ export function JobsApplication() {
               />
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field
-                  label="Phone"
+                  label="Phone · required"
                   value={form.phone}
                   onChange={(value) => updateField("phone", value)}
                   placeholder="(918) 555-0100"
@@ -435,7 +424,7 @@ export function JobsApplication() {
                   inputMode="tel"
                 />
                 <Field
-                  label="Email"
+                  label="Email · required"
                   value={form.email}
                   onChange={(value) => updateField("email", value)}
                   placeholder="you@email.com"
@@ -444,26 +433,38 @@ export function JobsApplication() {
                 />
               </div>
               <Field
-                label="City"
+                label="City (optional)"
                 value={form.city}
                 onChange={(value) => updateField("city", value)}
                 placeholder="Tulsa"
                 autoComplete="address-level2"
               />
               <YesNo
-                label="Eligible to work in the U.S.?"
+                label="Eligible to work in the U.S.? (optional)"
                 value={form.eligibleToWork}
                 onChange={(value) => updateField("eligibleToWork", value)}
               />
               <YesNo
-                label="Are you 18 or older?"
+                label="Are you 18 or older? (optional)"
                 value={form.over18}
                 onChange={(value) => updateField("over18", value)}
               />
               <YesNo
-                label="Do you have a valid driver’s license?"
+                label="Do you have a valid driver’s license? (optional)"
                 value={form.validDriverLicense}
                 onChange={(value) => updateField("validDriverLicense", value)}
+              />
+              <YesNo
+                label="Do you have reliable transportation to 8401 E 41st St, Tulsa? (optional)"
+                value={form.hasReliableTransport}
+                onChange={(value) =>
+                  updateField("hasReliableTransport", value)
+                }
+              />
+              <YesNo
+                label="OK with outdoor heat and lifting 50+ lbs (tents/delivery)? (optional)"
+                value={form.physicalOutdoorOk}
+                onChange={(value) => updateField("physicalOutdoorOk", value)}
               />
 
               <div
@@ -472,13 +473,13 @@ export function JobsApplication() {
               >
                 <div>
                   <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[var(--jobs-teal-deep)]">
-                    Schooling · required
+                    Schooling · optional
                   </p>
                   <h3 className="jobs-display mt-1 text-xl font-extrabold text-[var(--jobs-ink)]">
                     High school &amp; college
                   </h3>
                   <p className="mt-1 text-sm text-[var(--jobs-muted)]">
-                    Tap yes/no and pick one college option — then hit Next.
+                    Helps Mike screen — skip if you prefer, then hit Next.
                   </p>
                 </div>
                 <YesNo
@@ -528,7 +529,7 @@ export function JobsApplication() {
               <div id="jobs-referral" className="scroll-mt-24 space-y-3">
                 <div>
                   <p className="text-sm font-extrabold text-[var(--jobs-ink)]">
-                    How’d you hear about us?
+                    How’d you hear about us? (optional)
                   </p>
                   <p className="mt-0.5 text-xs text-[var(--jobs-muted)]">
                     One tap — keeps it simple.
@@ -576,20 +577,89 @@ export function JobsApplication() {
               <h2 className="jobs-display text-3xl font-extrabold">
                 Schedule & spark
               </h2>
+              <p className="text-sm text-[var(--jobs-muted)]">
+                Optional — but it helps Mike match you to a crew. Skip any you
+                don’t know yet.
+              </p>
+
+              <div>
+                <p className="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-[var(--jobs-muted)]">
+                  Availability (optional — pick all that fit)
+                </p>
+                <div className="flex flex-col gap-2">
+                  {AVAILABILITY_OPTIONS.map((option) => {
+                    const selected = form.availabilitySlots.includes(option.id);
+                    return (
+                      <label
+                        key={option.id}
+                        className={`flex cursor-pointer items-center gap-3 rounded-2xl border px-4 py-3.5 text-sm font-bold transition ${
+                          selected
+                            ? "border-[var(--jobs-teal)] bg-[var(--jobs-teal-soft)] text-[var(--jobs-ink)]"
+                            : "border-black/10 bg-white text-[var(--jobs-ink)] hover:border-[var(--jobs-teal)]/40"
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selected}
+                          onChange={() => toggleAvailabilitySlot(option.id)}
+                          className="h-4 w-4 rounded border-black/20"
+                        />
+                        {option.label}
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
               <Area
-                label="Availability"
+                label="Availability notes (optional)"
                 value={form.availability}
                 onChange={(value) => updateField("availability", value)}
                 placeholder="Weekdays, weekends, mornings… whatever’s true for you"
               />
+              <Field
+                label="Earliest start date (optional)"
+                value={form.earliestStartDate}
+                onChange={(value) => updateField("earliestStartDate", value)}
+                type="date"
+              />
+              <div>
+                <p className="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-[var(--jobs-muted)]">
+                  Days of work missed in the last 3 months (optional)
+                </p>
+                <div className="grid grid-cols-3 gap-2">
+                  {DAYS_MISSED_OPTIONS.map((option) => {
+                    const active = form.daysMissedLast3Months === option.id;
+                    return (
+                      <button
+                        key={option.id}
+                        type="button"
+                        onClick={() =>
+                          updateField(
+                            "daysMissedLast3Months",
+                            active ? "" : option.id,
+                          )
+                        }
+                        className={`rounded-2xl border px-3 py-3 text-sm font-extrabold ${
+                          active
+                            ? "border-[var(--jobs-teal)] bg-[var(--jobs-teal)] text-white"
+                            : "border-black/10 bg-white text-[var(--jobs-ink)]"
+                        }`}
+                      >
+                        {option.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
               <Area
-                label="Physical ability"
+                label="Physical ability (optional)"
                 value={form.physicalAbility}
                 onChange={(value) => updateField("physicalAbility", value)}
                 placeholder="Comfortable lifting, standing, outdoor work, etc."
               />
               <Area
-                label="Why Party Perfect?"
+                label="Why Party Perfect? (optional)"
                 value={form.whyPartyPerfect}
                 onChange={(value) => updateField("whyPartyPerfect", value)}
                 placeholder="One fun sentence is perfect"
@@ -603,8 +673,8 @@ export function JobsApplication() {
                 Work history (last 3 years)
               </h2>
               <p className="text-sm text-[var(--jobs-muted)]">
-                Add up to 3 jobs. Include start pay and end pay (or current pay
-                if you’re still there).
+                Optional — add up to 3 jobs if you can. Blank is OK; you can
+                still submit.
               </p>
 
               {form.workHistory.map((job, index) => (
@@ -904,6 +974,7 @@ function Field({
   placeholder,
   autoComplete,
   inputMode,
+  type = "text",
 }: {
   label: string;
   value: string;
@@ -911,6 +982,7 @@ function Field({
   placeholder?: string;
   autoComplete?: string;
   inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
+  type?: React.HTMLInputTypeAttribute;
 }) {
   return (
     <label className="block text-left">
@@ -918,6 +990,7 @@ function Field({
         {label}
       </span>
       <input
+        type={type}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
@@ -963,7 +1036,7 @@ function YesNo({
 }: {
   label: string;
   value: "yes" | "no" | "";
-  onChange: (value: "yes" | "no") => void;
+  onChange: (value: "yes" | "no" | "") => void;
 }) {
   return (
     <div className="text-left">
@@ -977,7 +1050,7 @@ function YesNo({
             <button
               key={option}
               type="button"
-              onClick={() => onChange(option)}
+              onClick={() => onChange(selected ? "" : option)}
               className={`flex-1 rounded-2xl border px-4 py-3 text-sm font-extrabold capitalize transition ${
                 selected
                   ? "border-[var(--jobs-teal)] bg-[var(--jobs-teal)] text-white"

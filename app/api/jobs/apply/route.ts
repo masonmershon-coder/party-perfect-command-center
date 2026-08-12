@@ -290,7 +290,7 @@ export async function POST(request: Request) {
       fullName: cleanText(body.fullName, 120),
       phone: cleanText(body.phone, 40),
       email: cleanText(body.email, 160).toLowerCase(),
-      city: cleanText(body.city, 80),
+      city: cleanText(body.city, 80) || "Tulsa",
       applyMode,
       eligibleToWork: cleanYesNo(body.eligibleToWork),
       over18: cleanYesNo(body.over18),

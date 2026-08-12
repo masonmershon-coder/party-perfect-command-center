@@ -1,5 +1,5 @@
 /** Single source of truth for Command Center + Jobs release metadata. */
-export const APP_VERSION = "1.9.1";
+export const APP_VERSION = "1.9.2";
 
 /** ISO date of this release (YYYY-MM-DD). */
 export const APP_RELEASED_AT = "2026-08-11";
@@ -12,9 +12,9 @@ export const APP_RELEASE_NOTES = {
     "POR 2.0 rentable stock metrics + DEMO chips",
   ],
   jobs: [
-    "Full multi-step application restored (Quick Apply removed)",
+    "Full multi-step application (name, phone, email required; rest optional)",
+    "Reliable-transport question kept for Mike scoring, not a submit blocker",
     "Rate-limit, honeypot, validation, and Mike scoring kept",
-    "Pay $18–$28/hr · daily goal 25 apps",
   ],
 } as const;
 

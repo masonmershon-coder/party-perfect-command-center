@@ -1,5 +1,4 @@
 import {
-  wantsCrewTrack,
   type AvailabilitySlot,
   type EligibilityAnswer,
   type JobApplication,
@@ -84,135 +83,22 @@ export function validateJobApplicationInput(
 ): string | null {
   const mode = options?.mode || input.applyMode || "full";
 
-  if (!input.fullName?.trim()) return "First name is required.";
-  if (!isValidUsPhone(input.phone)) {
-    return "Enter a valid 10-digit U.S. phone number.";
-  }
-  if (!(input.city || "").trim()) return "City is required.";
-  if (!input.roles?.length) {
-    return "Pick at least one role you’re interested in.";
-  }
-
-  const email = (input.email || "").trim();
-  if (email && !isValidEmail(email)) {
-    return "Enter a valid email address (or leave it blank).";
-  }
-
-  if (
-    input.physicalOutdoorOk &&
-    input.physicalOutdoorOk !== "yes" &&
-    input.physicalOutdoorOk !== "no"
-  ) {
-    return "Are you OK with outdoor heat and lifting ~50 lbs?";
-  }
-
   // Quick Apply removed — full application only.
   if (mode === "quick") {
     return "Please complete the full application (Quick Apply is no longer available).";
   }
 
-  // Enrich: validate optional sections only when the applicant filled them in.
-  if (mode === "enrich") {
-    if (email && !isValidEmail(email)) {
-      return "Enter a valid email address (or leave it blank).";
-    }
-    const why = (input.whyPartyPerfect || "").trim();
-    if (why && why.length < WHY_MIN) {
-      return `Why Party Perfect needs at least ${WHY_MIN} characters (or clear it).`;
-    }
-    const story = (input.physicalStory || "").trim();
-    if (story && story.length < PHYSICAL_STORY_MIN) {
-      return "Physical/fast-paced story needs a few more sentences (or clear it).";
-    }
-    const history = input.workHistory || [];
-    const started = history.filter(
-      (e) => e.employer || e.roleTitle || e.startDate || e.startPay,
-    );
-    const incompleteHistory = started.find(
-      (entry) =>
-        !entry.employer ||
-        !entry.startDate ||
-        !entry.startPay ||
-        (!entry.stillEmployed && (!entry.endDate || !entry.endPay)) ||
-        (entry.stillEmployed && !entry.endPay),
-    );
-    if (incompleteHistory) {
-      return "Finish each job you started (employer, dates, pay) — or remove the blank ones.";
-    }
-    return null;
+  // Hard-required: name, phone, email only. Everything else is encouraged, not blocking.
+  if (!input.fullName?.trim()) return "Full name is required.";
+  if (!isValidUsPhone(input.phone)) {
+    return "Enter a valid 10-digit U.S. phone number.";
   }
-
-  // Full (legacy complete application)
   if (!isValidEmail(input.email)) {
     return "Enter a valid email address.";
   }
-  if (input.eligibleToWork !== "yes" || input.over18 !== "yes") {
-    return "Applicants must be 18+ and eligible to work in the U.S. to continue.";
-  }
-  if (input.validDriverLicense !== "yes" && input.validDriverLicense !== "no") {
-    return "Please answer whether you have a valid driver’s license.";
-  }
-  if (
-    input.highSchoolGraduated !== "yes" &&
-    input.highSchoolGraduated !== "no"
-  ) {
-    return "Please answer high school / GED.";
-  }
-  if (!input.collegeStatus) {
-    return "Please pick a college option (No college is fine).";
-  }
-  if (!input.referralSource) {
-    return "Quick tap — how’d you hear about us?";
-  }
-  if (
-    input.referralSource === "friend" &&
-    !(input.referralName || "").trim()
-  ) {
-    return "Who referred you? First name is perfect.";
-  }
-  if (
-    input.hasReliableTransport !== "yes" &&
-    input.hasReliableTransport !== "no"
-  ) {
-    return "Do you have reliable transportation to 8401 E 41st St, Tulsa?";
-  }
-  if (
-    input.physicalOutdoorOk !== "yes" &&
-    input.physicalOutdoorOk !== "no"
-  ) {
-    return "Are you OK with outdoor heat and lifting 50+ lbs for tents/delivery?";
-  }
-  if (!(input.earliestStartDate || "").trim()) {
-    return "What’s your earliest start date?";
-  }
-  if (!(input.daysMissedLast3Months || "").trim()) {
-    return "About how many days of work did you miss in the last 3 months?";
-  }
-  const slots = input.availabilitySlots || [];
-  const availText = (input.availability || "").trim();
-  if (slots.length === 0 && availText.length < AVAIL_TEXT_MIN) {
-    return "Pick at least one availability window (weekday AM / weekends / early AM).";
-  }
-  if ((input.whyPartyPerfect || "").trim().length < WHY_MIN) {
-    return `Tell us why Party Perfect (at least ${WHY_MIN} characters).`;
-  }
-  if ((input.physicalStory || "").trim().length < PHYSICAL_STORY_MIN) {
-    return "Describe a time you did physical or fast-paced work (a few sentences).";
-  }
-  if (!(input.physicalAbility || "").trim()) {
-    return "Please complete the physical ability note.";
-  }
 
-  const incompleteHistory = input.workHistory.find(
-    (entry) =>
-      !entry.employer ||
-      !entry.startDate ||
-      !entry.startPay ||
-      (!entry.stillEmployed && (!entry.endDate || !entry.endPay)) ||
-      (entry.stillEmployed && !entry.endPay),
-  );
-  if (!input.workHistory.length || incompleteHistory) {
-    return "Add at least one job from the last 3 years with employer, dates, and start/end pay.";
+  if (!input.roles?.length) {
+    return "Pick at least one role you’re interested in.";
   }
 
   return null;
@@ -233,5 +119,3 @@ export function cleanAvailabilitySlots(value: unknown): AvailabilitySlot[] {
     .map(String)
     .filter((s): s is AvailabilitySlot => allowed.has(s as AvailabilitySlot));
 }
-
-export { wantsCrewTrack };

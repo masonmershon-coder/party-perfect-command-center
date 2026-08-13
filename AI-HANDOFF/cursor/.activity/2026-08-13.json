@@ -1,7 +1,10 @@
 {
   "started_at": "2026-08-13T16:53:01.679Z",
   "files": [
-    "lib/jobs.ts"
+    "lib/jobs.ts",
+    "lib/job-store.ts",
+    "lib/job-apply-intake.ts",
+    "lib/job-applications.ts"
   ],
-  "registered_task": null
+  "registered_task": "CURSOR-ACTIVITY-20260813"
 }

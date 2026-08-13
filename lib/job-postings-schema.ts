@@ -83,6 +83,16 @@ export function buildJobPostingJsonLd(datePosted = "2026-08-01") {
     },
     directApply: true,
     url: `${JOBS_ORG.jobsUrl}?src=google&role=${role.id}`,
+    baseSalary: {
+      "@type": "MonetaryAmount",
+      currency: "USD",
+      value: {
+        "@type": "QuantitativeValue",
+        minValue: 18,
+        maxValue: 28,
+        unitText: "HOUR",
+      },
+    },
   }));
 }
 

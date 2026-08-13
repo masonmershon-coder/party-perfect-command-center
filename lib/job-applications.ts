@@ -124,7 +124,12 @@ async function mikeScoreWithGrok(
       "[jobs] scoring model unhealthy — using heuristic (no SMS flag):",
       health.error,
     );
-    return applyFiltersToReview(input, heuristicMikeReview(input));
+    return {
+      ...applyFiltersToReview(input, heuristicMikeReview(input)),
+      fallbackReason: health.error
+        ? `Grok scoring unavailable (${health.error})`
+        : "Grok scoring unavailable — heuristic used",
+    };
   }
 
   let learnings = "Hiring learnings: none yet.";
@@ -205,7 +210,10 @@ async function mikeScoreWithGrok(
     typeof response.output_text === "string" ? response.output_text.trim() : "";
   const jsonMatch = text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
-    return applyFiltersToReview(input, heuristicMikeReview(input));
+    return {
+      ...applyFiltersToReview(input, heuristicMikeReview(input)),
+      fallbackReason: "Grok returned no score JSON — heuristic used",
+    };
   }
 
   const parsed = JSON.parse(jsonMatch[0]) as Partial<MikeJobReview>;

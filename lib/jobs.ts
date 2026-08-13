@@ -257,6 +257,8 @@ export interface MikeJobReview {
   strengths: string[];
   /** Who produced the score — only grok 70+ may SMS-flag owners. */
   scoredBy: "grok" | "heuristic";
+  /** Set when heuristic was used because Grok scoring failed or was unhealthy. */
+  fallbackReason?: string;
 }
 
 export interface JobApplication extends JobApplicationInput {

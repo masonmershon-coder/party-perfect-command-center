@@ -24,7 +24,7 @@ function scoreFor(app: JobApplication) {
   return Number.isFinite(ms) ? ms : Date.now();
 }
 
-function coerceApplication(value: unknown): JobApplication | null {
+export function coerceApplication(value: unknown): JobApplication | null {
   if (!value || typeof value !== "object") return null;
   const row = value as Partial<JobApplication>;
   if (typeof row.id !== "string" || !row.id.trim()) return null;

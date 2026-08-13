@@ -5,11 +5,19 @@
       {
         "command": ".cursor/hooks/session-handoff.sh",
         "timeout": 10
+      },
+      {
+        "command": ".cursor/hooks/session-register.sh",
+        "timeout": 10
       }
     ],
     "afterFileEdit": [
       {
         "command": ".cursor/hooks/handoff-after-edit.sh",
+        "timeout": 10
+      },
+      {
+        "command": ".cursor/hooks/record-activity.sh",
         "timeout": 10
       }
     ]

@@ -114,3 +114,5 @@
 {"at":"2026-08-12T21:58:14.608Z","type":"transition","task_id":"COMMAND-CENTER-EE42DA","by":"cursor","status":"READY_FOR_VERIFICATION","result":null,"verification_status":"UNVERIFIED","fail_count":0}
 {"at":"2026-08-13T15:13:36.338Z","type":"create","task_id":"AI-COST-DASHBOARD-001","by":"claude","status":"NEW","severity":null}
 {"at":"2026-08-13T15:13:37.056Z","type":"create","task_id":"AI-COST-VERIFY-001","by":"claude","status":"NEW","severity":null}
+{"at":"2026-08-13T16:14:45.058Z","type":"create","task_id":"POR-PARITY-WAIVER-BASE-001","by":"claude","status":"NEW","severity":null}
+{"at":"2026-08-13T16:14:46.698Z","type":"create","task_id":"POR-PARITY-TAXCODE-001","by":"claude","status":"NEW","severity":null}

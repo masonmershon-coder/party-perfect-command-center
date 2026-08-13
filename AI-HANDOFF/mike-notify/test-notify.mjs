@@ -33,6 +33,11 @@ const failingSend = async () => { throw new Error("network timeout"); };
 const bind = (task_id, who, extra = {}) =>
   bindTask({ task_id, message_id: `m-${task_id}`, ...who, ...extra });
 
+// A CORRECT caller reads the state it is about to overwrite and presents that version.
+// Fencing is mandatory now, so this mirrors what every real caller must do.
+const advance = (task_id, opts = {}) =>
+  advanceState(task_id, { expectedVersion: getBinding(task_id).state_version, ...opts });
+
 console.log("MIKE TASK NOTIFICATION — 30 required tests (synthetic, in-memory)\n");
 
 await t("1. Mason submits a normal task", async () => {
@@ -63,7 +68,7 @@ await t("3. both submit tasks close together without cross-contamination", async
 
 await t("4. Mason's updates return only to Mason", async () => {
   outbox = [];
-  advanceState("MIKE-1003", { to: "IN_PROGRESS" });
+  advance("MIKE-1003", { to: "IN_PROGRESS" });
   await notify({ task_id: "MIKE-1003", type: "progress", ctx: { detail: "data compared" }, send });
   assert.equal(outbox.length, 1);
   assert.equal(outbox[0].address, MASON.address);
@@ -72,7 +77,7 @@ await t("4. Mason's updates return only to Mason", async () => {
 
 await t("5. Josh's updates return only to Josh", async () => {
   outbox = [];
-  advanceState("MIKE-1004", { to: "IN_PROGRESS" });
+  advance("MIKE-1004", { to: "IN_PROGRESS" });
   await notify({ task_id: "MIKE-1004", type: "progress", ctx: { detail: "lookup running" }, send });
   assert.equal(outbox.length, 1);
   assert.equal(outbox[0].address, JOSH.address);
@@ -81,7 +86,7 @@ await t("5. Josh's updates return only to Josh", async () => {
 
 await t("6. spoofed sender in message body cannot redirect a reply", async () => {
   outbox = [];
-  advanceState("MIKE-1004", { to: "WAITING_FOR_AGENT" });
+  advance("MIKE-1004", { to: "WAITING_FOR_AGENT" });
   // Josh's task, but the "message" claims to be Mason. Routing must ignore content.
   await notify({
     task_id: "MIKE-1004", type: "progress",
@@ -148,8 +153,8 @@ await t("12. late callback from an expired lease is rejected", async () => {
 
 await t("12b. a completed task can never be requeued by a late callback", async () => {
   bind("MIKE-1012B", MASON);
-  advanceState("MIKE-1012B", { to: "COMPLETED", evidenceLevel: EVIDENCE_LEVEL.CODEX_CERTIFIED });
-  const late = advanceState("MIKE-1012B", { to: "QUEUED" });
+  advance("MIKE-1012B", { to: "COMPLETED", evidenceLevel: EVIDENCE_LEVEL.CODEX_CERTIFIED });
+  const late = advance("MIKE-1012B", { to: "QUEUED" });
   assert.equal(late.ok, false);
   assert.equal(late.code, "TERMINAL_FROZEN");
 });
@@ -157,7 +162,7 @@ await t("12b. a completed task can never be requeued by a late callback", async 
 await t("13. task enters WAITING_FOR_APPROVAL and texts the owner", async () => {
   outbox = [];
   bind("MIKE-1013", MASON);
-  advanceState("MIKE-1013", { to: "WAITING_FOR_APPROVAL", approvalState: "REQUIRED" });
+  advance("MIKE-1013", { to: "WAITING_FOR_APPROVAL", approvalState: "REQUIRED" });
   const r = await notify({ task_id: "MIKE-1013", type: "approval_required", ctx: { action: "write one supervised POR quote" }, send });
   assert.equal(r.sent, true);
   assert.match(r.message, /Approval required/);
@@ -175,7 +180,7 @@ await t("14. protected action is not executed without approval", async () => {
 
 await t("15. agent claims completion without evidence — Mike refuses to say complete", async () => {
   bind("MIKE-1015", MASON);
-  advanceState("MIKE-1015", { to: "COMPLETED", evidenceLevel: EVIDENCE_LEVEL.AGENT_REPORTED });
+  advance("MIKE-1015", { to: "COMPLETED", evidenceLevel: EVIDENCE_LEVEL.AGENT_REPORTED });
   const r = await notify({ task_id: "MIKE-1015", type: "completed", send });
   assert.equal(r.sent, false);
   assert.equal(r.code, "UNSUPPORTED_CLAIM");
@@ -192,9 +197,9 @@ await t("15b. 'verified' is refused below Codex certification", async () => {
 await t("16. Codex rejects an implementation and the requester is told", async () => {
   outbox = [];
   bind("MIKE-1016", MASON);
-  advanceState("MIKE-1016", { to: "VERIFYING" });
+  advance("MIKE-1016", { to: "VERIFYING" });
   await notify({ task_id: "MIKE-1016", type: "verification_started", send });
-  advanceState("MIKE-1016", { to: "IN_PROGRESS" });
+  advance("MIKE-1016", { to: "IN_PROGRESS" });
   const r = await notify({ task_id: "MIKE-1016", type: "verification_rejected", ctx: { findings: "lease callbacks were not fenced", agent: "Cursor" }, send });
   assert.match(r.message, /Verification found issues/);
   assert.match(r.message, /Nothing was marked complete/);
@@ -206,8 +211,8 @@ await t("17. repair routes back to the responsible agent", async () => {
 });
 
 await t("18. Codex accepts the repaired result and completion is Codex-certified", async () => {
-  advanceState("MIKE-1016", { to: "VERIFYING" });
-  advanceState("MIKE-1016", { to: "COMPLETED", evidenceLevel: EVIDENCE_LEVEL.CODEX_CERTIFIED });
+  advance("MIKE-1016", { to: "VERIFYING" });
+  advance("MIKE-1016", { to: "COMPLETED", evidenceLevel: EVIDENCE_LEVEL.CODEX_CERTIFIED });
   const r = await notify({ task_id: "MIKE-1016", type: "completed", ctx: { noProdChange: true }, send });
   assert.equal(r.sent, true);
   assert.match(r.message, /Codex independently verified/);
@@ -216,7 +221,7 @@ await t("18. Codex accepts the repaired result and completion is Codex-certified
 await t("19. completion returns to the original requester and thread", async () => {
   outbox = [];
   bind("MIKE-1019", JOSH);
-  advanceState("MIKE-1019", { to: "COMPLETED", evidenceLevel: EVIDENCE_LEVEL.CODEX_CERTIFIED });
+  advance("MIKE-1019", { to: "COMPLETED", evidenceLevel: EVIDENCE_LEVEL.CODEX_CERTIFIED });
   await notify({ task_id: "MIKE-1019", type: "completed", send });
   assert.equal(outbox[0].address, JOSH.address);
   assert.equal(outbox[0].meta.thread_id, "thread-josh");
@@ -232,15 +237,15 @@ await t("20. EOD checkpoint starts and explicitly does not stop work", async () 
 });
 
 await t("21. EOD completes with all agents responding", async () => {
-  advanceState("EOD-1", { to: "COMPLETED", evidenceLevel: EVIDENCE_LEVEL.MATTER_ACCEPTED });
-  const r = await notify({ task_id: "EOD-1", type: "eod_morning_report", ctx: { detail: "All 7 agents reported and the SSD backup was verified.", evidenceBacked: true }, send });
+  advance("EOD-1", { to: "COMPLETED", evidenceLevel: EVIDENCE_LEVEL.MATTER_ACCEPTED });
+  const r = await notify({ task_id: "EOD-1", type: "eod_morning_report", ctx: { detail: "All 7 agents reported and the SSD backup was verified.", evidenceRefs: ["AI-HANDOFF/EVIDENCE/EOD_backup_check.json"] }, send });
   assert.match(r.message, /morning report is ready/);
   assert.match(r.message, /Overnight work is continuing/);
 });
 
 await t("22. EOD completes with one missing agent — reported honestly", async () => {
   bind("EOD-2", MASON, { run_id: "EOD-2026-08-13-002" });
-  advanceState("EOD-2", { to: "COMPLETED_WITH_WARNINGS", evidenceLevel: EVIDENCE_LEVEL.MATTER_ACCEPTED });
+  advance("EOD-2", { to: "COMPLETED_WITH_WARNINGS", evidenceLevel: EVIDENCE_LEVEL.MATTER_ACCEPTED });
   const r = await notify({ task_id: "EOD-2", type: "eod_morning_report",
     ctx: { warnings: true, detail: "Six of seven agents reported. Cursor did not submit a final checkpoint." }, send });
   assert.match(r.message, /completed with warnings/);
@@ -249,7 +254,7 @@ await t("22. EOD completes with one missing agent — reported honestly", async 
 
 await t("23. backup verification failure is stated, not glossed", async () => {
   bind("EOD-3", MASON, { run_id: "EOD-3" });
-  advanceState("EOD-3", { to: "BLOCKED" });
+  advance("EOD-3", { to: "BLOCKED" });
   const r = await notify({ task_id: "EOD-3", type: "blocked", ctx: { reason: "The SSD backup could not be verified." }, send });
   assert.match(r.message, /blocked/);
   assert.ok(!/backed up|verified successfully/i.test(r.message));
@@ -257,7 +262,7 @@ await t("23. backup verification failure is stated, not glossed", async () => {
 
 await t("24. transcription failure does not become an authorization", async () => {
   bind("MIKE-1024", MASON);
-  advanceState("MIKE-1024", { to: "WAITING_FOR_CLARIFICATION" });
+  advance("MIKE-1024", { to: "WAITING_FOR_CLARIFICATION" });
   const r = await notify({ task_id: "MIKE-1024", type: "clarification_required", ctx: { question: "I couldn't make out the item name" }, send });
   assert.match(r.message, /Nothing has been executed/);
 });
@@ -317,6 +322,44 @@ await t("30. POR read-only protections are untouched", () => {
   const src = readFileSync(path.join(HERE, "notify.mjs"), "utf8").replace(/^\s*\/\/.*$/gm, "");
   assert.ok(!/\bpor\b/i.test(src.replace(/POR data was changed/g, "")), "notification layer must not touch POR at all");
   assert.ok(!/insert\s+into|update\s+\w+\s+set|delete\s+from/i.test(src));
+});
+
+// --- regressions for Codex findings on b8d1996 ---
+await t("R1. state fencing is MANDATORY — an unfenced caller is refused", async () => {
+  bind("MIKE-2001", MASON);
+  const unfenced = advanceState("MIKE-2001", { to: "IN_PROGRESS" });
+  assert.equal(unfenced.ok, false);
+  assert.equal(unfenced.code, "FENCE_REQUIRED");
+  assert.equal(getBinding("MIKE-2001").state, "ACCEPTED", "state must be untouched");
+  assert.equal(advance("MIKE-2001", { to: "IN_PROGRESS" }).ok, true, "a fenced caller still works");
+});
+
+await t("R2. concurrent notifies with the same key send exactly once", async () => {
+  bind("MIKE-2002", MASON);
+  let sends = 0;
+  const slow = async () => { sends++; await new Promise((r) => setTimeout(r, 20)); return { providerId: "p" }; };
+  const [a, b] = await Promise.all([
+    notify({ task_id: "MIKE-2002", type: "accepted", send: slow }),
+    notify({ task_id: "MIKE-2002", type: "accepted", send: slow }),
+  ]);
+  assert.equal(sends, 1, "the key must be reserved before delivery, not after");
+  assert.equal([a.sent, b.sent].filter(Boolean).length, 1);
+  assert.equal(logicalNotificationCount("MIKE-2002"), 1);
+});
+
+await t("R3. a boolean can no longer wave through a 'verified' claim", async () => {
+  const bare = claimIsSupported("The SSD backup was verified.", EVIDENCE_LEVEL.MATTER_ACCEPTED, "COMPLETED", {});
+  assert.equal(bare.ok, false);
+  const flagOnly = claimIsSupported("The SSD backup was verified.", EVIDENCE_LEVEL.MATTER_ACCEPTED, "COMPLETED", { evidenceBacked: true });
+  assert.equal(flagOnly.ok, false, "a caller-set boolean is not evidence");
+  const withRefs = claimIsSupported("The SSD backup was verified.", EVIDENCE_LEVEL.MATTER_ACCEPTED, "COMPLETED", { evidenceRefs: ["EVIDENCE/backup.json"] });
+  assert.equal(withRefs.ok, true);
+});
+
+await t("R4. 'confirmed' and 'backed up' are now enforced, not just detected", async () => {
+  assert.equal(claimIsSupported("Everything is backed up.", EVIDENCE_LEVEL.AGENT_REPORTED, "COMPLETED", {}).ok, false);
+  assert.equal(claimIsSupported("The result is confirmed.", EVIDENCE_LEVEL.AGENT_REPORTED, "COMPLETED", {}).ok, false);
+  assert.equal(claimIsSupported("Everything is backed up.", EVIDENCE_LEVEL.MATTER_ACCEPTED, "COMPLETED", {}).ok, true);
 });
 
 console.log(`\n${pass} passed, ${fail} failed`);

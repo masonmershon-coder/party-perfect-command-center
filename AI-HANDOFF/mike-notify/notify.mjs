@@ -152,6 +152,13 @@ export function recipientFor(task_id) {
  */
 export function advanceState(task_id, { to, expectedVersion, evidenceLevel, agents, approvalState, evidenceRefs, terminalResult }) {
   if (!TASK_STATES.includes(to)) return { ok: false, code: "UNKNOWN_STATE" };
+  // Codex finding `optional-state-fence`: fencing was OPTIONAL, so any caller that
+  // simply omitted expectedVersion could overwrite a newer state — the exact hole the
+  // fence exists to close. A caller that cannot say which version it believes is
+  // current has, by definition, not read the state it is about to overwrite.
+  if (expectedVersion == null)
+    return { ok: false, code: "FENCE_REQUIRED",
+             detail: "expectedVersion is mandatory; a caller must present the version it believes is current" };
   const bindings = loadBindings();
   const b = bindings[task_id];
   if (!b) return { ok: false, code: "UNKNOWN_TASK" };
@@ -183,6 +190,21 @@ export function notificationKey({ task_id, state_version, type, recipient_id }) 
   return createHash("sha256")
     .update(`${task_id}|${state_version}|${type}|${recipient_id}`, "utf8")
     .digest("hex").slice(0, 24);
+}
+
+
+/**
+ * In-process reservation, checked against the durable log too.
+ * Single-process exclusion is enough here because one bridge worker owns delivery; the
+ * PENDING row makes the reservation survive a crash so a restarted worker sees that the
+ * notification was already claimed and does not send it twice.
+ */
+const reserved = new Set();
+function reserveKey(key) {
+  if (reserved.has(key)) return false;
+  if (allNotifications().some((n) => n.key === key)) return false;
+  reserved.add(key);
+  return true;
 }
 
 // ---------------------------------------------------------------- throttling
@@ -247,10 +269,19 @@ export function claimIsSupported(message, evidenceLevel, state, opts = {}) {
   const affirmative = stripNegations(message);
   if (!CLAIM_WORDS.test(affirmative)) return { ok: true };
 
+  // Codex finding `claim-guard-bypass`: a caller-set boolean could wave through any
+  // "verified" claim. A boolean is not evidence. An ancillary verified fact now
+  // requires actual evidence references, so the bypass costs the caller something
+  // checkable instead of a flag.
+  const backed = Array.isArray(opts.evidenceRefs) && opts.evidenceRefs.length > 0;
   if (/\bverified\b/i.test(affirmative) &&
-      evidenceLevel < EVIDENCE_LEVEL.CODEX_CERTIFIED &&
-      opts.evidenceBacked !== true)
-    return { ok: false, reason: "says 'verified' without Codex certification or stated evidence" };
+      evidenceLevel < EVIDENCE_LEVEL.CODEX_CERTIFIED && !backed)
+    return { ok: false, reason: "says 'verified' without Codex certification or evidence references" };
+
+  // `confirmed` and `backed up` were detected as claim words but never enforced.
+  if (/\b(confirmed|backed up)\b/i.test(affirmative) &&
+      evidenceLevel < EVIDENCE_LEVEL.MATTER_ACCEPTED && !backed)
+    return { ok: false, reason: "claims 'confirmed'/'backed up' without accepted evidence" };
 
   if (/\b(complete|completed|successful|success)\b/i.test(affirmative)) {
     if (!TERMINAL_STATES.has(state)) return { ok: false, reason: "claims completion in a non-terminal state" };
@@ -347,9 +378,20 @@ export async function notify({ task_id, type, ctx = {}, send, nowMs = Date.now()
   if (!decision.notify) return { sent: false, code: "SUPPRESSED", reason: decision.reason };
 
   const key = notificationKey({ task_id, state_version: binding.state_version, type, recipient_id: binding.sender_id });
+
+  // Codex finding `non-atomic-idempotency`: the duplicate check and the persisted
+  // record were separated by the delivery call, so two concurrent notifies with the
+  // same key could BOTH send before either was recorded, and a crash after delivery
+  // but before persistence lost the record entirely. Reserve the key FIRST — the
+  // PENDING row is written before anything is sent, so the reservation is what makes
+  // the send exclusive rather than the send making the record.
+  if (!reserveKey(key)) return { sent: false, code: "SUPPRESSED", reason: "duplicate_event_concurrent" };
+  appendNotif({ key, task_id, type, recipient_ref: binding.sender_ref, at: now(),
+                delivery: "PENDING", state_version: binding.state_version });
+
   const message = composeMessage(type, binding, ctx);
 
-  const claim = claimIsSupported(message, binding.evidence_level, binding.state, { evidenceBacked: ctx.evidenceBacked === true });
+  const claim = claimIsSupported(message, binding.evidence_level, binding.state, { evidenceRefs: ctx.evidenceRefs || binding.evidence_refs });
   if (!claim.ok) {
     // Refusing to send is correct. An overclaiming message is worse than silence.
     const rec = { key, task_id, type, recipient_ref: binding.sender_ref, at: now(),

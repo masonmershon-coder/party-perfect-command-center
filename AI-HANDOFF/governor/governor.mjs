@@ -299,6 +299,23 @@ function runsToday(runtime, ledger) {
   return ledger.filter((r) => r.runtime === runtime && r.status === "STARTED" && String(r.at || "").startsWith(day)).length;
 }
 
+/**
+ * Per-scope retry ceiling. Mason authorized 3 verification-repair cycles for the MIKE
+ * STACK ONLY (2026-08-13) because the certification path is verify -> NEEDS_FIX ->
+ * fix -> verify, which needs at least two attempts; a ceiling of 1 made certification
+ * unreachable. Everything else stays at the global default.
+ *
+ * Scoped, not global, and NEVER unlimited: after the scoped ceiling the task is
+ * refused and reported BLOCKED to Mason, exactly as before.
+ */
+export function maxRetriesFor(taskId, policy = loadPolicy()) {
+  const scopes = policy.limits?.scoped_max_retries || {};
+  for (const [pattern, limit] of Object.entries(scopes)) {
+    if (new RegExp(pattern).test(String(taskId || ""))) return limit;
+  }
+  return policy.limits?.max_retries ?? 1;
+}
+
 export function authorizePaidCompute(task, opts = {}) {
   const policy = opts.policy || loadPolicy();
   const agent = opts.agent || task.owner_agent || "unknown";
@@ -349,7 +366,7 @@ export function authorizePaidCompute(task, opts = {}) {
     return deny(CODES.BUDGET_EXCEEDED, `today ${spend.today.total} >= daily ceiling ${b.daily_ceiling}`);
 
   const attempts = taskAttempts(task.task_id, ledger);
-  const maxRetries = policy.limits?.max_retries ?? 1;
+  const maxRetries = maxRetriesFor(task.task_id, policy);
   if (attempts > maxRetries)
     return deny(CODES.RETRY_LIMIT, `${attempts} attempts exceeds max_retries ${maxRetries}`);
 

@@ -17,7 +17,7 @@
       "codex": {
         "basis": "subscription",
         "auth": "chatgpt",
-        "note": "auth_mode=chatgpt, OPENAI_API_KEY null — cannot generate metered charges"
+        "note": "auth_mode=chatgpt, OPENAI_API_KEY null \u2014 cannot generate metered charges"
       }
     },
     "max_runs_per_day": 40
@@ -26,7 +26,11 @@
     "max_retries": 1,
     "max_repair_loops": 2,
     "max_runtime_seconds": 600,
-    "max_concurrent_paid_agents": 1
+    "max_concurrent_paid_agents": 1,
+    "scoped_max_retries": {
+      "^(MIKE-|TALK-TO-MIKE-|EOD-)": 3
+    },
+    "scoped_max_retries_note": "Mason authorized 2026-08-13: 3 verification-repair cycles for the Mike stack ONLY. Each cycle requires a NEW commit/evidence bundle and an independent Codex retest. After 3 unsuccessful cycles: stop and report BLOCKED to Mason. Never unlimited."
   },
   "fixed_monthly_baseline": {
     "note": "Owner-reported. Do not modify without Mason.",

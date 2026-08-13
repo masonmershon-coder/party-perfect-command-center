@@ -44,7 +44,8 @@ export type ApiPermission =
   | "reports"
   | "admin"
   | "sms_ops"
-  | "security";
+  | "security"
+  | "ai_cost";
 
 const OWNER_ONLY: ReadonlySet<ApiPermission> = new Set([
   "marketing",
@@ -53,6 +54,7 @@ const OWNER_ONLY: ReadonlySet<ApiPermission> = new Set([
   "admin",
   "sms_ops",
   "security",
+  "ai_cost",
 ]);
 
 export function roleHasPermission(
@@ -153,4 +155,6 @@ export const MACHINE_API_ROUTES = [
   { path: "/api/por/sync/reservations", reason: "Bearer POR_SYNC_SECRET" },
   { path: "/api/cron/social", reason: "Bearer CRON_SECRET" },
   { path: "/api/cron/weekly-recap", reason: "Bearer CRON_SECRET" },
+  { path: "/api/mike/intake", reason: "device/worker Bearer (hashed verifiers); intake-only" },
+  { path: "/api/ai-cost/ingest", reason: "collector Bearer AI_COST_INGEST_TOKEN_SHA256; ingest-only" },
 ] as const;

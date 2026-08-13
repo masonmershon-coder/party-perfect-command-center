@@ -1,30 +1,12 @@
 # CURRENT TASK
 
-**TASK ID:** SENTINEL-APP-001 (+ SEC-HEALTH-PII-001, SEC-HEADERS-001, SEC-GATEWAY-WIRE-001)  
+**TASK ID:** OWNER-AI-COST-USAGE-001  
 **STATUS:** READY_FOR_VERIFICATION  
 **UPDATED:** 2026-08-13  
 
-Cursor application-layer Sentinel + assigned control-plane SEC-* tasks. Architecture unchanged. No deploy.
+Owner-only AI Cost & Usage. Reuses `0005` `ai_core.ai_usage`. Additive `0008` HELD. Isolated branch `agent/cursor/OWNER-AI-COST-USAGE-001`. Do not deploy.
 
-Evidence:
-
-- `AI-HANDOFF/EVIDENCE/SENTINEL-APP-001.md`
-- `AI-HANDOFF/EVIDENCE/SEC-HEALTH-PII-001.md`
-- `AI-HANDOFF/EVIDENCE/SEC-HEADERS-001.md`
-- `AI-HANDOFF/EVIDENCE/SEC-GATEWAY-WIRE-001.md`
-
-Tests: `npm run test:security` · `npx tsc --noEmit`
-
-## Also waiting verification (not deployed)
-
-| Task | Status |
-|------|--------|
-| SENTINEL-APP-001 | READY_FOR_VERIFICATION |
-| SEC-HEALTH-PII-001 | READY_FOR_VERIFICATION |
-| SEC-HEADERS-001 | READY_FOR_VERIFICATION |
-| SEC-GATEWAY-WIRE-001 | READY_FOR_VERIFICATION |
-| POR-PARITY-001 | READY_FOR_VERIFICATION |
-| HIRING-PIPELINE-001 | READY_FOR_VERIFICATION |
-| WEBSITE-CONVERSION-001 | READY_FOR_VERIFICATION |
-
-REL-V197 (v1.9.7) remains live production.
+Evidence: `AI-HANDOFF/EVIDENCE/OWNER-AI-COST-USAGE-001.md`  
+Bundle: `AI-HANDOFF/EVIDENCE/OWNER-AI-COST-USAGE-001_VERIFICATION_BUNDLE.md`  
+Ingest contract: `docs/AI_COST_INGEST_CONTRACT.md`  
+Tests: `npm run test:ai-cost` · `npm run test:api-auth` · `npx tsc --noEmit`

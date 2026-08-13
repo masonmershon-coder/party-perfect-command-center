@@ -1,6 +1,7 @@
 "use client";
 
 import { CatchUpPanel } from "@/app/components/dashboard/catch-up-panel";
+import { AiCostStatusCard } from "@/app/components/dashboard/ai-cost-status-card";
 import { SecurityHealthCard } from "@/app/components/dashboard/security-health-card";
 import { PageHeader } from "@/app/components/dashboard/page-header";
 import {
@@ -29,6 +30,7 @@ export function DashboardHome({
   onCatchUpOpen,
   onSelectAgent,
   onNavigateSecurity,
+  onNavigateAiCost,
 }: {
   stats: DashboardStats;
   agents: Agent[];
@@ -45,6 +47,7 @@ export function DashboardHome({
   onCatchUpOpen: (item: CatchUpItem, draftReply: boolean) => void;
   onSelectAgent: (agentId: string) => void;
   onNavigateSecurity?: () => void;
+  onNavigateAiCost?: () => void;
 }) {
   const recentTasks = tasks.slice(0, 5);
   const latestReport = reports[0] ?? null;
@@ -166,6 +169,7 @@ export function DashboardHome({
       <SecurityHealthCard
         onOpenInbox={isOwner ? onNavigateSecurity : undefined}
       />
+      {isOwner ? <AiCostStatusCard onOpen={onNavigateAiCost} /> : null}
 
       <div
         className={`grid gap-4 sm:grid-cols-2 lg:grid-cols-3 ${

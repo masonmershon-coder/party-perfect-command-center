@@ -133,6 +133,7 @@ export function isOwnerSection(section: import("./types").NavSection) {
     section === "bookkeeping" ||
     section === "marketing" ||
     section === "reports" ||
-    section === "security"
+    section === "security" ||
+    section === "ai_cost"
   );
 }

@@ -64,7 +64,7 @@ function isMachinePath(routePath) {
 }
 
 const AUTH_RE =
-  /requireApiAuth|requireSession|requireOwner|POR_SYNC_SECRET|CRON_SECRET|validateTwilioSignature|SENTINEL_COLLECTOR_SECRET|matterHttpGate/;
+  /requireApiAuth|requireSession|requireOwner|POR_SYNC_SECRET|CRON_SECRET|validateTwilioSignature|SENTINEL_COLLECTOR_SECRET|matterHttpGate|createIntake|completeIntake|intakeStatus|workerLease|workerAck|workerFail|workerHeartbeat|verifyAiCostIngestBearer/;
 
 check("employee lacks owner-only permissions", () => {
   for (const p of [
@@ -74,6 +74,7 @@ check("employee lacks owner-only permissions", () => {
     "admin",
     "sms_ops",
     "security",
+    "ai_cost",
   ]) {
     assert.equal(roleHasPermission("employee", p), false);
   }
@@ -162,6 +163,8 @@ check("connections GET never lists all without tokens", () => {
 check("machine prefixes documented", () => {
   assert.ok(MACHINE_API_PREFIXES.includes("/api/por/sync"));
   assert.ok(MACHINE_API_PREFIXES.includes("/api/cron/social"));
+  assert.ok(MACHINE_API_PREFIXES.includes("/api/mike/intake"));
+  assert.ok(MACHINE_API_PREFIXES.includes("/api/ai-cost/ingest"));
 });
 
 check("public allowlist includes jobs apply + health + sms inbound", () => {

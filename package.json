@@ -16,7 +16,9 @@
     "ai-core:apply-0003": "node --env-file=.env.local scripts/apply-0003-ai-core.mjs",
     "por:ingest": "node --env-file=.env.local scripts/ingest-por-full.mjs",
     "test:api-auth": "node scripts/test-api-auth-matrix.mjs",
-    "test:security": "node scripts/check-security-regression.mjs && node scripts/test-api-auth-matrix.mjs && npx tsx scripts/test-matter-http-gateway.ts && npx tsx scripts/test-sentinel-app.ts"
+    "test:security": "node scripts/check-security-regression.mjs && node scripts/test-api-auth-matrix.mjs && npx tsx scripts/test-matter-http-gateway.ts && npx tsx scripts/test-sentinel-app.ts",
+    "test:mike-intake": "npx tsx scripts/test-mike-intake.ts",
+    "test:ai-cost": "npx tsx scripts/test-ai-cost.ts"
   },
   "engines": {
     "node": ">=20"

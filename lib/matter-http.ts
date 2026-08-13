@@ -75,6 +75,7 @@ export const MATTER_FOR_PERMISSION = {
   admin: { resource: "control-plane", action: "read" },
   sms_ops: { resource: "control-plane", action: "read" },
   security: { resource: "task", action: "read" },
+  ai_cost: { resource: "payment", action: "read" },
 } as const;
 
 export type MatterMappedPermission = keyof typeof MATTER_FOR_PERMISSION;

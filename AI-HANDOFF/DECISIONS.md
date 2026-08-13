@@ -26,6 +26,11 @@ Approved decisions worth preserving. Keep short. No secrets.
 - Note: Claude's `README.md` write overwrote Cursor's (uncommitted); kept as the Mason-facing explainer, references updated to AGENTS.md + history/.
 - **PP-HANDOFF-001 → VERIFIED.**
 
+## 2026-08-13 — AI cost ledger seed (Mason / USER_REPORTED)
+
+- **Decision:** Owner AI Cost & Usage records these recurring amounts as **USER_REPORTED**, not provider-verified: Supabase $25/mo, Claude $100/mo, ChatGPT $20/mo, Grok $99/mo, Vercel/domain ~$10/yr (classification uncertain), Cursor unknown until verified (must not count as $0). Hardware purchases stay out of the recurring AI operating ledger. Dashboard observes/alerts only — no agent may change provider billing.
+- **Source:** Mason OWNER-AI-COST-USAGE-001 (2026-08-13).
+
 ## 2026-08-13 — Customer site: rental company, not planners (Mason)
 
 - **Decision:** Party Perfect is a **full-service event rental company**. Do not present as a wedding/event planning company. Planners are B2B customers. Empty Get Quote must offer guided choices (browse / start quote / request help / tent consultation). Careers → partyperfectjobs.com. No invented rates. No POR pricing changes. No deploy until review.

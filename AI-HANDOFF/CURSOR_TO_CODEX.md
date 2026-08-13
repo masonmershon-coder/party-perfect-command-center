@@ -1,24 +1,11 @@
-# Cursor → Codex · 2026-08-13 · Sentinel app layer + SEC-*
+# Cursor → Codex · 2026-08-13 · OWNER-AI-COST-USAGE-001
 
-**Status:** `READY_FOR_VERIFICATION`  
-**Do not deploy.** Cursor does not self-certify.
+**STATUS:** READY_FOR_VERIFICATION  
+**DO NOT DEPLOY.** `0008_ai_cost_control.sql` NOT APPLIED. Collector credentials NOT provisioned.
 
-Verify independently. Failures → `NEEDS_FIX` back to Cursor. Mason should not relay.
+Inspect commit on `agent/cursor/OWNER-AI-COST-USAGE-001` (task files only; do not treat unrelated dirty AI-HANDOFF/golden-transaction files as this change).
 
-| Task | Evidence | Tests |
-|------|----------|-------|
-| SENTINEL-APP-001 | `AI-HANDOFF/EVIDENCE/SENTINEL-APP-001.md` | `npm run test:security` |
-| SEC-HEALTH-PII-001 | `AI-HANDOFF/EVIDENCE/SEC-HEALTH-PII-001.md` | public `/api/health` = `{ok,service,version}` only |
-| SEC-HEADERS-001 | `AI-HANDOFF/EVIDENCE/SEC-HEADERS-001.md` | CSP+XFO+XCTO+referrer+permissions+HSTS in `next.config.ts` |
-| SEC-GATEWAY-WIRE-001 | `AI-HANDOFF/EVIDENCE/SEC-GATEWAY-WIRE-001.md` | `npx tsx scripts/test-matter-http-gateway.ts` — MANAGER denied por-write; unlisted fail-closed; `SECURITY_AUDIT.jsonl` |
+Verify: owner auth, collector isolation, secrets, 0005 reuse + 0008 RLS, append-only ingest, idempotency + conflict, micros arithmetic, Chicago+DST, domain split, projection labeling, stale≠$0, alerts dedupe/ack, CSV injection, no billing mutations, regressions.
 
-Disprove first:
-
-- Unauthenticated health still leaks phone/email/integration inventory
-- Headers missing on next.config path (jobs.com is same Next app)
-- Matter gate missing on `requireApiAuth` or SHOWROOM locked out of inventory-read
-- HEALTHY reported without watchdog evidence
-- Inbox exposes raw secrets / full IP / matched injection text
-- Sentinel given business or admin controls
-
-P1–P3 (POR / hiring / website) remain in queue separately.
+Bundle: `AI-HANDOFF/EVIDENCE/OWNER-AI-COST-USAGE-001_VERIFICATION_BUNDLE.md`  
+Tests: `npm run test:ai-cost && npm run test:api-auth && npx tsc --noEmit`

@@ -1,9 +1,10 @@
-# Cursor → Claude · 2026-08-13 · Sentinel app layer ready for Codex
+# Cursor → Claude · 2026-08-13 · OWNER-AI-COST-USAGE-001
 
-**Status:** Sentinel **application layer** implemented in-repo · `READY_FOR_VERIFICATION` → Codex · **Do not deploy.**
+**Status:** `READY_FOR_VERIFICATION` → Codex · **Do not deploy.**
 
-Architecture not redesigned. Matter gateway wired at HTTP. Security Inbox + health cards + event APIs + headers + public health shrink + CORS + auth telemetry + injection counts. Employees still work; owner inbox only.
+CC AI Cost & Usage is on `agent/cursor/OWNER-AI-COST-USAGE-001`.
 
-Evidence: `AI-HANDOFF/EVIDENCE/SENTINEL-APP-001.md` (+ SEC-HEALTH-PII-001, SEC-HEADERS-001, SEC-GATEWAY-WIRE-001).
+Ingest contract for Mac collectors: `docs/AI_COST_INGEST_CONTRACT.md`  
+`POST /api/ai-cost/ingest` · env name only `AI_COST_INGEST_TOKEN_SHA256` · heartbeat via `collectorId` · failure must post `error` so UI shows STALE/UNAVAILABLE not $0.
 
-P1–P3 still waiting Codex verification. Live remains v1.9.7.
+Do not invent usage. Do not enable paid APIs. Do not put credentials in AI-HANDOFF. Do not edit the same CC app files Cursor owns. `0008` HELD until Mason.

@@ -20,6 +20,7 @@ export type NavSection =
   | "reports"
   | "hiring"
   | "security"
+  | "ai_cost"
   | "chat";
 
 export type DesignAspectRatio =

@@ -15,6 +15,8 @@
 | SEC-HEALTH-PII-001 | Cursor | Codex | **READY_FOR_VERIFICATION** | Public `/api/health` = `{ok,service,version}` only |
 | SEC-HEADERS-001 | Cursor | Codex | **READY_FOR_VERIFICATION** | CSP + XFO + XCTO + referrer + permissions via next.config |
 | SEC-GATEWAY-WIRE-001 | Cursor | Codex | **READY_FOR_VERIFICATION** | Matter `evaluate()` on `requireApiAuth`; MANAGER denied tier-3 |
+| TALK-TO-MIKE-INTAKE-001 | Cursor | Codex | **READY_FOR_VERIFICATION** | Remote intake CREATE/COMPLETE/STATUS + private audio queue; 0007 HELD; not deployed |
+| OWNER-AI-COST-USAGE-001 | Cursor | Codex | **READY_FOR_VERIFICATION** | Owner AI Cost & Usage CC; reuses 0005; 0008 HELD; ingest contract for Claude collectors; not deployed |
 | PP-001 (Quote Desk UI) | Claude | (Claude) | CLAUDE_WORKING | Parallel |
 | PP-005 (Mike inventory lookup) | Cursor | Claude | **READY_FOR_CLAUDE_REVIEW** | Tool + prompts + heuristic wired; catalog/reservations (no Supabase) |
 | PP-009 (Supabase / AI Core) | Cursor | Claude | **READY_FOR_CLAUDE** | Brief: `SUPABASE_BRIEF_2026-08-12.md` — ai_core live; need 0004 inspect + idempotency assist |

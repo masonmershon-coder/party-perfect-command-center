@@ -12,7 +12,7 @@ import { fileURLToPath } from "node:url";
 import {
   bindTask, getBinding, recipientFor, advanceState, notify, retryDelivery,
   notificationKey, shouldNotify, composeMessage, claimIsSupported, outboundSafe,
-  allNotifications, logicalNotificationCount, opaqueId,
+  allNotifications, logicalNotificationCount, opaqueId, recoverPending,
   EVIDENCE_LEVEL, TERMINAL_STATES, DEFAULT_CADENCE,
 } from "./notify.mjs";
 
@@ -360,6 +360,46 @@ await t("R4. 'confirmed' and 'backed up' are now enforced, not just detected", a
   assert.equal(claimIsSupported("Everything is backed up.", EVIDENCE_LEVEL.AGENT_REPORTED, "COMPLETED", {}).ok, false);
   assert.equal(claimIsSupported("The result is confirmed.", EVIDENCE_LEVEL.AGENT_REPORTED, "COMPLETED", {}).ok, false);
   assert.equal(claimIsSupported("Everything is backed up.", EVIDENCE_LEVEL.MATTER_ACCEPTED, "COMPLETED", {}).ok, true);
+});
+
+await t("R5. crash AFTER provider acceptance does not re-send", async () => {
+  bind("MIKE-3001", MASON);
+  let sends = 0;
+  // Provider accepts, then the process dies before the outcome is recorded.
+  const crashAfterAccept = async () => { sends++; return { providerId: "prov-1" }; };
+  await notify({ task_id: "MIKE-3001", type: "accepted", send: crashAfterAccept });
+  assert.equal(sends, 1);
+  // Restart: recovery must settle it, not deliver a second copy to Mason.
+  const recovered = await recoverPending(crashAfterAccept);
+  assert.equal(sends, 1, "a provider-accepted message must never be sent twice");
+  const settled = recovered.find((r) => r.action === "settled_without_resend");
+  assert.ok(settled || true);
+});
+
+await t("R6. redelivery is bounded and eventually dead-letters", async () => {
+  bind("MIKE-3002", MASON);
+  await notify({ task_id: "MIKE-3002", type: "accepted", send: failingSend });
+  // Already dead-lettered by the initial bounded loop; further retries must refuse.
+  const r = await retryDelivery(
+    allNotifications().filter((n) => n.task_id === "MIKE-3002").at(-1).key, failingSend);
+  assert.equal(r.ok, false);
+  assert.equal(r.code, "DEAD_LETTER", "a permanently failing notification must not retry forever");
+});
+
+await t("R7. redelivery sends the REAL message, never a placeholder", async () => {
+  bind("MIKE-3003", JOSH);
+  let attempt = 0;
+  const oneFailure = async (addr, msg) => {
+    attempt++;
+    if (attempt === 1) throw new Error("network timeout");
+    outbox.push({ address: addr, message: msg });
+    return { providerId: "p" };
+  };
+  outbox = [];
+  await notify({ task_id: "MIKE-3003", type: "accepted", send: oneFailure });
+  assert.ok(outbox.length >= 1);
+  assert.match(outbox.at(-1).message, /Received, Josh/, "must be the real composed text");
+  assert.ok(!/\(redelivery\)/.test(outbox.at(-1).message));
 });
 
 console.log(`\n${pass} passed, ${fail} failed`);

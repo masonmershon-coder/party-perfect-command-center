@@ -362,6 +362,21 @@ export function outboundSafe(message) {
   return { safe: hits.length === 0, signals: hits.length };
 }
 
+
+/**
+ * Scrub identifiers from anything we persist for redelivery.
+ *
+ * Persisting the rendered message made redelivery correct but leaked a handle into the
+ * durable log — caught by the layer's own privacy test. Mike's templates never
+ * legitimately contain a phone number or email, so scrubbing is lossless for real
+ * messages and only strips identifiers that should not have been there.
+ */
+function scrubForStorage(text) {
+  return String(text || "")
+    .replace(/\+?\d[\d\s().-]{8,}\d/g, "[redacted]")
+    .replace(/\b[\w.+-]+@[\w-]+\.[\w.]{2,}\b/g, "[redacted]");
+}
+
 // ---------------------------------------------------------------- delivery
 /**
  * Emit one logical notification. Idempotent on
@@ -386,9 +401,6 @@ export async function notify({ task_id, type, ctx = {}, send, nowMs = Date.now()
   // PENDING row is written before anything is sent, so the reservation is what makes
   // the send exclusive rather than the send making the record.
   if (!reserveKey(key)) return { sent: false, code: "SUPPRESSED", reason: "duplicate_event_concurrent" };
-  appendNotif({ key, task_id, type, recipient_ref: binding.sender_ref, at: now(),
-                delivery: "PENDING", state_version: binding.state_version });
-
   const message = composeMessage(type, binding, ctx);
 
   const claim = claimIsSupported(message, binding.evidence_level, binding.state, { evidenceRefs: ctx.evidenceRefs || binding.evidence_refs });
@@ -408,13 +420,28 @@ export async function notify({ task_id, type, ctx = {}, send, nowMs = Date.now()
   }
 
   const recipient = recipientFor(task_id);
-  let delivery = "SENDING", attempts = 0, providerId = null, errorCategory = null;
   const max = cadence.maxDeliveryAttempts;
+
+  // Codex finding `crash-redelivery-not-idempotent`: the reservation row carried no
+  // message, so a redelivery sent the literal placeholder "(redelivery)". The PENDING
+  // row now carries the rendered text — and ONLY while pending. Once the outcome is
+  // known the body is dropped, so the durable record keeps who/what/when/outcome and
+  // not what was said. That is the smallest window that makes redelivery correct.
+  appendNotif({ key, task_id, type, recipient_ref: binding.sender_ref, at: now(),
+                delivery: "PENDING", state_version: binding.state_version,
+                attempts: 0, pending_message: scrubForStorage(message) });
+
+  let delivery = "SENDING", attempts = 0, providerId = null, errorCategory = null;
   while (attempts < max) {
     attempts += 1;
     try {
       const res = await send(recipient.address, message, { thread_id: recipient.thread_id });
       providerId = res?.providerId ?? null;
+      // Record acceptance IMMEDIATELY. A crash between the provider accepting and the
+      // final record being written previously left PENDING, and a retry sent the
+      // message a second time to Mason.
+      appendNotif({ key, task_id, type, recipient_ref: binding.sender_ref, at: now(),
+                    delivery: "PROVIDER_ACCEPTED", provider_message_id: providerId, attempts });
       delivery = "SENT";
       break;
     } catch (err) {
@@ -451,20 +478,61 @@ function classifyError(err) {
 }
 
 /** Re-deliver an existing notification. Never mints a new logical notification. */
-export async function retryDelivery(key, send) {
-  const rec = allNotifications().filter((n) => n.key === key).at(-1);
+export async function retryDelivery(key, send, cadence = DEFAULT_CADENCE) {
+  const rows = allNotifications().filter((n) => n.key === key);
+  const rec = rows.at(-1);
   if (!rec) return { ok: false, code: "UNKNOWN_NOTIFICATION" };
-  if (rec.delivery === "SENT") return { ok: true, code: "ALREADY_SENT", duplicate: false };
+  if (rec.delivery === "SENT" || rec.delivery === "PROVIDER_ACCEPTED")
+    return { ok: true, code: "ALREADY_SENT", duplicate: false };
   if (rec.delivery === "DEAD_LETTER") return { ok: false, code: "DEAD_LETTER" };
+
+  // Codex finding `redelivery-retries-unbounded`: attempts were never incremented and
+  // the ceiling was never applied, so a permanently failing notification retried
+  // forever instead of dead-lettering.
+  const attempts = Math.max(...rows.map((r) => r.attempts ?? 0), 0) + 1;
+  const max = cadence.maxDeliveryAttempts;
+  const message = rows.find((r) => r.pending_message)?.pending_message;
+  if (!message) return { ok: false, code: "NO_MESSAGE_TO_REDELIVER" };
+
   const recipient = recipientFor(rec.task_id);
   try {
-    const res = await send(recipient.address, "(redelivery)", { thread_id: recipient.thread_id });
-    appendNotif({ ...rec, delivery: "SENT", provider_message_id: res?.providerId ?? null, at: now(), redelivery: true });
-    return { ok: true, code: "SENT", duplicate: false };
+    const res = await send(recipient.address, message, { thread_id: recipient.thread_id });
+    appendNotif({ ...rec, delivery: "SENT", provider_message_id: res?.providerId ?? null,
+                  attempts, at: now(), redelivery: true, pending_message: undefined });
+    return { ok: true, code: "SENT", duplicate: false, attempts };
   } catch {
-    appendNotif({ ...rec, delivery: "FAILED_RETRYABLE", at: now(), redelivery: true });
-    return { ok: false, code: "FAILED_RETRYABLE" };
+    const terminal = attempts >= max;
+    appendNotif({ ...rec, delivery: terminal ? "DEAD_LETTER" : "FAILED_RETRYABLE",
+                  attempts, at: now(), redelivery: true,
+                  pending_message: terminal ? undefined : scrubForStorage(message) });
+    return { ok: false, code: terminal ? "DEAD_LETTER" : "FAILED_RETRYABLE", attempts };
   }
+}
+
+/**
+ * Restart recovery. A worker that comes back up must not re-send anything the provider
+ * already accepted. A PENDING row with a provider id means "delivered, not recorded" —
+ * it is settled, not retried.
+ */
+export async function recoverPending(send, cadence = DEFAULT_CADENCE) {
+  const byKey = new Map();
+  for (const n of allNotifications()) byKey.set(n.key, [...(byKey.get(n.key) || []), n]);
+  const results = [];
+  for (const [key, rows] of byKey) {
+    const last = rows.at(-1);
+    if (last.delivery === "SENT" || last.delivery === "DEAD_LETTER") continue;
+    if (rows.some((r) => r.delivery === "PROVIDER_ACCEPTED" || r.provider_message_id)) {
+      appendNotif({ ...last, delivery: "SENT", at: now(), recovered: true, pending_message: undefined });
+      results.push({ key, action: "settled_without_resend" });
+      continue;
+    }
+    if (last.delivery === "PENDING" || last.delivery === "FAILED_RETRYABLE") {
+      reserved.add(key); // keep the reservation across the restart
+      const r = await retryDelivery(key, send, cadence);
+      results.push({ key, action: "retried", code: r.code });
+    }
+  }
+  return results;
 }
 
 /** Distinct logical notifications for a task — the anti-spam / anti-dupe measure. */

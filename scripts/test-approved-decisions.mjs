@@ -15,7 +15,14 @@ async function checkJobs() {
   const res = await fetch(`${BASE}/api/jobs/apply`, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ quickApply: true, fullName: "REGRESSION TEST", phone: "0000000000", email: "test@example.invalid" }),
+    body: JSON.stringify({
+      applyMode: "quick",
+      roles: ["tents"],
+      fullName: "REGRESSION TEST",
+      phone: "9185550100",
+      email: "test@example.invalid",
+      city: "Tulsa",
+    }),
   }).catch((e) => ({ error: e }));
   if (res.error) return ok("D-002", "jobs endpoint reachable", false, res.error.message);
   const body = await res.text().catch(() => "");

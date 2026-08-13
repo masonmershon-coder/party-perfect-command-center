@@ -1,13 +1,9 @@
 # CURRENT TASK
 
-**TASK ID:** CURSOR-BILLING-AUDIT-2026-08-13  
-**STATUS:** READY_FOR_CLAUDE  
+**TASK ID:** REL-V197-RECONCILE-001  
+**STATUS:** CURSOR_WORKING  
 **UPDATED:** 2026-08-13  
 
-Read-only Cursor billing/usage safety audit for Mason. No billing settings changed.
+Mason: ship the original full jobs application + restore yesterday’s Command Center (live data / tickets / Mike). Production is still wrongly on v1.8.4 after the PP-SEC-001 rollback.
 
-Full write-up: **`AI-HANDOFF/CURSOR_BILLING_USAGE_AUDIT_2026-08-13.md`**
-
-**Scorecard:** On-demand UNKNOWN · spend cap UNKNOWN · extra MTD UNKNOWN · automated paid Cursor runs **NO** (current config) · max extra spend **cannot establish** · RISK **UNKNOWN**.
-
-Claude: review facts vs assumptions; do not change Cursor billing.
+Release branch: `release/v1.9.7-full-jobs` = `584285f` (v1.9.6 + PP-SEC-001) + v1.9.7 full application.

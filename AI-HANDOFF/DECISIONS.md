@@ -26,6 +26,13 @@ Approved decisions worth preserving. Keep short. No secrets.
 - Note: Claude's `README.md` write overwrote Cursor's (uncommitted); kept as the Mason-facing explainer, references updated to AGENTS.md + history/.
 - **PP-HANDOFF-001 → VERIFIED.**
 
+## 2026-08-13 — Jobs: Quick Apply removed (Mason)
+
+- **Decision:** Party Perfect Jobs is **full application only**. The 60-second / Quick Apply path is **not** part of the product. Do not bring it back as a fallback, mobile path, feature flag, secondary CTA, or optional shortcut unless Mason explicitly changes this decision.
+- **Why:** Short apply produced insufficient information to evaluate, contact, interview, and hire.
+- **Restore target:** Pre-Quick-Apply / `f455daa` full validator + multi-step form (~2–3 min). No new hiring questions invented.
+- **Source:** Mason priority Cursor task 2026-08-13; deploy approval same day (“get the original out there”).
+
 ## 2026-08-11 — Live relay (Mason-approved)
 
 - **Decision:** Run `scripts/ai-handoff-relay.sh` for near-real-time notify + Claude auto-wake; gate with `AUTO_RELAY.enabled`; hard caps (90s debounce, 3 wakes/hour, `READY_FOR_CLAUDE*` only). Cursor wake = Notification Center + optional Cursor Automation.

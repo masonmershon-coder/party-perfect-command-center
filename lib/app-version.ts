@@ -1,8 +1,8 @@
 /** Single source of truth for Command Center + Jobs release metadata. */
-export const APP_VERSION = "1.9.6";
+export const APP_VERSION = "1.9.7";
 
 /** ISO date of this release (YYYY-MM-DD). */
-export const APP_RELEASED_AT = "2026-08-12";
+export const APP_RELEASED_AT = "2026-08-13";
 
 export const APP_RELEASE_LABEL = `v${APP_VERSION} · ${APP_RELEASED_AT}`;
 
@@ -13,9 +13,9 @@ export const APP_RELEASE_NOTES = {
     "Madison text-only commands use pipeline (single FAL staging call)",
   ],
   jobs: [
-    "Full multi-step application (name, phone, email required; rest optional)",
-    "Reliable-transport question kept for Mike scoring, not a submit blocker",
-    "Rate-limit, honeypot, validation, and Mike scoring kept",
+    "Quick Apply / 60-second apply removed — full application only",
+    "Required: contact, city, eligibility, DL, schooling, referral, transport, physical, availability, work history",
+    "Mike scoring + Command Center hiring record unchanged (same field contract)",
   ],
 } as const;
 

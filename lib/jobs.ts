@@ -201,7 +201,7 @@ export interface JobApplicationInput {
   phone: string;
   email: string;
   city: string;
-  /** quick = <60s intake; enrich = optional post-submit extras; full = legacy complete app */
+  /** quick = legacy stored rows only (removed from product 2026-08-13); enrich = CC follow-up on old quick rows; full = complete application */
   applyMode?: JobApplyMode;
   eligibleToWork: EligibilityAnswer;
   over18: EligibilityAnswer;

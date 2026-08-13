@@ -2,7 +2,14 @@
 
 import { PartyPerfectLogo } from "@/app/components/dashboard/party-perfect-logo";
 import { BRAND } from "@/lib/brand";
-import { availabilityLabelFromSlots } from "@/lib/job-apply-validate";
+import {
+  AVAIL_TEXT_MIN,
+  PHYSICAL_STORY_MIN,
+  WHY_MIN,
+  availabilityLabelFromSlots,
+  isValidEmail,
+  isValidUsPhone,
+} from "@/lib/job-apply-validate";
 import {
   JOB_REFERRAL_SOURCES,
   JOB_ROLES,
@@ -38,6 +45,7 @@ interface FormState {
   availabilitySlots: AvailabilitySlot[];
   availability: string;
   physicalAbility: string;
+  physicalStory: string;
   whyPartyPerfect: string;
   experience: string;
   workHistory: WorkHistoryEntry[];
@@ -74,6 +82,7 @@ const EMPTY_FORM: FormState = {
   availabilitySlots: [],
   availability: "",
   physicalAbility: "",
+  physicalStory: "",
   whyPartyPerfect: "",
   experience: "",
   workHistory: [{ ...EMPTY_JOB }],
@@ -182,13 +191,108 @@ export function JobsApplication() {
     setError(null);
   }
 
+  function focusSchooling() {
+    window.requestAnimationFrame(() => {
+      document
+        .getElementById("jobs-schooling")
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  }
+
   function validateStep(step: FormStep) {
-    // Hard-required on step 1 only: name, phone, email. All other questions stay on the form.
     if (step === 1) {
-      if (!form.fullName.trim() || !form.phone.trim() || !form.email.trim()) {
-        return "Add your name, phone, and email to keep going.";
+      if (!form.fullName.trim()) return "Add your full name to keep going.";
+      if (!isValidUsPhone(form.phone)) {
+        return "Enter a valid 10-digit U.S. phone number.";
       }
-      if (!form.email.includes("@")) return "That email doesn’t look right yet.";
+      if (!isValidEmail(form.email)) {
+        return "Enter a valid email address.";
+      }
+      if (!form.city.trim()) return "City is required.";
+      if (form.eligibleToWork !== "yes" || form.over18 !== "yes") {
+        return "You need to be 18+ and eligible to work in the U.S.";
+      }
+      if (
+        form.validDriverLicense !== "yes" &&
+        form.validDriverLicense !== "no"
+      ) {
+        return "Tell us if you have a valid driver’s license.";
+      }
+      if (
+        form.hasReliableTransport !== "yes" &&
+        form.hasReliableTransport !== "no"
+      ) {
+        return "Do you have reliable transportation to 8401 E 41st St, Tulsa?";
+      }
+      if (
+        form.physicalOutdoorOk !== "yes" &&
+        form.physicalOutdoorOk !== "no"
+      ) {
+        return "Are you OK with outdoor heat and lifting 50+ lbs for tents/delivery?";
+      }
+      if (
+        form.highSchoolGraduated !== "yes" &&
+        form.highSchoolGraduated !== "no"
+      ) {
+        focusSchooling();
+        return "Please answer whether you graduated high school (or GED) in the Schooling box below.";
+      }
+      if (!form.collegeStatus) {
+        focusSchooling();
+        return "Pick a college option in the Schooling box (No college is fine).";
+      }
+      if (!form.referralSource) {
+        window.requestAnimationFrame(() => {
+          document
+            .getElementById("jobs-referral")
+            ?.scrollIntoView({ behavior: "smooth", block: "center" });
+        });
+        return "How’d you hear about us? One tap is enough.";
+      }
+      if (
+        form.referralSource === "friend" &&
+        form.referralName.trim().length < 2
+      ) {
+        return "Who referred you? First name is perfect.";
+      }
+    }
+    if (step === 2) {
+      const slots = form.availabilitySlots;
+      const availText = form.availability.trim();
+      if (slots.length === 0 && availText.length < AVAIL_TEXT_MIN) {
+        return "Pick at least one availability window (weekday mornings / weekends / early mornings).";
+      }
+      if (!form.earliestStartDate.trim()) {
+        return "What’s your earliest start date?";
+      }
+      if (!form.daysMissedLast3Months) {
+        return "About how many days of work did you miss in the last 3 months?";
+      }
+      if (!form.physicalAbility.trim()) {
+        return "Please complete the physical ability note.";
+      }
+      if (form.physicalStory.trim().length < PHYSICAL_STORY_MIN) {
+        return `Describe a time you did physical or fast-paced work (at least ${PHYSICAL_STORY_MIN} characters).`;
+      }
+      if (form.whyPartyPerfect.trim().length < WHY_MIN) {
+        return `Tell us why Party Perfect (at least ${WHY_MIN} characters).`;
+      }
+    }
+    if (step === 3) {
+      const incomplete = form.workHistory.find((entry) => {
+        if (
+          !entry.employer.trim() ||
+          !entry.startDate.trim() ||
+          !entry.startPay.trim()
+        ) {
+          return true;
+        }
+        if (entry.stillEmployed) return !entry.endPay.trim();
+        return !entry.endDate.trim() || !entry.endPay.trim();
+      });
+      if (!form.workHistory.length || incomplete) {
+        return "Add at least one job from the last 3 years with employer, dates, and start/end pay.";
+      }
     }
     return null;
   }
@@ -276,7 +380,8 @@ export function JobsApplication() {
           </h1>
           <p className="jobs-rise jobs-rise-delay-2 mt-5 max-w-xl text-base leading-7 text-[var(--jobs-muted)] sm:text-lg">
             {BRAND.name} Event Rentals is hiring in {BRAND.location}. Apply in
-            under 4 minutes — no marathon forms, just the good stuff.
+            about 2–3 minutes — enough for us to evaluate, contact, interview,
+            and hire.
           </p>
 
           <div className="jobs-rise jobs-rise-delay-3 mt-10 flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -298,8 +403,8 @@ export function JobsApplication() {
               What you get
             </p>
             <p className="mt-2 text-sm leading-6 text-[var(--jobs-muted)]">
-              Fast apply · Mike reviews your fit · Top candidates go straight to
-              Josh
+              Full application · Mike reviews your fit · Top candidates go
+              straight to Josh
             </p>
           </div>
         </section>
@@ -433,36 +538,36 @@ export function JobsApplication() {
                 />
               </div>
               <Field
-                label="City (optional)"
+                label="City · required"
                 value={form.city}
                 onChange={(value) => updateField("city", value)}
                 placeholder="Tulsa"
                 autoComplete="address-level2"
               />
               <YesNo
-                label="Eligible to work in the U.S.? (optional)"
+                label="Eligible to work in the U.S.?"
                 value={form.eligibleToWork}
                 onChange={(value) => updateField("eligibleToWork", value)}
               />
               <YesNo
-                label="Are you 18 or older? (optional)"
+                label="Are you 18 or older?"
                 value={form.over18}
                 onChange={(value) => updateField("over18", value)}
               />
               <YesNo
-                label="Do you have a valid driver’s license? (optional)"
+                label="Do you have a valid driver’s license?"
                 value={form.validDriverLicense}
                 onChange={(value) => updateField("validDriverLicense", value)}
               />
               <YesNo
-                label="Do you have reliable transportation to 8401 E 41st St, Tulsa? (optional)"
+                label="Do you have reliable transportation to 8401 E 41st St, Tulsa?"
                 value={form.hasReliableTransport}
                 onChange={(value) =>
                   updateField("hasReliableTransport", value)
                 }
               />
               <YesNo
-                label="OK with outdoor heat and lifting 50+ lbs (tents/delivery)? (optional)"
+                label="OK with outdoor heat and lifting 50+ lbs (tents/delivery)?"
                 value={form.physicalOutdoorOk}
                 onChange={(value) => updateField("physicalOutdoorOk", value)}
               />
@@ -473,13 +578,13 @@ export function JobsApplication() {
               >
                 <div>
                   <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[var(--jobs-teal-deep)]">
-                    Schooling · optional
+                    Schooling · required
                   </p>
                   <h3 className="jobs-display mt-1 text-xl font-extrabold text-[var(--jobs-ink)]">
                     High school &amp; college
                   </h3>
                   <p className="mt-1 text-sm text-[var(--jobs-muted)]">
-                    Helps Mike screen — skip if you prefer, then hit Next.
+                    Helps Mike screen. No college is a valid answer.
                   </p>
                 </div>
                 <YesNo
@@ -529,7 +634,7 @@ export function JobsApplication() {
               <div id="jobs-referral" className="scroll-mt-24 space-y-3">
                 <div>
                   <p className="text-sm font-extrabold text-[var(--jobs-ink)]">
-                    How’d you hear about us? (optional)
+                    How’d you hear about us?
                   </p>
                   <p className="mt-0.5 text-xs text-[var(--jobs-muted)]">
                     One tap — keeps it simple.
@@ -578,13 +683,13 @@ export function JobsApplication() {
                 Schedule & spark
               </h2>
               <p className="text-sm text-[var(--jobs-muted)]">
-                Optional — but it helps Mike match you to a crew. Skip any you
-                don’t know yet.
+                Mike uses this to match you to a crew. Pick what is actually
+                true for you.
               </p>
 
               <div>
                 <p className="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-[var(--jobs-muted)]">
-                  Availability (optional — pick all that fit)
+                  Availability · pick all that fit
                 </p>
                 <div className="flex flex-col gap-2">
                   {AVAILABILITY_OPTIONS.map((option) => {
@@ -612,20 +717,20 @@ export function JobsApplication() {
               </div>
 
               <Area
-                label="Availability notes (optional)"
+                label="Availability notes"
                 value={form.availability}
                 onChange={(value) => updateField("availability", value)}
                 placeholder="Weekdays, weekends, mornings… whatever’s true for you"
               />
               <Field
-                label="Earliest start date (optional)"
+                label="Earliest start date"
                 value={form.earliestStartDate}
                 onChange={(value) => updateField("earliestStartDate", value)}
                 type="date"
               />
               <div>
                 <p className="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-[var(--jobs-muted)]">
-                  Days of work missed in the last 3 months (optional)
+                  Days of work missed in the last 3 months
                 </p>
                 <div className="grid grid-cols-3 gap-2">
                   {DAYS_MISSED_OPTIONS.map((option) => {
@@ -635,10 +740,7 @@ export function JobsApplication() {
                         key={option.id}
                         type="button"
                         onClick={() =>
-                          updateField(
-                            "daysMissedLast3Months",
-                            active ? "" : option.id,
-                          )
+                          updateField("daysMissedLast3Months", option.id)
                         }
                         className={`rounded-2xl border px-3 py-3 text-sm font-extrabold ${
                           active
@@ -653,17 +755,31 @@ export function JobsApplication() {
                 </div>
               </div>
               <Area
-                label="Physical ability (optional)"
+                label="Physical ability"
                 value={form.physicalAbility}
                 onChange={(value) => updateField("physicalAbility", value)}
                 placeholder="Comfortable lifting, standing, outdoor work, etc."
               />
               <Area
-                label="Why Party Perfect? (optional)"
-                value={form.whyPartyPerfect}
-                onChange={(value) => updateField("whyPartyPerfect", value)}
-                placeholder="One fun sentence is perfect"
+                label="Describe a time you did physical or fast-paced work"
+                value={form.physicalStory}
+                onChange={(value) => updateField("physicalStory", value)}
+                placeholder="A few sentences — what you did, how hard it was, how you handled it"
               />
+              <div>
+                <Area
+                  label="Why Party Perfect?"
+                  value={form.whyPartyPerfect}
+                  onChange={(value) => updateField("whyPartyPerfect", value)}
+                  placeholder="What draws you to this crew? A real sentence or two."
+                />
+                <p className="mt-1.5 text-xs text-[var(--jobs-muted)]">
+                  At least {WHY_MIN} characters
+                  {form.whyPartyPerfect.trim().length > 0
+                    ? ` · ${form.whyPartyPerfect.trim().length}/${WHY_MIN}`
+                    : ""}
+                </p>
+              </div>
             </div>
           )}
 
@@ -673,8 +789,8 @@ export function JobsApplication() {
                 Work history (last 3 years)
               </h2>
               <p className="text-sm text-[var(--jobs-muted)]">
-                Optional — add up to 3 jobs if you can. Blank is OK; you can
-                still submit.
+                Add at least one job. Include start pay and end pay (or current
+                pay if you’re still there). Up to 3 jobs.
               </p>
 
               {form.workHistory.map((job, index) => (

@@ -662,7 +662,48 @@
       "remaining_uncertainty": null,
       "false_green": null,
       "approval_decision": null
+    },
+    "POR-PARITY-NOTES-001": {
+      "task_id": "POR-PARITY-NOTES-001",
+      "created_at": "2026-08-13T16:28:38.456Z",
+      "created_by": "por-certification-engine",
+      "owner_agent": "cursor",
+      "verifier_agent": "codex",
+      "subsystem": "command-center",
+      "objective": "CERTIFICATION FAIL CERT-NOTES-SEPARATION: Seven note destinations stay distinct. POR says each POR note field maps 1:1 to its own Command Center input; Command Center says Notes 66.9% · Delivery 52.8% · Pickup 49.3%.",
+      "priority": "high",
+      "risk_tier": 1,
+      "dependencies": null,
+      "approval_required": false,
+      "status": "NEW",
+      "expected_evidence": "CERT-NOTES-SEPARATION re-runs PASS against POR",
+      "evidence_paths": [
+        "AI-HANDOFF/POR_CERTIFICATION_RESULTS.jsonl",
+        "00 - Reference/POR_COMMAND_CENTER_PARITY_MATRIX.md"
+      ],
+      "result": null,
+      "error": null,
+      "next_action": null,
+      "last_updated_at": "2026-08-13T16:28:38.456Z",
+      "claim": null,
+      "known_limitations": null,
+      "unverified": null,
+      "files": null,
+      "severity": null,
+      "verification_status": "UNVERIFIED",
+      "fail_count": 0,
+      "original_finding": null,
+      "acceptance_criteria": null,
+      "reproduction_steps": null,
+      "expected_behavior": null,
+      "actual_behavior": null,
+      "tests_run": null,
+      "test_results": null,
+      "deployment_status": null,
+      "remaining_uncertainty": null,
+      "false_green": null,
+      "approval_decision": null
     }
   },
-  "updatedAt": "2026-08-13T16:23:52.092Z"
+  "updatedAt": "2026-08-13T16:28:38.457Z"
 }

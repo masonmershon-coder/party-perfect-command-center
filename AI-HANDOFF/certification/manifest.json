@@ -1,0 +1,155 @@
+{
+  "schema_version": 1,
+  "updated_at": "2026-08-13",
+  "note": "POR is the test oracle. Command Center is the subject. Expected values are COMPUTED from the authoritative source at run time — never hardcoded business counts.",
+  "oracles": {
+    "ssd": {
+      "kind": "verbatim POR export",
+      "path": "/Volumes/PARTYPERF/PARTY-PERFECT-BRAIN/15-RAW-EXPORTS/2026-08-10_POR-FULL-DATA",
+      "as_of": "2026-08-10",
+      "independent_of_command_center": true
+    },
+    "live_mirror": {
+      "kind": "POR mirror behind the app",
+      "path": "/api/por/sync/health",
+      "status": "OWNER_GATED — not reachable by the engine today",
+      "independent_of_command_center": false,
+      "note": "Reading the mirror through the app under test weakens independence. Prefer a direct read when one exists."
+    }
+  },
+  "certifications": [
+    {
+      "id": "CERT-DELIVERIES-TODAY",
+      "category": "DATES_LOGISTICS",
+      "name": "How many deliveries do we have today?",
+      "severity": "CRITICAL",
+      "por_source": "Transactions.DeliveryDate + Archived/Cancelled",
+      "por_evidence": "count live tickets whose DeliveryDate falls on the test date",
+      "command_center_source": "/api/stats -> stats.por.deliveriesToday",
+      "expected_relationship": "EQUAL",
+      "freshness_tolerance_days": 0,
+      "implementation_task": "POR-PARITY-STATUS-001"
+    },
+    {
+      "id": "CERT-RETURNS-TODAY",
+      "category": "DATES_LOGISTICS",
+      "name": "What has to come back today?",
+      "severity": "CRITICAL",
+      "por_source": "Transactions.PickupDate + Archived/Cancelled",
+      "por_evidence": "count live tickets whose PickupDate falls on the test date",
+      "command_center_source": "/api/stats -> stats.por.returnsDueToday",
+      "expected_relationship": "EQUAL",
+      "freshness_tolerance_days": 0,
+      "implementation_task": "POR-PARITY-STATUS-001"
+    },
+    {
+      "id": "CERT-OPEN-RESERVATIONS",
+      "category": "TRANSACTIONS",
+      "name": "How many open reservations exist?",
+      "severity": "CRITICAL",
+      "por_source": "Transactions where LEFT(STAT,1)='R' and not archived/cancelled",
+      "por_evidence": "STAT is two characters; a bare 'R' does not exist in the data",
+      "command_center_source": "/api/stats -> stats.por.openContracts",
+      "expected_relationship": "GREATER_OR_EQUAL",
+      "freshness_tolerance_days": 30,
+      "implementation_task": "POR-PARITY-STATUS-001"
+    },
+    {
+      "id": "CERT-STAT-CLASSIFICATION",
+      "category": "STATUS_LOGIC",
+      "name": "STAT decodes as primary+secondary, never LTRIM'd",
+      "severity": "CRITICAL",
+      "por_source": "TransactionStatus + TransactionSecondaryStatus",
+      "por_evidence": "every distinct STAT primary char maps to a known state; LTRIM corrupts 54.8% of rows",
+      "command_center_source": "por-sync-agent/PorStatus.ps1 + tests/test_por_status.py",
+      "expected_relationship": "INVARIANT",
+      "freshness_tolerance_days": 365,
+      "implementation_task": "POR-PARITY-STATUS-001"
+    },
+    {
+      "id": "CERT-WAIVER-BASE",
+      "category": "PRICING",
+      "name": "Damage waiver is 5% of RENT only",
+      "severity": "CRITICAL",
+      "por_source": "Transactions.DMG vs RENT vs SALE",
+      "por_evidence": "exact-match count for 5% of RENT must dominate 5% of (RENT+SALE)",
+      "command_center_source": "quote engine waiver base",
+      "expected_relationship": "RENT_ONLY_DOMINATES",
+      "freshness_tolerance_days": 365,
+      "implementation_task": "POR-PARITY-WAIVER-BASE-001"
+    },
+    {
+      "id": "CERT-INVENTORY-RENTABLE",
+      "category": "INVENTORY",
+      "name": "Inventory out excludes fee/service SKUs",
+      "severity": "CRITICAL",
+      "por_source": "ItemFile QTY/QYOT with garbage and non-rentable guards",
+      "por_evidence": "POR holds ~9.8k catalog items; an out-count in the hundreds of thousands means fee pollution",
+      "command_center_source": "/api/stats -> stats.por.inventoryOut",
+      "expected_relationship": "PLAUSIBLE_MAGNITUDE",
+      "freshness_tolerance_days": 30,
+      "implementation_task": null
+    },
+    {
+      "id": "CERT-KIT-SEMANTICS",
+      "category": "INVENTORY",
+      "name": "TYPE='K' kits resolve to real components",
+      "severity": "HIGH",
+      "por_source": "ItemFile.TYPE + ItemKits",
+      "por_evidence": "kit headers carry qty 0 / rate 0 by design and map Num -> ItemKey",
+      "command_center_source": "lib/por-kits.ts",
+      "expected_relationship": "RESOLVES",
+      "freshness_tolerance_days": 365,
+      "implementation_task": "POR-PARITY-KITS-001"
+    },
+    {
+      "id": "CERT-CUSTOMER-TAXCODE",
+      "category": "PRICING",
+      "name": "Tax follows the customer's TaxCode",
+      "severity": "CRITICAL",
+      "por_source": "CustomerFile.TaxCode + TaxTable",
+      "por_evidence": "TaxCode populated on 100% of customers; more than one distinct code is in use",
+      "command_center_source": "quote engine tax rate",
+      "expected_relationship": "PER_CUSTOMER",
+      "freshness_tolerance_days": 365,
+      "implementation_task": "POR-PARITY-TAXCODE-001"
+    },
+    {
+      "id": "CERT-NOTES-SEPARATION",
+      "category": "NOTES",
+      "name": "Seven note destinations stay distinct",
+      "severity": "HIGH",
+      "por_source": "Transactions.Notes/DeliveryNotes/PickupNotes, TransactionItems.Comments/Desc, CustomerJobSite, CustomerComments",
+      "por_evidence": "each field independently populated; delivery and pickup notes on ~half of tickets",
+      "command_center_source": "quote wizard note fields",
+      "expected_relationship": "ONE_TO_ONE",
+      "freshness_tolerance_days": 365,
+      "implementation_task": "POR-PARITY-NOTES-001"
+    },
+    {
+      "id": "CERT-DELIVERY-TIME-MODEL",
+      "category": "DATES_LOGISTICS",
+      "name": "Delivery time lives in the date field; no time window exists",
+      "severity": "MEDIUM",
+      "por_source": "Transactions.DeliveryDate / PickupDate / DeliverySetupTime / PickupLoadTime",
+      "por_evidence": "dedicated time columns are 0% populated; the datetime carries the time",
+      "command_center_source": "quote wizard event step",
+      "expected_relationship": "DATETIME_ONLY",
+      "freshness_tolerance_days": 365,
+      "implementation_task": "POR-PARITY-TIMES-001"
+    },
+    {
+      "id": "CERT-POR-WRITE-PATH",
+      "category": "WRITE_PARITY",
+      "name": "Creating a real POR transaction",
+      "severity": "CRITICAL",
+      "por_source": "NextNumberNew + Transactions",
+      "por_evidence": "no write path exists; all /api/por routes are GET and SQL is ApplicationIntent=ReadOnly",
+      "command_center_source": "n/a",
+      "expected_relationship": "BLOCKED_BY_DESIGN",
+      "freshness_tolerance_days": 365,
+      "implementation_task": null,
+      "blocked_reason": "POR vendor API not granted"
+    }
+  ]
+}

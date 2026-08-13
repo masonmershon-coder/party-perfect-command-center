@@ -476,6 +476,11 @@ export function HiringSection({
                     {selected.mike.scoredBy === "grok" ? "Grok" : "Heuristic"}
                     {selected.mike.flagForJosh ? " · flagged" : ""}
                   </p>
+                  {selected.mike.fallbackReason ? (
+                    <p className="mt-1 max-w-[11rem] text-[10px] leading-4 text-amber-700">
+                      {selected.mike.fallbackReason}
+                    </p>
+                  ) : null}
                 </div>
               </div>
 

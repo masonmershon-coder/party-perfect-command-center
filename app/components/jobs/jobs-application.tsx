@@ -10,6 +10,7 @@ import {
   isValidEmail,
   isValidUsPhone,
 } from "@/lib/job-apply-validate";
+import { normalizeJobLeadSource } from "@/lib/job-lead-sources";
 import {
   JOB_REFERRAL_SOURCES,
   JOB_ROLES,
@@ -20,6 +21,7 @@ import {
   type JobRoleId,
   type WorkHistoryEntry,
 } from "@/lib/jobs";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 type Stage = "hero" | "roles" | "form" | "success";
@@ -105,6 +107,11 @@ const DAYS_MISSED_OPTIONS: {
 ];
 
 export function JobsApplication() {
+  const searchParams = useSearchParams();
+  const leadSource = useMemo(
+    () => normalizeJobLeadSource(searchParams.get("src")),
+    [searchParams],
+  );
   const [stage, setStage] = useState<Stage>("hero");
   const [roles, setRoles] = useState<JobRoleId[]>([]);
   const [formStep, setFormStep] = useState<FormStep>(1);
@@ -122,6 +129,13 @@ export function JobsApplication() {
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [stage, formStep]);
+
+  useEffect(() => {
+    const raw = searchParams.get("role");
+    if (!raw) return;
+    const match = JOB_ROLES.find((role) => role.id === raw);
+    if (match) setRoles([match.id]);
+  }, [searchParams]);
 
   function toggleRole(id: JobRoleId) {
     setRoles((current) => {
@@ -310,6 +324,7 @@ export function JobsApplication() {
         availability:
           availabilityLabelFromSlots(form.availabilitySlots) ||
           form.availability.trim(),
+        source: leadSource,
       };
       const body = new FormData();
       body.set("payload", JSON.stringify(payload));

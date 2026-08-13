@@ -16,6 +16,7 @@ export const APP_RELEASE_NOTES = {
     "Quick Apply / 60-second apply removed — full application only",
     "Required: contact, city, eligibility, DL, schooling, referral, transport, physical, availability, work history",
     "Mike scoring + Command Center hiring record unchanged (same field contract)",
+    "Hiring pipeline: ?src= attribution, Grok fallback visible, JobPosting schema module",
   ],
 } as const;
 

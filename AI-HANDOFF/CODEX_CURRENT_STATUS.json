@@ -1,6 +1,6 @@
 {
   "health": "YELLOW",
-  "generated_at": "2026-08-13T17:01:22.969Z",
+  "generated_at": "2026-08-13T17:08:50.312Z",
   "last_verified_at": "2026-08-13T16:57:28.500Z",
   "counts": {
     "open_p0": 0,
@@ -11,9 +11,9 @@
     "blocked_total": 6,
     "blocked_on_mason": 5,
     "claude_tasks": 5,
-    "cursor_tasks": 17,
+    "cursor_tasks": 18,
     "certified_pass": 2,
-    "total_tasks": 26
+    "total_tasks": 27
   },
   "open_p0": [],
   "open_p1": [

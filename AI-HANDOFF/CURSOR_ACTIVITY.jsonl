@@ -4,3 +4,10 @@
 {"at":"2026-08-13T16:59:53.603Z","event":"file_edit","file":"lib/job-apply-intake.ts"}
 {"at":"2026-08-13T16:59:55.963Z","event":"registered","task_id":"CURSOR-ACTIVITY-20260813","material_files":3}
 {"at":"2026-08-13T17:01:32.442Z","event":"file_edit","file":"lib/job-applications.ts"}
+{"at":"2026-08-13T17:03:21.617Z","event":"file_edit","file":"app/api/jobs/apply/route.ts"}
+{"at":"2026-08-13T17:04:59.921Z","event":"file_edit","file":"app/components/jobs/jobs-application.tsx"}
+{"at":"2026-08-13T17:05:00.293Z","event":"file_edit","file":"app/jobs/page.tsx"}
+{"at":"2026-08-13T17:05:00.294Z","event":"file_edit","file":"lib/candidate-social.ts"}
+{"at":"2026-08-13T17:05:00.296Z","event":"file_edit","file":"app/components/dashboard/hiring-section.tsx"}
+{"at":"2026-08-13T17:06:34.084Z","event":"file_edit","file":"scripts/test-hiring-pipeline.ts"}
+{"at":"2026-08-13T17:07:18.607Z","event":"file_edit","file":"lib/app-version.ts"}

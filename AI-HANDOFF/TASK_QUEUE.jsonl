@@ -161,3 +161,6 @@
 {"at":"2026-08-13T16:57:25.246Z","type":"transition","task_id":"CONTROL-PLANE-CURSOR-SMOKE-001","by":"codex","status":"VERIFYING","result":null,"fail_count":0}
 {"at":"2026-08-13T16:57:28.492Z","type":"block","task_id":"CONTROL-PLANE-CURSOR-SMOKE-001","by":"codex","status":"BLOCKED","escalate":"agent"}
 {"at":"2026-08-13T16:59:55.953Z","type":"create","task_id":"CURSOR-ACTIVITY-20260813","by":"cursor-activity-recorder","status":"NEW","severity":null}
+{"at":"2026-08-13T17:08:47.002Z","type":"create","task_id":"SEC-HEALTH-PII-001","by":"claude","status":"NEW","severity":null}
+{"at":"2026-08-13T17:08:51.668Z","type":"create","task_id":"SEC-HEADERS-001","by":"claude","status":"NEW","severity":null}
+{"at":"2026-08-13T17:08:54.495Z","type":"create","task_id":"SEC-GATEWAY-WIRE-001","by":"claude","status":"NEW","severity":null}

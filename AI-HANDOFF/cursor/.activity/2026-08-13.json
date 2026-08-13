@@ -4,7 +4,14 @@
     "lib/jobs.ts",
     "lib/job-store.ts",
     "lib/job-apply-intake.ts",
-    "lib/job-applications.ts"
+    "lib/job-applications.ts",
+    "app/api/jobs/apply/route.ts",
+    "app/components/jobs/jobs-application.tsx",
+    "app/jobs/page.tsx",
+    "lib/candidate-social.ts",
+    "app/components/dashboard/hiring-section.tsx",
+    "scripts/test-hiring-pipeline.ts",
+    "lib/app-version.ts"
   ],
   "registered_task": "CURSOR-ACTIVITY-20260813"
 }

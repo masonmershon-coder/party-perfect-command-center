@@ -1,0 +1,5 @@
+{"at":"2026-08-13T17:07:56.109Z","role":"MANAGER","resource":"inventory-read","action":"read","decision":"ALLOWED","tier":2}
+{"at":"2026-08-13T17:07:56.115Z","role":"OWNER","resource":"credential","action":"read","approval_granted":true,"decision":"ALLOWED","tier":4}
+{"at":"2026-08-13T17:08:14.458Z","role":"MANAGER","resource":"inventory-read","action":"read","decision":"ALLOWED","tier":2}
+{"at":"2026-08-13T17:08:14.463Z","role":"OWNER","resource":"credential","action":"read","approval_granted":true,"decision":"ALLOWED","tier":4}
+{"at":"2026-08-13T17:08:14.465Z","agent":"codex","resource":"task","action":"read","decision":"ALLOWED","tier":2}

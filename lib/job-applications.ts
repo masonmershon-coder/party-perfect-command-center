@@ -288,7 +288,10 @@ export async function createJobApplication(
       "[jobs] Grok scoring failed — heuristic only (no SMS):",
       err instanceof Error ? err.message : err,
     );
-    mike = applyFiltersToReview(input, heuristicMikeReview(input));
+    mike = {
+      ...applyFiltersToReview(input, heuristicMikeReview(input)),
+      fallbackReason: "Grok scoring failed — heuristic used",
+    };
   }
 
   const application: JobApplication = {
@@ -370,7 +373,10 @@ export async function enrichJobApplication(
       "[jobs] Grok re-score failed on enrich — heuristic:",
       err instanceof Error ? err.message : err,
     );
-    mike = applyFiltersToReview(mergedInput, heuristicMikeReview(mergedInput));
+    mike = {
+      ...applyFiltersToReview(mergedInput, heuristicMikeReview(mergedInput)),
+      fallbackReason: "Grok re-score failed — heuristic used",
+    };
   }
 
   const application: JobApplication = {

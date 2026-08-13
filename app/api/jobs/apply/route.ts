@@ -1,12 +1,18 @@
 import { enforceJobApplyRateLimits } from "@/lib/job-apply-rate-limit";
 import {
-  availabilityLabelFromSlots,
-  cleanAvailabilitySlots,
+  buildJobApplicationInputFromBody,
+  cleanCollege,
+  cleanReferralSource,
+  cleanWorkHistory,
+  cleanYesNo,
+  parseBodyRoles,
+  resolveApplyMode,
+  type ApplyBody,
+} from "@/lib/job-apply-intake";
+import {
   findRecentDuplicate,
-  sanitizeVideoUrl,
   validateJobApplicationInput,
 } from "@/lib/job-apply-validate";
-import { normalizeJobLeadSource } from "@/lib/job-lead-sources";
 import {
   createJobApplication,
   enrichJobApplication,
@@ -16,16 +22,7 @@ import {
 } from "@/lib/job-applications";
 import { extractResumeText } from "@/lib/job-resume-text";
 import { storeJobResume } from "@/lib/job-resume";
-import {
-  JOB_REFERRAL_SOURCES,
-  JOB_ROLES,
-  type CollegeStatus,
-  type DaysMissedBucket,
-  type JobApplicationInput,
-  type JobReferralSourceId,
-  type JobRoleId,
-  type WorkHistoryEntry,
-} from "@/lib/jobs";
+import { type JobApplicationInput } from "@/lib/jobs";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
@@ -39,76 +36,17 @@ function clientIp(request: Request): string {
   );
 }
 
-const ROLE_IDS = new Set(JOB_ROLES.map((role) => role.id));
-const COLLEGE = new Set<CollegeStatus>([
-  "none",
-  "some",
-  "graduated",
-  "in_progress",
-]);
-const REFERRALS = new Set<string>(
-  JOB_REFERRAL_SOURCES.map((row) => row.id),
-);
-
-function cleanText(value: unknown, max = 800) {
-  return String(value ?? "")
-    .trim()
-    .slice(0, max);
-}
-
-function cleanYesNo(value: unknown): "yes" | "no" | "" {
-  return value === "yes" || value === "no" ? value : "";
-}
-
-function cleanCollege(value: unknown): CollegeStatus {
-  const v = String(value ?? "").trim() as CollegeStatus;
-  return COLLEGE.has(v) ? v : "";
-}
-
-function cleanReferralSource(value: unknown): JobReferralSourceId {
-  const v = String(value ?? "").trim();
-  return REFERRALS.has(v) ? (v as JobReferralSourceId) : "";
-}
-
-function cleanWorkHistory(value: unknown): WorkHistoryEntry[] {
-  if (!Array.isArray(value)) return [];
-  return value
-    .slice(0, 3)
-    .map((entry) => {
-      const row = (entry ?? {}) as Partial<WorkHistoryEntry>;
-      return {
-        employer: cleanText(row.employer, 120),
-        roleTitle: cleanText(row.roleTitle, 120),
-        startDate: cleanText(row.startDate, 40),
-        endDate: cleanText(row.endDate, 40),
-        startPay: cleanText(row.startPay, 40),
-        endPay: cleanText(row.endPay, 40),
-        stillEmployed: Boolean(row.stillEmployed),
-      };
-    })
-    .filter((entry) => entry.employer || entry.roleTitle || entry.startPay);
-}
-
-function parseBodyRoles(raw: unknown): JobRoleId[] {
-  if (!Array.isArray(raw)) return [];
-  return raw
-    .map(String)
-    .filter((role): role is JobRoleId => ROLE_IDS.has(role as JobRoleId));
-}
-
 async function parseApplyRequest(request: Request): Promise<{
-  body: Partial<JobApplicationInput> & { company_website?: string };
+  body: ApplyBody;
   resumeFile: File | null;
 }> {
   const contentType = request.headers.get("content-type") || "";
   if (contentType.includes("multipart/form-data")) {
     const form = await request.formData();
     const payloadRaw = form.get("payload");
-    let body: Partial<JobApplicationInput> & { company_website?: string } = {};
+    let body: ApplyBody = {};
     if (typeof payloadRaw === "string" && payloadRaw.trim()) {
-      body = JSON.parse(payloadRaw) as Partial<JobApplicationInput> & {
-        company_website?: string;
-      };
+      body = JSON.parse(payloadRaw) as ApplyBody;
     } else {
       // Flat form fields fallback
       const rolesRaw = form.get("roles");
@@ -151,9 +89,7 @@ async function parseApplyRequest(request: Request): Promise<{
     };
   }
 
-  const body = (await request.json().catch(() => null)) as
-    | (Partial<JobApplicationInput> & { company_website?: string })
-    | null;
+  const body = (await request.json().catch(() => null)) as ApplyBody | null;
   if (!body) {
     throw new Error("Invalid application payload.");
   }
@@ -165,7 +101,7 @@ export async function POST(request: Request) {
 
   try {
     let parsed: {
-      body: Partial<JobApplicationInput> & { company_website?: string };
+      body: ApplyBody;
       resumeFile: File | null;
     };
     try {
@@ -206,34 +142,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: rateError }, { status: 429 });
     }
 
-    const enrichId = cleanText(
-      (body as { applicationId?: string }).applicationId,
-      80,
-    );
-    const applyModeRaw = String(
-      (body as { applyMode?: string }).applyMode || "",
-    ).trim();
-    if (applyModeRaw === "quick") {
-      return NextResponse.json(
-        {
-          error:
-            "Quick Apply is no longer available. Please complete the full application.",
-        },
-        { status: 400 },
-      );
+    const mode = resolveApplyMode(body);
+    if (mode.error) {
+      return NextResponse.json({ error: mode.error }, { status: 400 });
     }
-    const applyMode =
-      applyModeRaw === "enrich" || applyModeRaw === "full"
-        ? applyModeRaw
-        : enrichId
-          ? "enrich"
-          : "full";
-    if (applyMode === "enrich" && !enrichId) {
-      return NextResponse.json(
-        { error: "Full application required." },
-        { status: 400 },
-      );
-    }
+    const { applyMode, enrichId } = mode;
 
     const applicationId = enrichId || crypto.randomUUID();
     let resumeFields: Partial<JobApplicationInput> = {};
@@ -271,50 +184,10 @@ export async function POST(request: Request) {
       }
     }
 
-    const availabilitySlots = cleanAvailabilitySlots(body.availabilitySlots);
-    const availability =
-      availabilityLabelFromSlots(availabilitySlots) ||
-      cleanText(body.availability, 400);
-
-    const daysMissedRaw = String(body.daysMissedLast3Months || "").trim();
-    const daysMissedLast3Months = (
-      daysMissedRaw === "0" ||
-      daysMissedRaw === "1-2" ||
-      daysMissedRaw === "3+"
-        ? daysMissedRaw
-        : ""
-    ) as DaysMissedBucket;
-
-    const input: JobApplicationInput = {
-      roles,
-      fullName: cleanText(body.fullName, 120),
-      phone: cleanText(body.phone, 40),
-      email: cleanText(body.email, 160).toLowerCase(),
-      city: cleanText(body.city, 80) || "Tulsa",
+    const input: JobApplicationInput = buildJobApplicationInputFromBody(body, {
       applyMode,
-      eligibleToWork: cleanYesNo(body.eligibleToWork),
-      over18: cleanYesNo(body.over18),
-      validDriverLicense: cleanYesNo(body.validDriverLicense),
-      highSchoolGraduated: cleanYesNo(body.highSchoolGraduated),
-      collegeStatus: cleanCollege(body.collegeStatus),
-      schoolingNotes: cleanText(body.schoolingNotes, 200) || undefined,
-      referralSource: cleanReferralSource(body.referralSource),
-      referralName: cleanText(body.referralName, 80) || undefined,
-      hasReliableTransport: cleanYesNo(body.hasReliableTransport),
-      physicalOutdoorOk: cleanYesNo(body.physicalOutdoorOk),
-      earliestStartDate: cleanText(body.earliestStartDate, 40),
-      daysMissedLast3Months,
-      availabilitySlots,
-      availability,
-      physicalAbility: cleanText(body.physicalAbility, 400),
-      physicalStory: cleanText(body.physicalStory, 800),
-      whyPartyPerfect: cleanText(body.whyPartyPerfect, 500),
-      experience: cleanText(body.experience, 600),
-      workHistory: cleanWorkHistory(body.workHistory),
-      videoUrl: sanitizeVideoUrl(cleanText(body.videoUrl, 400) || undefined),
-      source: normalizeJobLeadSource(body.source),
       ...resumeFields,
-    };
+    });
 
     const validationError = validateJobApplicationInput(input, {
       mode: applyMode,

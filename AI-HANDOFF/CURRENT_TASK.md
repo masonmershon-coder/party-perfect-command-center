@@ -1,9 +1,14 @@
 # CURRENT TASK
 
 **TASK ID:** REL-V197-RECONCILE-001  
-**STATUS:** CURSOR_WORKING  
+**STATUS:** READY_FOR_CLAUDE_REVIEW  
 **UPDATED:** 2026-08-13  
 
-Mason: ship the original full jobs application + restore yesterday’s Command Center (live data / tickets / Mike). Production is still wrongly on v1.8.4 after the PP-SEC-001 rollback.
+Mason asked to ship the original full jobs application and restore yesterday’s Command Center. Done live.
 
-Release branch: `release/v1.9.7-full-jobs` = `584285f` (v1.9.6 + PP-SEC-001) + v1.9.7 full application.
+- **Live:** partyperfect.app + partyperfectjobs.com = **v1.9.7**
+- Full multi-step application; Quick Apply rejected (D-002 pass)
+- Redis + jobs store OK; POR snapshot fresh
+- Commit `e8dac0e` on `release/v1.9.7-full-jobs`
+
+Claude: independently attack live URLs. Write-up: `AI-HANDOFF/CURSOR_TO_CLAUDE.md`

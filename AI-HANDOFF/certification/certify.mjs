@@ -276,7 +276,103 @@ const CHECKS = {
     };
   },
 
-  async "CERT-POR-WRITE-PATH"(c) {
+  async "CERT-DEPOSIT-STATE"(c) {
+    const tx = csv("Transactions.csv");
+    if (!tx) return { state: STATE.BLOCKED, detail: "oracle unreachable" };
+    const res = tx.filter((r) => isLive(r) && ((r.STAT || " ")[0] || " ").toUpperCase() === "R");
+    let half = 0, partial = 0, unpaid = 0, full = 0;
+    for (const r of res) {
+      const t = num(r.TOTL), p = num(r.PAID);
+      if (t <= 0) continue;
+      if (p <= 0) unpaid++;
+      else if (p >= t - 0.01) full++;
+      else { partial++; if (Math.abs(p / t - 0.5) < 0.005) half++; }
+    }
+    const dominates = partial > 0 && half / partial > 0.5;
+    return {
+      state: dominates ? STATE.PASS : STATE.PARTIAL,
+      expected: "50% deposit dominates partially-paid reservations",
+      actual: `${half}/${partial} partial payments are exactly 50%`,
+      detail: `${res.length} live reservations · unpaid ${unpaid} · partial ${partial} · paid-in-full ${full}`,
+    };
+  },
+
+  async "CERT-BALANCE-COMPUTED"(c) {
+    const tx = csv("Transactions.csv");
+    if (!tx) return { state: STATE.BLOCKED, detail: "oracle unreachable" };
+    const cols = Object.keys(tx[0] || {});
+    const stored = cols.filter((k) => /^(balance|balancedue|amountdue|owed)$/i.test(k));
+    return {
+      state: stored.length === 0 ? STATE.PASS : STATE.PARTIAL,
+      expected: "balance is derived as TOTL - PAID; POR stores no balance column",
+      actual: stored.length ? `stored column(s) found: ${stored}` : "no stored balance column",
+      detail: "Command Center must compute the balance, not expect a POR field",
+    };
+  },
+
+  async "CERT-UNSECURED-RESERVATIONS"(c) {
+    const tx = csv("Transactions.csv");
+    if (!tx) return { state: STATE.BLOCKED, detail: "oracle unreachable" };
+    const res = tx.filter((r) => isLive(r) && ((r.STAT || " ")[0] || " ").toUpperCase() === "R");
+    const unsecured = res.filter((r) => num(r.TOTL) > 0 && num(r.PAID) <= 0);
+    const value = unsecured.reduce((a, r) => a + num(r.TOTL), 0);
+    return {
+      state: STATE.PASS,
+      expected: "reservations with no deposit are identifiable",
+      actual: `${unsecured.length} of ${res.length} live reservations carry no payment`,
+      detail: `$${value.toFixed(2)} of reserved value is not secured by a deposit — a real chase signal Command Center does not surface today`,
+      note: "POR side computable. No Command Center panel exposes this yet.",
+      subject_conforms: false,
+    };
+  },
+
+  async "CERT-FEE-SKU-EXCLUSION"(c) {
+    const items = csv("ItemFile.csv");
+    if (!items) return { state: STATE.BLOCKED, detail: "oracle unreachable" };
+    const active = items.filter((r) => (r.Inactive || "").trim().toLowerCase() !== "true");
+    const feeish = active.filter((r) => /deliver|setup|set up|fee|adjustment|mileage|labor|install|convenience/i.test(r.Name || ""));
+    const feeWithQty = feeish.filter((r) => num(r.QTY) > 0);
+    return {
+      state: STATE.PASS,
+      expected: "fee/service SKUs identifiable and excludable from rentable stock",
+      actual: `${feeish.length} fee/service SKUs of ${active.length} active items`,
+      detail: `${feeWithQty.length} of them carry a QTY that would inflate rentable counts if not excluded`,
+    };
+  },
+
+  async "CERT-AVAILABILITY-BY-DATE"(c) {
+    const items = csv("ItemFile.csv");
+    if (!items) return { state: STATE.BLOCKED, detail: "oracle unreachable" };
+    const withQyot = items.filter((r) => num(r.QYOT) > 0).length;
+    const r = await cc("/api/por/availability?item=212894&date=2026-09-19");
+    const reachable = r && !r.error;
+    return {
+      state: reachable ? STATE.PARTIAL : STATE.UNKNOWN,
+      expected: "availability nets future commitments for the requested date",
+      actual: reachable ? "endpoint responded" : `endpoint unreachable: ${r?.error || "unknown"}`,
+      detail: `QYOT is out-TODAY only (${withQyot} items non-zero); date availability must net future reservations, which QTY-QYOT cannot do`,
+    };
+  },
+
+  async "CERT-CUSTOMER-HISTORY"(c) {
+    const tx = csv("Transactions.csv");
+    const cust = csv("CustomerFile.csv");
+    if (!tx || !cust) return { state: STATE.BLOCKED, detail: "oracle unreachable" };
+    const byCus = new Map();
+    for (const r of tx) {
+      const k = (r.CUSN || "").trim();
+      if (k) byCus.set(k, (byCus.get(k) || 0) + 1);
+    }
+    const repeat = [...byCus.values()].filter((n) => n > 1).length;
+    return {
+      state: STATE.PASS,
+      expected: "prior rentals retrievable per customer",
+      actual: `${byCus.size} customers with transactions; ${repeat} are repeat customers`,
+      detail: `${tx.length} tickets across ${byCus.size} customers — history is meaningful and worth surfacing`,
+    };
+  },
+
+  async _write(c) {
     return {
       state: STATE.BLOCKED,
       expected: "Command Center can create a real POR transaction",
@@ -332,7 +428,7 @@ const age = oracleAgeDays();
 const results = [];
 for (const c of manifest.certifications) {
   if (only && c.id !== only) continue;
-  const fn = CHECKS[c.id];
+  const fn = CHECKS[c.id] || (c.category === "WRITE_PARITY" ? CHECKS._write : null);
   let r;
   if (!fn) r = { state: STATE.UNKNOWN, detail: "no check implemented" };
   else if (age > c.freshness_tolerance_days) {

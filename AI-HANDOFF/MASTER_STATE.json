@@ -703,7 +703,47 @@
       "remaining_uncertainty": null,
       "false_green": null,
       "approval_decision": null
+    },
+    "POR-PARITY-UNSECURED-001": {
+      "task_id": "POR-PARITY-UNSECURED-001",
+      "created_at": "2026-08-13T16:31:34.471Z",
+      "created_by": "por-certification-engine",
+      "owner_agent": "cursor",
+      "verifier_agent": "codex",
+      "subsystem": "command-center",
+      "objective": "Surface unsecured reservations: 124 of 306 live reservations carry NO payment, representing $625,467.72 of reserved value with no deposit. POR can compute this (live STAT=R with PAID=0); Command Center has no panel for it. This is a real deposit-chase signal the showroom loses today.",
+      "priority": "high",
+      "risk_tier": 1,
+      "dependencies": null,
+      "approval_required": false,
+      "status": "NEW",
+      "expected_evidence": "Owner/AR panel lists unsecured reservations computed from POR, not hardcoded",
+      "evidence_paths": [
+        "AI-HANDOFF/POR_CERTIFICATION_RESULTS.jsonl"
+      ],
+      "result": null,
+      "error": null,
+      "next_action": null,
+      "last_updated_at": "2026-08-13T16:31:34.471Z",
+      "claim": null,
+      "known_limitations": null,
+      "unverified": null,
+      "files": null,
+      "severity": null,
+      "verification_status": "UNVERIFIED",
+      "fail_count": 0,
+      "original_finding": null,
+      "acceptance_criteria": null,
+      "reproduction_steps": null,
+      "expected_behavior": null,
+      "actual_behavior": null,
+      "tests_run": null,
+      "test_results": null,
+      "deployment_status": null,
+      "remaining_uncertainty": null,
+      "false_green": null,
+      "approval_decision": null
     }
   },
-  "updatedAt": "2026-08-13T16:28:38.457Z"
+  "updatedAt": "2026-08-13T16:31:34.472Z"
 }

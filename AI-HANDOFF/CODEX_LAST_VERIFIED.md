@@ -1,6 +1,6 @@
 # Codex — Last Verified
 
-**Generated:** 2026-08-13T17:08:50.312Z · **Health:** YELLOW · **Confidence:** high
+**Generated:** 2026-08-13T17:14:29.045Z · **Health:** YELLOW · **Confidence:** high
 
 > Maintained automatically by the Codex verifier worker. Do not hand-edit.
 
@@ -12,7 +12,7 @@
 | OPEN P0 | 0 |
 | OPEN P1 | 2 |
 | CLAUDE TASKS | 5 |
-| CURSOR TASKS | 18 |
+| CURSOR TASKS | 21 |
 | CODEX VERIFYING | 0 |
 | AWAITING VERIFICATION | 0 |
 | BLOCKED ON MASON | 5 |
@@ -34,6 +34,7 @@
 
 | when | task | verdict | worker |
 |---|---|---|---|
+| 2026-08-13T17:14:28.977Z | HIRING-PIPELINE-001 | **BLOCKED** | codex-cloud |
 | 2026-08-13T16:57:28.500Z | CONTROL-PLANE-CURSOR-SMOKE-001 | **BLOCKED** | codex-local |
 | 2026-08-13T16:57:24.413Z | CERT-HARNESS-VERIFY-001 | **BLOCKED** | codex-local |
 | 2026-08-13T16:57:21.962Z | POR-KITS-VERIFY-001 | **BLOCKED** | codex-local |
@@ -41,4 +42,3 @@
 | 2026-08-13T16:57:08.610Z | PP-SEC-001 | **BLOCKED** | codex-cloud |
 | 2026-08-13T16:55:28.257Z | PAR-DEP-UPSTREAM | **CERTIFIED_PASS** | codex-cloud |
 | 2026-08-13T16:54:44.203Z | PAR-DEP-UPSTREAM | **BLOCKED** | codex-cloud |
-| 2026-08-13T16:43:36.196Z | CODEX-ACCESS-SMOKE-001 | **BLOCKED** | codex-cloud |

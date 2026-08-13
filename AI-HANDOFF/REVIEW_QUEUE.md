@@ -8,6 +8,7 @@
 | PP-003 (app hardening) | Cursor | Claude | **READY_FOR_CLAUDE_REVIEW** | RED financial-gate fixes + follow-ons |
 | PP-004 (jobs conversion) | Cursor | Claude | SUPERSEDED | Quick Apply rejected by Mason; see REL-V197 |
 | REL-V197-RECONCILE-001 | Cursor | Claude | **READY_FOR_CLAUDE_REVIEW** | **LIVE v1.9.7** — full original jobs app + restored CC; attack partyperfect.app + jobs.com |
+| HIRING-PIPELINE-001 | Cursor | Codex | **READY_FOR_VERIFICATION** | Full apply→store→Hiring→Mike path; synthetic tests; not deployed |
 | PP-001 (Quote Desk UI) | Claude | (Claude) | CLAUDE_WORKING | Parallel |
 | PP-005 (Mike inventory lookup) | Cursor | Claude | **READY_FOR_CLAUDE_REVIEW** | Tool + prompts + heuristic wired; catalog/reservations (no Supabase) |
 | PP-009 (Supabase / AI Core) | Cursor | Claude | **READY_FOR_CLAUDE** | Brief: `SUPABASE_BRIEF_2026-08-12.md` — ai_core live; need 0004 inspect + idempotency assist |

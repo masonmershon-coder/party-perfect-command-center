@@ -18,3 +18,4 @@
 {"at":"2026-08-13T16:57:21.954Z","task_id":"POR-KITS-VERIFY-001","by":"codex","reason":"BLOCKED_COMPUTE_NOT_APPROVED: POR-KITS-VERIFY-001 has no compute approval","escalate":"agent"}
 {"at":"2026-08-13T16:57:24.408Z","task_id":"CERT-HARNESS-VERIFY-001","by":"codex","reason":"BLOCKED_COMPUTE_NOT_APPROVED: CERT-HARNESS-VERIFY-001 has no compute approval","escalate":"agent"}
 {"at":"2026-08-13T16:57:28.492Z","task_id":"CONTROL-PLANE-CURSOR-SMOKE-001","by":"codex","reason":"BLOCKED_COMPUTE_NOT_APPROVED: CONTROL-PLANE-CURSOR-SMOKE-001 has no compute approval","escalate":"agent"}
+{"at":"2026-08-13T17:14:28.958Z","task_id":"HIRING-PIPELINE-001","by":"codex","reason":"evidence unreachable from codex-cloud: EVIDENCE/HIRING-PIPELINE-001.md, EVIDENCE/HIRING-PIPELINE-001.md","escalate":"agent"}

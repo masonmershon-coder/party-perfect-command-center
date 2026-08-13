@@ -1,14 +1,11 @@
 # CURRENT TASK
 
-**TASK ID:** REL-V197-RECONCILE-001  
-**STATUS:** READY_FOR_CLAUDE_REVIEW  
+**TASK ID:** HIRING-PIPELINE-001  
+**STATUS:** READY_FOR_VERIFICATION  
 **UPDATED:** 2026-08-13  
 
-Mason asked to ship the original full jobs application and restore yesterday’s Command Center. Done live.
+Certify/fix full hiring path (synthetic only). In-repo fixes: `?src=` attribution, intake helper, Mike fallbackReason visible, JobPosting schema module, pipeline tests.
 
-- **Live:** partyperfect.app + partyperfectjobs.com = **v1.9.7**
-- Full multi-step application; Quick Apply rejected (D-002 pass)
-- Redis + jobs store OK; POR snapshot fresh
-- Commit `e8dac0e` on `release/v1.9.7-full-jobs`
+**Not deployed.** Codex: `AI-HANDOFF/EVIDENCE/HIRING-PIPELINE-001.md`
 
-Claude: independently attack live URLs. Write-up: `AI-HANDOFF/CURSOR_TO_CLAUDE.md`
+Prior live release REL-V197 (v1.9.7) remains on production.

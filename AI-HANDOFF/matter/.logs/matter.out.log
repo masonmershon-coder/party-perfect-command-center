@@ -115,3 +115,75 @@ BLOCKED
 NEEDS MASON
   POR-REPL-ENTERPRISE-001 — Deploy Replicate-PorToShare.ps1 to ENTERPRISE and schedule it every 15 min
 =========================================================
+worker cursor: cursor-dispatch: nothing actionable
+worker codex: no tasks ready for codex
+
+================= PARTY PERFECT — TODAY =================
+CLAUDE    2 queued  [STALE]
+CURSOR    17 queued  [WORKING]
+CODEX     0 awaiting  [verifying]
+MIKE      idle  [OFFLINE]
+MADISON   idle  [OFFLINE]
+
+POR SYNC  NEVER — replication has not run
+DONE      2 certified
+
+BLOCKED
+  POR-STAT-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-STAT-VERIFY-001 has no compute appro
+  POR-KITS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-KITS-VERIFY-001 has no compute appro
+  CERT-HARNESS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: CERT-HARNESS-VERIFY-001 has no compute a
+  CC-AUTH-P0-001 — Cursor runtime failed: 
+  CONTROL-PLANE-CURSOR-SMOKE-001 — BLOCKED_COMPUTE_NOT_APPROVED: CONTROL-PLANE-CURSOR-SMOKE-001 has no co
+  PP-SEC-001 — BLOCKED_COMPUTE_NOT_APPROVED: PP-SEC-001 has no compute approval
+
+NEEDS MASON
+  POR-REPL-ENTERPRISE-001 — Deploy Replicate-PorToShare.ps1 to ENTERPRISE and schedule it every 15 min
+=========================================================
+worker cursor: cursor-dispatch: nothing actionable
+worker codex: no tasks ready for codex
+
+================= PARTY PERFECT — TODAY =================
+CLAUDE    2 queued  [STALE]
+CURSOR    working HIRING-PIPELINE-001  [WORKING]
+CODEX     0 awaiting  [verifying]
+MIKE      idle  [OFFLINE]
+MADISON   idle  [OFFLINE]
+
+POR SYNC  NEVER — replication has not run
+DONE      2 certified
+
+BLOCKED
+  POR-STAT-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-STAT-VERIFY-001 has no compute appro
+  POR-KITS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-KITS-VERIFY-001 has no compute appro
+  CERT-HARNESS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: CERT-HARNESS-VERIFY-001 has no compute a
+  CC-AUTH-P0-001 — Cursor runtime failed: 
+  CONTROL-PLANE-CURSOR-SMOKE-001 — BLOCKED_COMPUTE_NOT_APPROVED: CONTROL-PLANE-CURSOR-SMOKE-001 has no co
+  PP-SEC-001 — BLOCKED_COMPUTE_NOT_APPROVED: PP-SEC-001 has no compute approval
+
+NEEDS MASON
+  POR-REPL-ENTERPRISE-001 — Deploy Replicate-PorToShare.ps1 to ENTERPRISE and schedule it every 15 min
+=========================================================
+worker cursor: cursor-dispatch: nothing actionable
+worker codex: VERIFY HIRING-PIPELINE-001 [codex-cloud] · HIRING-PIPELINE-001 BLOCKED: evidence unreachable from codex-cloud: EVIDENCE/HIRING-PIPELINE-001.md, EVIDENCE/HIRING-PIPELINE-001.md · dispatch done: 1 task(s), 1 not certified · health YELLOW
+
+================= PARTY PERFECT — TODAY =================
+CLAUDE    2 queued  [STALE]
+CURSOR    17 queued  [WORKING]
+CODEX     0 awaiting  [verifying]
+MIKE      idle  [OFFLINE]
+MADISON   idle  [OFFLINE]
+
+POR SYNC  NEVER — replication has not run
+DONE      2 certified
+
+BLOCKED
+  POR-STAT-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-STAT-VERIFY-001 has no compute appro
+  POR-KITS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-KITS-VERIFY-001 has no compute appro
+  CERT-HARNESS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: CERT-HARNESS-VERIFY-001 has no compute a
+  CC-AUTH-P0-001 — Cursor runtime failed: 
+  CONTROL-PLANE-CURSOR-SMOKE-001 — BLOCKED_COMPUTE_NOT_APPROVED: CONTROL-PLANE-CURSOR-SMOKE-001 has no co
+  PP-SEC-001 — BLOCKED_COMPUTE_NOT_APPROVED: PP-SEC-001 has no compute approval
+
+NEEDS MASON
+  POR-REPL-ENTERPRISE-001 — Deploy Replicate-PorToShare.ps1 to ENTERPRISE and schedule it every 15 min
+=========================================================

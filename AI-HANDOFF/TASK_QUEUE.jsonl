@@ -164,3 +164,10 @@
 {"at":"2026-08-13T17:08:47.002Z","type":"create","task_id":"SEC-HEALTH-PII-001","by":"claude","status":"NEW","severity":null}
 {"at":"2026-08-13T17:08:51.668Z","type":"create","task_id":"SEC-HEADERS-001","by":"claude","status":"NEW","severity":null}
 {"at":"2026-08-13T17:08:54.495Z","type":"create","task_id":"SEC-GATEWAY-WIRE-001","by":"claude","status":"NEW","severity":null}
+{"at":"2026-08-13T17:13:19.606Z","type":"create","task_id":"HIRING-PIPELINE-001","by":"cursor","status":"NEW","severity":"P1"}
+{"at":"2026-08-13T17:13:23.200Z","type":"claim","task_id":"HIRING-PIPELINE-001","by":"cursor","status":"CLAIMED"}
+{"at":"2026-08-13T17:13:25.412Z","type":"transition","task_id":"HIRING-PIPELINE-001","by":"cursor","status":"IN_PROGRESS","result":null,"verification_status":"TESTED","fail_count":0}
+{"at":"2026-08-13T17:13:28.826Z","type":"transition","task_id":"HIRING-PIPELINE-001","by":"cursor","status":"READY_FOR_VERIFICATION","result":null,"verification_status":"TESTED","fail_count":0}
+{"at":"2026-08-13T17:14:22.056Z","type":"transition","task_id":"HIRING-PIPELINE-001","by":"codex","status":"VERIFYING","result":null,"verification_status":"TESTED","fail_count":0}
+{"at":"2026-08-13T17:14:28.959Z","type":"block","task_id":"HIRING-PIPELINE-001","by":"codex","status":"BLOCKED","escalate":"agent"}
+{"at":"2026-08-13T17:15:14.749Z","type":"create","task_id":"SENTINEL-ARCH-REVIEW-001","by":"claude","status":"NEW","severity":null}

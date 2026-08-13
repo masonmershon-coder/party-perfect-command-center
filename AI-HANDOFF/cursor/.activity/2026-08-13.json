@@ -11,7 +11,11 @@
     "lib/candidate-social.ts",
     "app/components/dashboard/hiring-section.tsx",
     "scripts/test-hiring-pipeline.ts",
-    "lib/app-version.ts"
+    "lib/app-version.ts",
+    "AI-HANDOFF/CURRENT_TASK.md",
+    "AI-HANDOFF/REVIEW_QUEUE.md",
+    "AI-HANDOFF/CURSOR_TO_CLAUDE.md",
+    "AI-HANDOFF/CURSOR_TO_CODEX.md"
   ],
   "registered_task": "CURSOR-ACTIVITY-20260813"
 }

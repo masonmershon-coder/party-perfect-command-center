@@ -7,6 +7,7 @@ import { formatHiringAppsForMike } from "../lib/candidate-social";
 import {
   buildJobApplicationInputFromBody,
   resolveApplyMode,
+  type ApplyBody,
 } from "../lib/job-apply-intake";
 import {
   findRecentDuplicate,
@@ -30,7 +31,7 @@ function assert(cond: unknown, msg: string) {
   }
 }
 
-const SYNTHETIC_BODY = {
+const SYNTHETIC_BODY: ApplyBody = {
   applyMode: "full" as const,
   roles: ["tents", "delivery"] as ("tents" | "delivery")[],
   fullName: "Test Applicant Cursor Pipeline",
@@ -38,16 +39,16 @@ const SYNTHETIC_BODY = {
   email: "test.pipeline.cursor.qa@example.com",
   city: "Broken Arrow",
   source: "Indeed",
-  eligibleToWork: "yes",
-  over18: "yes",
-  validDriverLicense: "yes",
-  highSchoolGraduated: "yes",
-  collegeStatus: "none",
-  referralSource: "indeed",
-  hasReliableTransport: "yes",
-  physicalOutdoorOk: "yes",
+  eligibleToWork: "yes" as const,
+  over18: "yes" as const,
+  validDriverLicense: "yes" as const,
+  highSchoolGraduated: "yes" as const,
+  collegeStatus: "none" as const,
+  referralSource: "indeed" as const,
+  hasReliableTransport: "yes" as const,
+  physicalOutdoorOk: "yes" as const,
   earliestStartDate: "2026-08-20",
-  daysMissedLast3Months: "0",
+  daysMissedLast3Months: "0" as const,
   availabilitySlots: ["weekday_am", "early_am"],
   availability: "",
   physicalAbility: "Comfortable lifting 50+ lbs outdoors.",

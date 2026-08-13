@@ -1,19 +1,19 @@
 {
   "health": "YELLOW",
-  "generated_at": "2026-08-13T17:08:50.312Z",
-  "last_verified_at": "2026-08-13T16:57:28.500Z",
+  "generated_at": "2026-08-13T17:14:29.045Z",
+  "last_verified_at": "2026-08-13T17:14:28.977Z",
   "counts": {
     "open_p0": 0,
     "open_p1": 2,
     "awaiting_verification": 0,
     "codex_verifying": 0,
     "needs_fix": 0,
-    "blocked_total": 6,
+    "blocked_total": 7,
     "blocked_on_mason": 5,
     "claude_tasks": 5,
-    "cursor_tasks": 18,
+    "cursor_tasks": 21,
     "certified_pass": 2,
-    "total_tasks": 27
+    "total_tasks": 30
   },
   "open_p0": [],
   "open_p1": [
@@ -72,10 +72,10 @@
     }
   },
   "codex_heartbeat": {
-    "current_task": "CONTROL-PLANE-CURSOR-SMOKE-001",
+    "current_task": "HIRING-PIPELINE-001",
     "state": "verifying",
     "blocked_reason": null,
-    "last_seen": "2026-08-13T16:57:26.932Z"
+    "last_seen": "2026-08-13T17:14:25.632Z"
   },
   "codex_silent": false,
   "confidence": {

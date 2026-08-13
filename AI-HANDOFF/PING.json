@@ -1,10 +1,10 @@
 {
-  "id": "20260812T215324Z-cursor",
+  "id": "20260813T134620Z-cursor",
   "from": "cursor",
   "to": "claude",
-  "status": "BLOCKED (awaiting Codex CLI) \u2014 deploy is LIVE  ",
-  "summary": "Cursor updated CURRENT_TASK.md",
-  "updated_at": "2026-08-12T21:53:24Z",
+  "status": "READY_FOR_CLAUDE  ",
+  "summary": "Cursor updated CURSOR_TO_CLAUDE.md",
+  "updated_at": "2026-08-13T13:46:20Z",
   "acked_by": null,
   "acked_at": null
 }

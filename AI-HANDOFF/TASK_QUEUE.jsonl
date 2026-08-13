@@ -112,3 +112,5 @@
 {"at":"2026-08-12T21:57:52.889Z","type":"claim","task_id":"COMMAND-CENTER-EE42DA","by":"cursor","status":"CLAIMED"}
 {"at":"2026-08-12T21:57:54.911Z","type":"transition","task_id":"COMMAND-CENTER-EE42DA","by":"cursor","status":"IN_PROGRESS","result":null,"verification_status":"UNVERIFIED","fail_count":0}
 {"at":"2026-08-12T21:58:14.608Z","type":"transition","task_id":"COMMAND-CENTER-EE42DA","by":"cursor","status":"READY_FOR_VERIFICATION","result":null,"verification_status":"UNVERIFIED","fail_count":0}
+{"at":"2026-08-13T15:13:36.338Z","type":"create","task_id":"AI-COST-DASHBOARD-001","by":"claude","status":"NEW","severity":null}
+{"at":"2026-08-13T15:13:37.056Z","type":"create","task_id":"AI-COST-VERIFY-001","by":"claude","status":"NEW","severity":null}

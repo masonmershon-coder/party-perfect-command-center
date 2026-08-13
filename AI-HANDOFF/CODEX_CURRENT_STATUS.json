@@ -1,31 +1,22 @@
 {
   "health": "RED",
-  "generated_at": "2026-08-12T21:58:10.460Z",
+  "generated_at": "2026-08-13T11:30:00.603Z",
   "last_verified_at": "2026-08-12T21:56:40.570Z",
   "counts": {
     "open_p0": 0,
     "open_p1": 2,
-    "awaiting_verification": 0,
+    "awaiting_verification": 1,
     "codex_verifying": 0,
     "needs_fix": 0,
-    "blocked_total": 7,
+    "blocked_total": 6,
     "blocked_on_mason": 0,
     "claude_tasks": 3,
-    "cursor_tasks": 6,
+    "cursor_tasks": 5,
     "certified_pass": 0,
-    "total_tasks": 9
+    "total_tasks": 8
   },
   "open_p0": [],
   "open_p1": [
-    {
-      "key": "CODEX-SWEEP-DAILY:unmerged-branch",
-      "task_id": "CODEX-SWEEP-DAILY",
-      "severity": "P1",
-      "code": "unmerged-branch",
-      "summary": "13 commit(s) on 'claude/por-stat-classification' not in main — fixes are written but not deployed",
-      "evidence": "git rev-list main..claude/por-stat-classification",
-      "opened_at": "2026-08-12T21:28:24.446Z"
-    },
     {
       "key": "CONTROL-PLANE-CURSOR-SMOKE-001:missing-evidence-artifact",
       "task_id": "CONTROL-PLANE-CURSOR-SMOKE-001",
@@ -34,9 +25,26 @@
       "summary": "Cursor did not produce the required artifact",
       "evidence": "AI-HANDOFF/EVIDENCE/",
       "opened_at": "2026-08-12T21:37:52.249Z"
+    },
+    {
+      "key": "CODEX-SWEEP-DAILY:unmerged-branch",
+      "task_id": "CODEX-SWEEP-DAILY",
+      "severity": "P1",
+      "code": "unmerged-branch",
+      "summary": "15 commit(s) on 'claude/por-stat-classification' not in main — fixes are written but not deployed",
+      "evidence": "git rev-list main..claude/por-stat-classification",
+      "opened_at": "2026-08-13T11:30:00.599Z"
     }
   ],
-  "awaiting_verification": [],
+  "awaiting_verification": [
+    {
+      "task_id": "COMMAND-CENTER-EE42DA",
+      "objective": "Add AI autonomy smoke marker file to prove repair loop",
+      "owner": "cursor",
+      "since": "2026-08-12T21:58:14.605Z",
+      "stale": true
+    }
+  ],
   "blocked_on_mason": [],
   "worker_health": {
     "codex-local": {
@@ -53,8 +61,10 @@
   },
   "codex_silent": false,
   "confidence": {
-    "level": "unknown",
-    "certified_ratio": null
+    "level": "low",
+    "certified_ratio": 0,
+    "certified": 0,
+    "finished": 1
   },
   "evidence": {
     "master_state": "AI-HANDOFF/MASTER_STATE.json",
@@ -63,7 +73,7 @@
   },
   "last_sweep": {
     "kind": "daily",
-    "at": "2026-08-12T21:28:24.448Z",
+    "at": "2026-08-13T11:30:00.602Z",
     "findings": 1
   }
 }

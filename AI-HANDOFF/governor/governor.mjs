@@ -130,6 +130,15 @@ export function hasActionApproval(task) {
 }
 
 // ---------------------------------------------------------------- ledger
+function inferProvider(runtime, agent) {
+  const r = `${runtime || ""} ${agent || ""}`.toLowerCase();
+  if (r.includes("cursor")) return "cursor";
+  if (r.includes("codex") || r.includes("openai")) return "openai";
+  if (r.includes("claude") || r.includes("anthropic")) return "anthropic";
+  if (r.includes("grok") || r.includes("xai")) return "xai";
+  return "other";
+}
+
 export function appendLedger(entry) {
   mkdirSync(path.dirname(LEDGER_FILE), { recursive: true });
   const row = {
@@ -137,6 +146,12 @@ export function appendLedger(entry) {
     task_id: entry.task_id ?? null,
     agent: entry.agent ?? null,
     runtime: entry.runtime ?? null,
+    // provider/project drive the Owner dashboard's attribution views. Inferred
+    // from the runtime when not supplied, so spend is never "unattributed"
+    // merely because a caller forgot a field.
+    provider: entry.provider ?? inferProvider(entry.runtime, entry.agent),
+    project: entry.project ?? null,
+    trigger_source: entry.trigger_source ?? null,
     model: entry.model ?? "UNKNOWN",
     started_at: entry.started_at ?? null,
     stopped_at: entry.stopped_at ?? null,

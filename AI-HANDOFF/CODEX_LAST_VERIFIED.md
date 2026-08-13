@@ -1,6 +1,6 @@
 # Codex — Last Verified
 
-**Generated:** 2026-08-12T21:58:10.460Z · **Health:** RED · **Confidence:** unknown
+**Generated:** 2026-08-13T11:30:00.603Z · **Health:** RED · **Confidence:** low
 
 > Maintained automatically by the Codex verifier worker. Do not hand-edit.
 
@@ -12,15 +12,15 @@
 | OPEN P0 | 0 |
 | OPEN P1 | 2 |
 | CLAUDE TASKS | 3 |
-| CURSOR TASKS | 6 |
+| CURSOR TASKS | 5 |
 | CODEX VERIFYING | 0 |
-| AWAITING VERIFICATION | 0 |
+| AWAITING VERIFICATION | 1 |
 | BLOCKED ON MASON | 0 |
 
 ## Open findings
 
-- **P1 · unmerged-branch** (CODEX-SWEEP-DAILY) — 13 commit(s) on 'claude/por-stat-classification' not in main — fixes are written but not deployed
 - **P1 · missing-evidence-artifact** (CONTROL-PLANE-CURSOR-SMOKE-001) — Cursor did not produce the required artifact
+- **P1 · unmerged-branch** (CODEX-SWEEP-DAILY) — 15 commit(s) on 'claude/por-stat-classification' not in main — fixes are written but not deployed
 
 ## Needs Mason
 

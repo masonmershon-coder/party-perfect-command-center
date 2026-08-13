@@ -66,7 +66,14 @@ function detectRuntime() {
     const gh = spawnSync("gh", ["auth", "status"], { encoding: "utf8", timeout: 15000 });
     cursor = !gh.error && gh.status === 0;
   }
-  return { claude: true, codex: true, cursor, mike: false, madison: false };
+  // Codex autonomous worker: only "available" if a real codex CLI is on PATH. Hardcoding true
+  // would be a false green the moment the CLI is absent — which is exactly today's state.
+  let codex = false;
+  for (const bin of [process.env.CODEX_BIN, "codex", `${process.env.HOME}/.local/bin/codex`].filter(Boolean)) {
+    try { const p = spawnSync(bin, ["--version"], { encoding: "utf8", timeout: 15000 }); if (!p.error && p.status === 0) { codex = true; break; } } catch { /* next */ }
+  }
+  // claude = this engineering session (executes by invocation, always available).
+  return { claude: true, codex, cursor, mike: false, madison: false };
 }
 const RUNTIME = detectRuntime();
 // which agent may drive which transition

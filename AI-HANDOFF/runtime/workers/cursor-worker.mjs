@@ -12,6 +12,29 @@ import path from "node:path";
 const { TASK_ID, ACTION, WORKTREE, CP_DIR, REPO } = process.env;
 const cp = (...a) => spawnSync("node", [path.join(CP_DIR, "control-plane.mjs"), ...a], { encoding: "utf8", stdio: "inherit" });
 
+// --- COST GOVERNOR (added 2026-08-13) -----------------------------------
+// This worker predates the governor and invoked cursor-agent directly. That
+// made it a second, ungated path to paid compute -- the exact failure class of
+// the 2026-08-12 incident, on a trigger that also polled every 180s.
+// Nothing below may run until the governor authorizes THIS task.
+const { authorizePaidCompute, appendLedger } = await import(
+  path.join(path.dirname(new URL(import.meta.url).pathname), "..", "..", "governor", "governor.mjs")
+);
+{
+  const st = JSON.parse(readFileSync(path.join(CP_DIR, "MASTER_STATE.json"), "utf8"));
+  const task = st.tasks?.[TASK_ID] || { task_id: TASK_ID, owner_agent: "cursor", risk_tier: 99 };
+  const decision = authorizePaidCompute(task, { agent: "cursor" });
+  if (!decision.allowed) {
+    appendLedger({
+      task_id: TASK_ID, agent: "cursor", runtime: "cursor-agent",
+      status: decision.code, reason: decision.reason,
+      trigger_source: "runtime/local-dispatcher", result: "refused before spend",
+    });
+    console.error(`BLOCKED: ${decision.code} — ${decision.reason}`);
+    process.exit(3);
+  }
+}
+
 // --- runtime availability (install + auth) — no faking ---
 const has = spawnSync("cursor-agent", ["--version"], { encoding: "utf8" });
 if (has.status !== 0) { console.error("BLOCKED: cursor-agent CLI not installed (owner: install the Cursor CLI)"); process.exit(3); }

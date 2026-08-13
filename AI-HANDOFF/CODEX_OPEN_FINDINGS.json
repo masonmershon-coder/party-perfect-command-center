@@ -1,15 +1,6 @@
 {
   "findings": [
     {
-      "key": "CODEX-SWEEP-DAILY:unmerged-branch",
-      "task_id": "CODEX-SWEEP-DAILY",
-      "severity": "P1",
-      "code": "unmerged-branch",
-      "summary": "13 commit(s) on 'claude/por-stat-classification' not in main — fixes are written but not deployed",
-      "evidence": "git rev-list main..claude/por-stat-classification",
-      "opened_at": "2026-08-12T21:28:24.446Z"
-    },
-    {
       "key": "CONTROL-PLANE-CURSOR-SMOKE-001:missing-evidence-artifact",
       "task_id": "CONTROL-PLANE-CURSOR-SMOKE-001",
       "severity": "P1",
@@ -17,7 +8,16 @@
       "summary": "Cursor did not produce the required artifact",
       "evidence": "AI-HANDOFF/EVIDENCE/",
       "opened_at": "2026-08-12T21:37:52.249Z"
+    },
+    {
+      "key": "CODEX-SWEEP-DAILY:unmerged-branch",
+      "task_id": "CODEX-SWEEP-DAILY",
+      "severity": "P1",
+      "code": "unmerged-branch",
+      "summary": "15 commit(s) on 'claude/por-stat-classification' not in main — fixes are written but not deployed",
+      "evidence": "git rev-list main..claude/por-stat-classification",
+      "opened_at": "2026-08-13T11:30:00.599Z"
     }
   ],
-  "updated_at": "2026-08-12T21:37:52.249Z"
+  "updated_at": "2026-08-13T11:30:00.602Z"
 }

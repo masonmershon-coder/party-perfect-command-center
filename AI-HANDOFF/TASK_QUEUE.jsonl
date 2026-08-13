@@ -116,3 +116,9 @@
 {"at":"2026-08-13T15:13:37.056Z","type":"create","task_id":"AI-COST-VERIFY-001","by":"claude","status":"NEW","severity":null}
 {"at":"2026-08-13T16:14:45.058Z","type":"create","task_id":"POR-PARITY-WAIVER-BASE-001","by":"claude","status":"NEW","severity":null}
 {"at":"2026-08-13T16:14:46.698Z","type":"create","task_id":"POR-PARITY-TAXCODE-001","by":"claude","status":"NEW","severity":null}
+{"at":"2026-08-13T16:22:14.915Z","type":"create","task_id":"POR-PARITY-JOBSITES-001","by":"claude","status":"NEW","severity":null}
+{"at":"2026-08-13T16:22:15.350Z","type":"create","task_id":"POR-PARITY-SALESMAN-001","by":"claude","status":"NEW","severity":null}
+{"at":"2026-08-13T16:22:15.770Z","type":"create","task_id":"POR-PARITY-STATUS-001","by":"claude","status":"NEW","severity":null}
+{"at":"2026-08-13T16:22:16.195Z","type":"create","task_id":"POR-PARITY-KITS-001","by":"claude","status":"NEW","severity":null}
+{"at":"2026-08-13T16:22:18.470Z","type":"create","task_id":"POR-PARITY-HOLDS-001","by":"claude","status":"NEW","severity":null}
+{"at":"2026-08-13T16:23:52.092Z","type":"create","task_id":"POR-PARITY-TIMES-001","by":"claude","status":"NEW","severity":null}

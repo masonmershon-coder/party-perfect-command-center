@@ -20,9 +20,9 @@
         "12 - Build - Modern Checkout/POR_OPERATING_SYSTEM_MAP.md#12"
       ],
       "result": null,
-      "error": "Codex CLI not found on PATH (looked for \"codex\")",
+      "error": "BLOCKED_COMPUTE_NOT_APPROVED: POR-STAT-VERIFY-001 has no compute approval",
       "next_action": null,
-      "last_updated_at": "2026-08-12T21:24:42.980Z",
+      "last_updated_at": "2026-08-13T16:57:15.282Z",
       "claim": "STAT = 2-char primary+secondary; decodes via TransactionStatus + TransactionSecondaryStatus lookups",
       "known_limitations": null,
       "unverified": [
@@ -76,9 +76,9 @@
         "/Volumes/PARTYPERF/PARTY-PERFECT-BRAIN/15-RAW-EXPORTS/2026-08-10_POR-FULL-DATA/ItemKits.csv"
       ],
       "result": null,
-      "error": "Codex CLI not found on PATH (looked for \"codex\")",
+      "error": "BLOCKED_COMPUTE_NOT_APPROVED: POR-KITS-VERIFY-001 has no compute approval",
       "next_action": null,
-      "last_updated_at": "2026-08-12T21:24:44.404Z",
+      "last_updated_at": "2026-08-13T16:57:21.952Z",
       "claim": "ItemKits.Num(parent)->ItemKey(component) x Quantity, ordered by SubField; rate overrides per component",
       "known_limitations": null,
       "unverified": [
@@ -110,9 +110,9 @@
         "/Users/mikeai/Matter/por-bridge/por-verifier.test.mjs"
       ],
       "result": null,
-      "error": "Codex CLI not found on PATH (looked for \"codex\")",
+      "error": "BLOCKED_COMPUTE_NOT_APPROVED: CERT-HARNESS-VERIFY-001 has no compute approval",
       "next_action": null,
-      "last_updated_at": "2026-08-12T21:24:45.060Z",
+      "last_updated_at": "2026-08-13T16:57:24.407Z",
       "claim": "harness independent+honest; blocks self-cert; catches missing/false/corrupted; UNVERIFIED on unreadable required fields",
       "known_limitations": null,
       "unverified": null,
@@ -164,9 +164,9 @@
         "/Users/mikeai/grok-dashboard/AI-HANDOFF/EVIDENCE/CONTROL-PLANE-CURSOR-SMOKE-001.result.md"
       ],
       "result": null,
-      "error": "Codex CLI not found on PATH (looked for \"codex\")",
+      "error": "BLOCKED_COMPUTE_NOT_APPROVED: CONTROL-PLANE-CURSOR-SMOKE-001 has no compute approval",
       "next_action": null,
-      "last_updated_at": "2026-08-12T21:43:51.281Z",
+      "last_updated_at": "2026-08-13T16:57:28.485Z",
       "claim": "cursor-agent produced the change in isolated worktree",
       "known_limitations": null,
       "unverified": null,
@@ -199,9 +199,9 @@
         "scripts/test-api-auth-matrix.mjs"
       ],
       "result": null,
-      "error": "Codex CLI not found on PATH (looked for \"codex\")",
+      "error": "BLOCKED_COMPUTE_NOT_APPROVED: PP-SEC-001 has no compute approval",
       "next_action": "Codex independently retest production; issue SECURITY_FIX_CERTIFIED_PASS or NEEDS_FIX",
-      "last_updated_at": "2026-08-12T21:50:30.136Z",
+      "last_updated_at": "2026-08-13T16:57:08.603Z",
       "claim": "PP-SEC-001 deployed to partyperfect.app at commit ddfadc10208ce56bdd926d63c1a695de85959d59; Cursor smoke shows 401+no-store on previously open private GETs. Cursor does not self-certify.",
       "known_limitations": null,
       "unverified": [
@@ -951,5 +951,5 @@
       "approval_decision": null
     }
   },
-  "updatedAt": "2026-08-13T16:49:46.110Z"
+  "updatedAt": "2026-08-13T16:57:28.487Z"
 }

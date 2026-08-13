@@ -1,19 +1,19 @@
 {
   "health": "YELLOW",
-  "generated_at": "2026-08-13T16:43:36.202Z",
-  "last_verified_at": "2026-08-13T16:43:36.196Z",
+  "generated_at": "2026-08-13T16:58:44.249Z",
+  "last_verified_at": "2026-08-13T16:57:28.500Z",
   "counts": {
     "open_p0": 0,
     "open_p1": 2,
     "awaiting_verification": 0,
     "codex_verifying": 0,
     "needs_fix": 0,
-    "blocked_total": 7,
-    "blocked_on_mason": 1,
+    "blocked_total": 6,
+    "blocked_on_mason": 5,
     "claude_tasks": 5,
-    "cursor_tasks": 15,
-    "certified_pass": 1,
-    "total_tasks": 22
+    "cursor_tasks": 16,
+    "certified_pass": 2,
+    "total_tasks": 25
   },
   "open_p0": [],
   "open_p1": [
@@ -39,30 +39,50 @@
   "awaiting_verification": [],
   "blocked_on_mason": [
     {
-      "task_id": "CODEX-ACCESS-SMOKE-001",
-      "objective": "Harmless access proof: read this task from AI-HANDOFF, read one evidence file, inspect git state, and write a verdict back. No code changes.",
-      "reason": "Workspace writes are blocked by the read-only sandbox and approval settings, so Codex cannot produce the required on-disk verdict or control-plane transition."
+      "task_id": "POR-STAT-VERIFY-001",
+      "objective": "Verify POR Transactions.STAT 2-char (primary+secondary) decoding against raw SSD lookups",
+      "reason": "BLOCKED_COMPUTE_NOT_APPROVED: POR-STAT-VERIFY-001 has no compute approval"
+    },
+    {
+      "task_id": "POR-KITS-VERIFY-001",
+      "objective": "Verify POR kit semantics (ItemKits: parent Num -> component ItemKey x Quantity) against raw SSD",
+      "reason": "BLOCKED_COMPUTE_NOT_APPROVED: POR-KITS-VERIFY-001 has no compute approval"
+    },
+    {
+      "task_id": "CERT-HARNESS-VERIFY-001",
+      "objective": "Codex adversarially audits the certification harness (find any false CERTIFIED_PASS path)",
+      "reason": "BLOCKED_COMPUTE_NOT_APPROVED: CERT-HARNESS-VERIFY-001 has no compute approval"
+    },
+    {
+      "task_id": "CONTROL-PLANE-CURSOR-SMOKE-001",
+      "objective": "Smoke: prove Cursor autonomy end to end. Produce the required evidence artifact.",
+      "reason": "BLOCKED_COMPUTE_NOT_APPROVED: CONTROL-PLANE-CURSOR-SMOKE-001 has no compute approval"
+    },
+    {
+      "task_id": "PP-SEC-001",
+      "objective": "Certify PP-SEC-001 API authorization lockdown on production partyperfect.app",
+      "reason": "BLOCKED_COMPUTE_NOT_APPROVED: PP-SEC-001 has no compute approval"
     }
   ],
   "worker_health": {
-    "codex-local": {
+    "codex-cloud": {
       "available": true,
       "version": "codex-cli 0.147.0",
-      "checked_at": "2026-08-13T16:42:55.245Z"
+      "checked_at": "2026-08-13T16:55:28.257Z"
     }
   },
   "codex_heartbeat": {
-    "current_task": "CODEX-ACCESS-SMOKE-001",
+    "current_task": "CONTROL-PLANE-CURSOR-SMOKE-001",
     "state": "verifying",
     "blocked_reason": null,
-    "last_seen": "2026-08-13T16:42:56.443Z"
+    "last_seen": "2026-08-13T16:57:26.932Z"
   },
   "codex_silent": false,
   "confidence": {
     "level": "high",
     "certified_ratio": 1,
-    "certified": 1,
-    "finished": 1
+    "certified": 2,
+    "finished": 2
   },
   "evidence": {
     "master_state": "AI-HANDOFF/MASTER_STATE.json",

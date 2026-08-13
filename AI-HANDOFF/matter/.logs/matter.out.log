@@ -1,0 +1,69 @@
+worker cursor: cursor-dispatch: nothing actionable
+worker codex: no tasks ready for codex
+
+================= PARTY PERFECT — TODAY =================
+CLAUDE    2 queued  [STALE]
+CURSOR    13 queued  [STALE]
+CODEX     0 awaiting  [idle]
+MIKE      idle  [OFFLINE]
+MADISON   idle  [OFFLINE]
+
+POR SYNC  NEVER — replication has not run
+DONE      2 certified
+
+BLOCKED
+  POR-STAT-VERIFY-001 — Codex CLI not found on PATH (looked for "codex")
+  POR-KITS-VERIFY-001 — Codex CLI not found on PATH (looked for "codex")
+  CERT-HARNESS-VERIFY-001 — Codex CLI not found on PATH (looked for "codex")
+  CC-AUTH-P0-001 — Cursor runtime failed: 
+  CONTROL-PLANE-CURSOR-SMOKE-001 — Codex CLI not found on PATH (looked for "codex")
+  PP-SEC-001 — Codex CLI not found on PATH (looked for "codex")
+
+NEEDS MASON
+  POR-REPL-ENTERPRISE-001 — Deploy Replicate-PorToShare.ps1 to ENTERPRISE and schedule it every 15 min
+=========================================================
+worker cursor: cursor-dispatch: nothing actionable
+worker codex: dispatch already running -- exiting
+
+================= PARTY PERFECT — TODAY =================
+CLAUDE    2 queued  [STALE]
+CURSOR    13 queued  [STALE]
+CODEX     verifying POR-KITS-VERIFY-001  [verifying]
+MIKE      idle  [OFFLINE]
+MADISON   idle  [OFFLINE]
+
+POR SYNC  NEVER — replication has not run
+DONE      2 certified
+
+BLOCKED
+  POR-STAT-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-STAT-VERIFY-001 has no compute appro
+  CC-AUTH-P0-001 — Cursor runtime failed: 
+  PP-SEC-001 — BLOCKED_COMPUTE_NOT_APPROVED: PP-SEC-001 has no compute approval
+
+NEEDS MASON
+  POR-REPL-ENTERPRISE-001 — Deploy Replicate-PorToShare.ps1 to ENTERPRISE and schedule it every 15 min
+=========================================================
+worker cursor: cursor-dispatch: nothing actionable
+worker codex: no tasks ready for codex
+
+================= PARTY PERFECT — TODAY =================
+CLAUDE    2 queued  [STALE]
+CURSOR    13 queued  [STALE]
+CODEX     0 awaiting  [verifying]
+MIKE      idle  [OFFLINE]
+MADISON   idle  [OFFLINE]
+
+POR SYNC  NEVER — replication has not run
+DONE      2 certified
+
+BLOCKED
+  POR-STAT-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-STAT-VERIFY-001 has no compute appro
+  POR-KITS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-KITS-VERIFY-001 has no compute appro
+  CERT-HARNESS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: CERT-HARNESS-VERIFY-001 has no compute a
+  CC-AUTH-P0-001 — Cursor runtime failed: 
+  CONTROL-PLANE-CURSOR-SMOKE-001 — BLOCKED_COMPUTE_NOT_APPROVED: CONTROL-PLANE-CURSOR-SMOKE-001 has no co
+  PP-SEC-001 — BLOCKED_COMPUTE_NOT_APPROVED: PP-SEC-001 has no compute approval
+
+NEEDS MASON
+  POR-REPL-ENTERPRISE-001 — Deploy Replicate-PorToShare.ps1 to ENTERPRISE and schedule it every 15 min
+=========================================================

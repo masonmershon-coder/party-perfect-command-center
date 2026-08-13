@@ -17,3 +17,4 @@
 {"at":"2026-08-12T21:39:34.150Z","task_id":"CC-AUTH-P0-001","event":"worktree","branch":"agent/cursor/CC-AUTH-P0-001","dir":"/Users/mikeai/pp-agent-worktrees/CC-AUTH-P0-001","reused":false}
 {"at":"2026-08-12T21:42:46.413Z","task_id":"CC-AUTH-P0-001","event":"runtime_failed","runtime":"cursor-cli","durationMs":190196,"reason":"Cursor runtime failed: "}
 {"at":"2026-08-12T21:55:44.790Z","task_id":"GOV-INT-001","event":"compute_refused","code":"BLOCKED_PAID_COMPUTE","reason":"AUTONOMOUS_PAID_COMPUTE is OFF"}
+{"at":"2026-08-13T16:55:43.523Z","task_id":"PAR-DEP-DOWNSTREAM","event":"compute_refused","code":"BLOCKED_PAID_COMPUTE","reason":"AUTONOMOUS_PAID_COMPUTE is OFF"}

@@ -1,0 +1,13 @@
+{"at":"2026-08-13T16:55:43.529Z","action":"pass_complete","auto":0,"surfaced":1,"workers":["cursor","codex"]}
+{"at":"2026-08-13T16:56:18.169Z","action":"pass_complete","auto":0,"surfaced":1,"workers":["cursor","codex"]}
+{"at":"2026-08-13T16:57:00.518Z","action":"recover_blocked","task":"POR-STAT-VERIFY-001","ok":true,"detail":"requeued as READY_FOR_VERIFICATION (runtime is back)"}
+{"at":"2026-08-13T16:57:00.521Z","action":"recover_blocked","task":"POR-KITS-VERIFY-001","ok":true,"detail":"requeued as READY_FOR_VERIFICATION (runtime is back)"}
+{"at":"2026-08-13T16:57:00.523Z","action":"recover_blocked","task":"CERT-HARNESS-VERIFY-001","ok":true,"detail":"requeued as READY_FOR_VERIFICATION (runtime is back)"}
+{"at":"2026-08-13T16:57:00.524Z","action":"recover_blocked","task":"CONTROL-PLANE-CURSOR-SMOKE-001","ok":true,"detail":"requeued as READY_FOR_VERIFICATION (runtime is back)"}
+{"at":"2026-08-13T16:57:00.525Z","action":"recover_blocked","task":"PP-SEC-001","ok":true,"detail":"requeued as READY_FOR_VERIFICATION (runtime is back)"}
+{"at":"2026-08-13T16:57:20.341Z","action":"pass_complete","auto":0,"surfaced":1,"workers":["cursor","codex"]}
+{"at":"2026-08-13T16:57:28.515Z","action":"pass_complete","auto":5,"surfaced":1,"workers":["cursor","codex"]}
+{"at":"2026-08-13T16:58:02.142Z","action":"pass_complete","auto":0,"surfaced":1,"workers":["cursor","codex"]}
+{"at":"2026-08-13T16:58:21.221Z","action":"pass_complete","auto":0,"surfaced":1,"workers":["cursor","codex"]}
+{"at":"2026-08-13T16:58:21.252Z","action":"pass_complete","auto":0,"surfaced":1,"workers":["cursor","codex"]}
+{"at":"2026-08-13T16:58:47.116Z","action":"pass_complete","auto":0,"surfaced":1,"workers":["cursor","codex"]}

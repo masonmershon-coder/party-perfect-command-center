@@ -327,7 +327,11 @@ export function authorizePaidCompute(task, opts = {}) {
       return deny(CODES.NO_BUDGET, "no owner-approved budget with a monthly ceiling");
   }
 
-  if (!hasComputeApproval(task))
+  // Per-task compute approval is a spend control. For a SUBSCRIPTION runtime
+  // there is no variable spend to control -- the daily run cap already bounds
+  // it -- so requiring per-task sign-off would only reintroduce Mason as the
+  // message bus. Metered runtimes still need explicit per-task approval.
+  if (basis !== "subscription" && !hasComputeApproval(task))
     return deny(CODES.NOT_APPROVED, `${task.task_id} has no compute approval`);
 
   if (!hasActionApproval(task))

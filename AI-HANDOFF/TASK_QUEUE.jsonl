@@ -141,3 +141,22 @@
 {"at":"2026-08-13T16:46:15.289Z","type":"create","task_id":"MIKE-INDEED-INTEGRATION-001","by":"claude","status":"NEW","severity":null}
 {"at":"2026-08-13T16:49:44.069Z","type":"create","task_id":"MIKE-INDEED-WEBHOOK-001","by":"claude","status":"NEW","severity":null}
 {"at":"2026-08-13T16:49:46.111Z","type":"create","task_id":"MIKE-INDEED-VERIFY-001","by":"claude","status":"NEW","severity":null}
+{"at":"2026-08-13T16:54:07.436Z","type":"create","task_id":"PAR-DEP-UPSTREAM","by":"claude","status":"NEW","severity":null}
+{"at":"2026-08-13T16:54:09.680Z","type":"create","task_id":"PAR-DEP-DOWNSTREAM","by":"claude","status":"NEW","severity":null}
+{"at":"2026-08-13T16:54:25.803Z","type":"claim","task_id":"PAR-DEP-UPSTREAM","by":"claude","status":"CLAIMED"}
+{"at":"2026-08-13T16:54:26.819Z","type":"transition","task_id":"PAR-DEP-UPSTREAM","by":"claude","status":"IN_PROGRESS","result":null,"verification_status":"UNVERIFIED","fail_count":0}
+{"at":"2026-08-13T16:54:27.929Z","type":"transition","task_id":"PAR-DEP-UPSTREAM","by":"claude","status":"READY_FOR_VERIFICATION","result":null,"verification_status":"UNVERIFIED","fail_count":0}
+{"at":"2026-08-13T16:54:29.093Z","type":"transition","task_id":"PAR-DEP-UPSTREAM","by":"codex","status":"VERIFYING","result":null,"verification_status":"UNVERIFIED","fail_count":0}
+{"at":"2026-08-13T16:54:44.195Z","type":"block","task_id":"PAR-DEP-UPSTREAM","by":"codex","status":"BLOCKED","escalate":"agent"}
+{"at":"2026-08-13T16:55:09.314Z","type":"transition","task_id":"PAR-DEP-UPSTREAM","by":"codex","status":"VERIFYING","result":null,"verification_status":"UNVERIFIED","fail_count":0}
+{"at":"2026-08-13T16:55:28.249Z","type":"transition","task_id":"PAR-DEP-UPSTREAM","by":"codex","status":"CERTIFIED_PASS","result":"The csv() character scanner tracks quoted-field state and treats embedded newlines as field data rather than row terminators.","verification_status":"AUTHORITATIVELY_VERIFIED","fail_count":0}
+{"at":"2026-08-13T16:57:03.930Z","type":"transition","task_id":"PP-SEC-001","by":"codex","status":"VERIFYING","result":null,"fail_count":0}
+{"at":"2026-08-13T16:57:08.605Z","type":"block","task_id":"PP-SEC-001","by":"codex","status":"BLOCKED","escalate":"agent"}
+{"at":"2026-08-13T16:57:11.089Z","type":"transition","task_id":"POR-STAT-VERIFY-001","by":"codex","status":"VERIFYING","result":null,"fail_count":0}
+{"at":"2026-08-13T16:57:15.285Z","type":"block","task_id":"POR-STAT-VERIFY-001","by":"codex","status":"BLOCKED","escalate":"agent"}
+{"at":"2026-08-13T16:57:18.096Z","type":"transition","task_id":"POR-KITS-VERIFY-001","by":"codex","status":"VERIFYING","result":null,"fail_count":0}
+{"at":"2026-08-13T16:57:21.955Z","type":"block","task_id":"POR-KITS-VERIFY-001","by":"codex","status":"BLOCKED","escalate":"agent"}
+{"at":"2026-08-13T16:57:22.905Z","type":"transition","task_id":"CERT-HARNESS-VERIFY-001","by":"codex","status":"VERIFYING","result":null,"fail_count":0}
+{"at":"2026-08-13T16:57:24.408Z","type":"block","task_id":"CERT-HARNESS-VERIFY-001","by":"codex","status":"BLOCKED","escalate":"agent"}
+{"at":"2026-08-13T16:57:25.246Z","type":"transition","task_id":"CONTROL-PLANE-CURSOR-SMOKE-001","by":"codex","status":"VERIFYING","result":null,"fail_count":0}
+{"at":"2026-08-13T16:57:28.492Z","type":"block","task_id":"CONTROL-PLANE-CURSOR-SMOKE-001","by":"codex","status":"BLOCKED","escalate":"agent"}

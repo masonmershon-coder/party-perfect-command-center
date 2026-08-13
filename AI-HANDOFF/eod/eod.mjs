@@ -25,7 +25,8 @@ const REPO = path.dirname(HANDOFF);
 const EOD_DIR = process.env.PP_EOD_DIR || HERE;
 const RUNS = path.join(EOD_DIR, "runs");
 const INDEX = path.join(EOD_DIR, "runs-index.jsonl");
-if (!existsSync(RUNS)) mkdirSync(RUNS, { recursive: true });
+if (!MEMORY_MODE_BOOTSTRAP() && !existsSync(RUNS)) { try { mkdirSync(RUNS, { recursive: true }); } catch {} }
+function MEMORY_MODE_BOOTSTRAP() { return process.env.PP_EOD_MEMORY === "1"; }
 
 export const EOD_STATES = [
   "REQUESTED", "ACKNOWLEDGED", "CHECKPOINTING", "SYNCHRONIZING", "BACKING_UP",
@@ -58,16 +59,34 @@ export function businessDate(d = new Date()) {
 
 export const shortId = (key) => createHash("sha256").update(key).digest("hex").slice(0, 6).toUpperCase();
 
+// PP_EOD_MEMORY=1 keeps everything in memory. An independent verifier may have NO
+// filesystem write access at all (Codex runs fully read-only and could not even
+// mktemp), so a suite that requires any write is a suite only the author can run.
+const MEMORY_MODE = process.env.PP_EOD_MEMORY === "1";
+const memRuns = new Map();
+const memIndex = [];
+
 const runPath = (id) => path.join(RUNS, `${id}.json`);
-export const loadRun = (id) => (existsSync(runPath(id)) ? JSON.parse(readFileSync(runPath(id), "utf8")) : null);
+export const loadRun = (id) => {
+  if (MEMORY_MODE) return memRuns.has(id) ? JSON.parse(JSON.stringify(memRuns.get(id))) : null;
+  return existsSync(runPath(id)) ? JSON.parse(readFileSync(runPath(id), "utf8")) : null;
+};
 function saveRun(run) {
   run.updated_at = nowIso();
+  if (MEMORY_MODE) { memRuns.set(run.eod_run_id, JSON.parse(JSON.stringify(run))); return run; }
+  if (!existsSync(RUNS)) mkdirSync(RUNS, { recursive: true });
   writeFileSync(runPath(run.eod_run_id), JSON.stringify(run, null, 2) + "\n");
   return run;
+}
+function appendIndex(entry) {
+  if (MEMORY_MODE) { memIndex.push(entry); return; }
+  if (!existsSync(EOD_DIR)) mkdirSync(EOD_DIR, { recursive: true });
+  appendFileSync(INDEX, JSON.stringify(entry) + "\n");
 }
 
 /** Append-only index; also the idempotency lookup. */
 function indexRuns() {
+  if (MEMORY_MODE) return memIndex.slice();
   if (!existsSync(INDEX)) return [];
   return readFileSync(INDEX, "utf8").trim().split("\n").filter(Boolean)
     .map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
@@ -115,9 +134,7 @@ export function openRun(trigger, opts = {}) {
     created_at: nowIso(),
   };
   saveRun(run);
-  appendFileSync(INDEX, JSON.stringify({
-    at: nowIso(), eod_run_id, idempotency_key: trigger.idempotencyKey, mode: trigger.mode,
-  }) + "\n");
+  appendIndex({ at: nowIso(), eod_run_id, idempotency_key: trigger.idempotencyKey, mode: trigger.mode });
   return { run, created: true };
 }
 
@@ -419,4 +436,92 @@ export function assertNoShutdownPrimitives() {
   ];
   const found = banned.filter(([re]) => re.test(code)).map(([, name]) => name);
   return { safe: found.length === 0, found };
+}
+
+// ---------------------------------------------------------------- orchestrator
+/**
+ * THE ENTRY POINT. Runs the whole sequence in order:
+ *
+ *   CHECKPOINT -> SYNCHRONIZE -> BACK UP -> RECONCILE -> AUDIT -> CONTINUE
+ *
+ * Codex finding `workflow-not-orchestrated`: the phases previously existed only as
+ * independent exported helpers, so nothing actually performed the sequence and the
+ * objective was not implemented end to end.
+ *
+ * Ends in MORNING_REPORT_READY, or PARTIAL when any agent failed to report or a
+ * backup could not be verified. PARTIAL is always preferred to a false success.
+ * It never reaches a state that stops work: CONTINUING_WORK is a normal outcome.
+ */
+export async function runEodCheckpoint(trigger, io = {}) {
+  const {
+    agents = ["matter", "mike", "madison", "claude", "cursor", "codex"],
+    probeAgent = () => null,
+    backupSource = null,
+    backupDestination = null,
+    porMirrorAgeHours = null,
+    loadTasks = () => ({}),
+    queueCodexAudit = null,
+    send = null,
+  } = io;
+
+  const { run, created } = openRun(trigger);
+  // A redelivery returns the in-flight run untouched. Re-running the phases here
+  // would re-verify backups and re-queue the audit for a checkpoint already going.
+  if (!created) return { run, created: false, acknowledgement: acknowledgementMessage(run), replayed: true };
+
+  const ack = acknowledgementMessage(run);
+  if (send) { try { await send(ack); } catch (e) { run.errors.push({ phase: "ack", error: String(e.message).slice(0, 160) }); } }
+  setStatus(run, "ACKNOWLEDGED");
+
+  // Phase 2/3 — checkpoint every agent, then decide continuation for each.
+  setStatus(run, "CHECKPOINTING");
+  const checkpoints = collectCheckpoints(run, agents, probeAgent);
+  run.continuation_decisions = checkpoints.map((c) =>
+    c.reported ? { agent: c.agent, ...continuationDecision(c) } : { agent: c.agent, decision: "FAILED" });
+
+  // Phase 4 — synchronize durable state. Read-only inspection; commits nothing.
+  setStatus(run, "SYNCHRONIZING");
+  const tree = inspectWorkingTree();
+  run.working_tree = tree.ok
+    ? { branch: tree.branch, head: tree.head, untracked_count: tree.untracked_count,
+        modified_count: tree.modified_count, untracked_implementation: tree.untracked_implementation }
+    : { error: tree.error };
+
+  // Phase 5 — backup verification.
+  setStatus(run, "BACKING_UP");
+  run.backup = backupSource && backupDestination
+    ? verifyBackup({ source: backupSource, destination: backupDestination })
+    : { status: "NOT RUN", reason: "no backup source/destination configured" };
+
+  // Phase 6 — reconcile the day.
+  setStatus(run, "RECONCILING");
+  run.reconciliation = reconcile({
+    tasks: loadTasks(), tree, checkpoints, backup: run.backup, porMirrorAgeHours,
+  });
+
+  // Phase 7 — independent audit, queued exactly once per run.
+  setStatus(run, "AUDIT_QUEUED");
+  if (queueCodexAudit && !run.codex_audit_task) {
+    try { run.codex_audit_task = await queueCodexAudit(run); }
+    catch (e) { run.errors.push({ phase: "audit", error: String(e.message).slice(0, 160) }); }
+  }
+
+  // Phase 8 — authorized work continues. Nothing is stopped here or anywhere.
+  setStatus(run, "CONTINUING_WORK");
+
+  // Phase 9 — morning report.
+  const report = buildMorningReport(run);
+  run.morning_report = report;
+
+  const missing = checkpoints.filter((c) => !c.reported).length;
+  const backupBad = run.backup.status === "FAIL" || run.backup.status === "NOT RUN";
+  setStatus(run, missing > 0 || backupBad ? "PARTIAL" : "MORNING_REPORT_READY");
+  run.completed_at = nowIso();
+  saveRun(run);
+
+  const completion = completionMessage(run, report);
+  if (send) { try { await send(completion); } catch (e) { run.errors.push({ phase: "completion", error: String(e.message).slice(0, 160) }); } }
+
+  return { run, created: true, acknowledgement: ack, completion, report,
+           morning: morningMessage(report) };
 }

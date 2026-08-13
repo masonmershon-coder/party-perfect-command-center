@@ -305,5 +305,104 @@ t("+  business date uses America/Chicago", () => {
   assert.match(businessDate(new Date("2026-08-14T04:30:00Z")), /^2026-08-13$/);
 });
 
+// --- regressions for Codex findings on 7b960ac ---
+const at = async (name, fn) => {
+  try { await fn(); console.log(`  PASS  ${name}`); pass++; }
+  catch (e) { console.log(`  FAIL  ${name}\n        ${String(e.message).split("\n")[0]}`); fail++; }
+};
+
+const { runEodCheckpoint } = await import("./eod.mjs");
+const { handleBridgeMessage } = await import("./bridge-integration.mjs");
+
+await at("R1. orchestrator runs the full phase sequence end to end", async () => {
+  const trig = evaluateEodTrigger({ text: CMD_TEST, authenticatedHandle: MASON, messageRowId: 90001 }, CFG);
+  const sent = [];
+  const r = await runEodCheckpoint(trig, {
+    agents: ["matter", "claude", "cursor"],
+    probeAgent: () => cpFor(),
+    porMirrorAgeHours: 1,
+    queueCodexAudit: async (run) => `EOD-AUDIT-${run.short_id}`,
+    send: async (m) => sent.push(m),
+  });
+  assert.equal(r.created, true);
+  assert.equal(r.run.checkpoints.length, 3, "every agent must be checkpointed");
+  assert.ok(r.run.reconciliation, "reconciliation must have run");
+  assert.ok(r.run.codex_audit_task, "audit must be queued");
+  assert.ok(r.run.morning_report, "morning report must be produced");
+  assert.equal(sent.length, 2, "ack + completion must both be sent");
+  // No backup configured => PARTIAL, never a green run.
+  assert.equal(r.run.status, "PARTIAL");
+});
+
+await at("R2. a missing agent forces PARTIAL, not MORNING_REPORT_READY", async () => {
+  const trig = evaluateEodTrigger({ text: CMD_TEST, authenticatedHandle: MASON, messageRowId: 90002 }, CFG);
+  const r = await runEodCheckpoint(trig, {
+    agents: ["claude", "grok"],
+    probeAgent: (a) => (a === "grok" ? null : cpFor()),
+    backupSource: path.dirname(HERE), backupDestination: HERE,
+    porMirrorAgeHours: 1, queueCodexAudit: async () => "X",
+  });
+  assert.equal(r.run.status, "PARTIAL");
+});
+
+await at("R3. orchestrator never stops work - ends in a continue-capable state", async () => {
+  const trig = evaluateEodTrigger({ text: CMD_TEST, authenticatedHandle: MASON, messageRowId: 90003 }, CFG);
+  const r = await runEodCheckpoint(trig, {
+    agents: ["claude"], probeAgent: () => cpFor(), porMirrorAgeHours: 1,
+    queueCodexAudit: async () => "X",
+  });
+  assert.ok(!/STOPPED|SHUTDOWN|CANCELLED|TERMINATED/.test(r.run.status));
+  assert.match(r.run.continuation_decisions[0].decision, /CONTINUING/);
+});
+
+await at("R4. bridge integration: authorized EOD message starts a checkpoint", async () => {
+  const res = await handleBridgeMessage(
+    { text: CMD_TEST, senderHandle: MASON, messageRowId: 91001 },
+    CFG,
+    { agents: ["claude"], probeAgent: () => cpFor(), porMirrorAgeHours: 1, queueCodexAudit: async () => "X" },
+  );
+  assert.equal(res.handled, true);
+  assert.equal(res.started, true);
+  assert.match(res.reply, /will not stop active work/i);
+});
+
+await at("R5. bridge integration: ordinary chat falls through untouched", async () => {
+  const res = await handleBridgeMessage(
+    { text: "hey Mike what is the delivery count today", senderHandle: MASON, messageRowId: 91002 }, CFG, {});
+  assert.equal(res, null, "non-EOD chat must not be intercepted");
+});
+
+await at("R6. bridge integration: LIVE trigger is DISARMED until explicitly enabled", async () => {
+  const res = await handleBridgeMessage(
+    { text: CMD, senderHandle: MASON, messageRowId: 91003 }, CFG, {});
+  assert.equal(res.started, false);
+  assert.equal(res.code, "EOD_NOT_ENABLED");
+  // ...and armed only by explicit config.
+  const armed = await handleBridgeMessage(
+    { text: CMD, senderHandle: MASON, messageRowId: 91004 },
+    { ...CFG, eodEnabled: true },
+    { agents: ["claude"], probeAgent: () => cpFor(), porMirrorAgeHours: 1, queueCodexAudit: async () => "X" },
+  );
+  assert.equal(armed.started, true);
+});
+
+await at("R7. bridge integration: unauthorized sender starts nothing and leaks nothing", async () => {
+  const res = await handleBridgeMessage(
+    { text: CMD, senderHandle: "+15550000002", messageRowId: 91005 }, { ...CFG, eodEnabled: true }, {});
+  assert.equal(res.started, false);
+  assert.equal(res.code, "UNAUTHORIZED");
+  assert.ok(!/\+1555/.test(res.reply), "refusal must not echo handles");
+});
+
+await at("R8. bridge restart replays the same event without a second run", async () => {
+  const io = { agents: ["claude"], probeAgent: () => cpFor(), porMirrorAgeHours: 1, queueCodexAudit: async () => "X" };
+  const first = await handleBridgeMessage({ text: CMD_TEST, senderHandle: MASON, messageRowId: 92001 }, CFG, io);
+  const replay = await handleBridgeMessage({ text: CMD_TEST, senderHandle: MASON, messageRowId: 92001 }, CFG, io);
+  assert.equal(first.started, true);
+  assert.equal(replay.started, false);
+  assert.equal(replay.code, "ALREADY_RUNNING");
+  assert.equal(replay.eod_run_id, first.eod_run_id);
+});
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

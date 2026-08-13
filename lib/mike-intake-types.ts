@@ -15,6 +15,8 @@ export type MikeIntakeCommand = {
   attemptCount: number;
   leaseUntil: string | null;
   leaseOwner: string | null;
+  /** Fencing token, regenerated on every lease. See the note in migration 0007. */
+  leaseId: string | null;
   deadLetterReason: string | null;
   retainUntil: string | null;
   correlationId: string;
@@ -70,10 +72,18 @@ export type MikeIntakeStore = {
   }): Promise<MikeIntakeCommand | null>;
   expireIfNeeded(messageId: string): Promise<MikeIntakeCommand | null>;
   leaseNext(workerId: string, leaseUntilIso: string): Promise<MikeIntakeCommand | null>;
-  ackDelivered(messageId: string, workerId: string): Promise<MikeIntakeCommand | null>;
+  // ACK/FAIL take the leaseId they were issued under. A callback that cannot present
+  // the current lease token is refused, so a late or duplicate FAIL can never move an
+  // already-DELIVERED command back into the queue.
+  ackDelivered(
+    messageId: string,
+    workerId: string,
+    leaseId: string,
+  ): Promise<MikeIntakeCommand | null>;
   failAttempt(input: {
     messageId: string;
     workerId: string;
+    leaseId: string;
     deadLetter: boolean;
     reason: string;
   }): Promise<MikeIntakeCommand | null>;

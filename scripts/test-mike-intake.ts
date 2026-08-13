@@ -351,7 +351,7 @@ await check("duplicate complete + queue lease + worker retry + dead letter", asy
     req("https://partyperfect.app/api/mike/intake/worker/fail", {
       method: "POST",
       headers: { authorization: `Bearer ${WORKER_TOKEN}`, "content-type": "application/json" },
-      body: JSON.stringify({ messageId, reason: "whisper_timeout" }),
+      body: JSON.stringify({ messageId, leaseId: lease1.body.leaseId, reason: "whisper_timeout" }),
     }),
     d,
   );
@@ -373,7 +373,7 @@ await check("duplicate complete + queue lease + worker retry + dead letter", asy
     req("https://partyperfect.app/api/mike/intake/worker/fail", {
       method: "POST",
       headers: { authorization: `Bearer ${WORKER_TOKEN}`, "content-type": "application/json" },
-      body: JSON.stringify({ messageId, deadLetter: true, reason: "max" }),
+      body: JSON.stringify({ messageId, leaseId: lease2.body.leaseId, deadLetter: true, reason: "max" }),
     }),
     d,
   );
@@ -404,7 +404,7 @@ await check("ack delivered + optional audio delete", async () => {
     }),
     d,
   );
-  await workerLease(
+  const ackLease = await workerLease(
     req("https://partyperfect.app/api/mike/intake/worker/lease", {
       method: "POST",
       headers: { authorization: `Bearer ${WORKER_TOKEN}` },
@@ -415,13 +415,188 @@ await check("ack delivered + optional audio delete", async () => {
     req("https://partyperfect.app/api/mike/intake/worker/ack", {
       method: "POST",
       headers: { authorization: `Bearer ${WORKER_TOKEN}`, "content-type": "application/json" },
-      body: JSON.stringify({ messageId, deleteAudio: true }),
+      body: JSON.stringify({ messageId, leaseId: ackLease.body.leaseId, deleteAudio: true }),
     }),
     d,
   );
   assert.equal(ack.status, 200);
   assert.equal(ack.body.status, "DELIVERED");
   assert.equal((await d.storage.headObject(row.objectPath)).exists, false);
+});
+
+// --- regressions for Codex findings on commit 7772b1e ---
+
+// P1 lease-callback-not-fenced. The worker identity is the fixed string
+// "mac-outbound", so lease_owner alone can never distinguish one attempt from
+// another. Before the fix, ACK left lease_owner populated and FAIL matched on it,
+// so a late or duplicate FAIL flipped a DELIVERED message back to QUEUED and Mason
+// received it twice.
+await check("stale FAIL cannot resurrect a delivered message", async () => {
+  const d = deps();
+  const key = uuid();
+  const created = await createIntake(
+    req("https://partyperfect.app/api/mike/intake", {
+      method: "POST",
+      headers: { authorization: `Bearer ${MASON_TOKEN}`, "content-type": "application/json" },
+      body: JSON.stringify({ idempotencyKey: key, contentType: "audio/mp4", bytes: 2048 }),
+    }),
+    d,
+  );
+  const messageId = String(created.body.messageId);
+  const row = (await d.store.getByMessageId(messageId))!;
+  d.storage.put(row.objectPath, 2048, "audio/mp4");
+  await completeIntake(
+    req("https://partyperfect.app/api/mike/intake/complete", {
+      method: "POST",
+      headers: { authorization: `Bearer ${MASON_TOKEN}`, "content-type": "application/json" },
+      body: JSON.stringify({ messageId, idempotencyKey: key }),
+    }),
+    d,
+  );
+  const lease = await workerLease(
+    req("https://partyperfect.app/api/mike/intake/worker/lease", {
+      method: "POST",
+      headers: { authorization: `Bearer ${WORKER_TOKEN}` },
+    }),
+    d,
+  );
+  const leaseId = String(lease.body.leaseId);
+  assert.ok(leaseId && leaseId !== "undefined", "lease must issue a fencing token");
+
+  const ack = await workerAck(
+    req("https://partyperfect.app/api/mike/intake/worker/ack", {
+      method: "POST",
+      headers: { authorization: `Bearer ${WORKER_TOKEN}`, "content-type": "application/json" },
+      body: JSON.stringify({ messageId, leaseId }),
+    }),
+    d,
+  );
+  assert.equal(ack.body.status, "DELIVERED");
+
+  // The exact defect: same worker, same (now consumed) lease token, arriving late.
+  const stale = await workerFail(
+    req("https://partyperfect.app/api/mike/intake/worker/fail", {
+      method: "POST",
+      headers: { authorization: `Bearer ${WORKER_TOKEN}`, "content-type": "application/json" },
+      body: JSON.stringify({ messageId, leaseId, reason: "late_timeout" }),
+    }),
+    d,
+  );
+  assert.equal(stale.status, 409, "a stale FAIL must be refused, not applied");
+  assert.equal(
+    (await d.store.getByMessageId(messageId))!.state,
+    "DELIVERED",
+    "delivered message must stay delivered - re-queueing it would deliver it twice",
+  );
+});
+
+await check("a lease token from a previous attempt cannot mutate a newer lease", async () => {
+  const d = deps();
+  const key = uuid();
+  const created = await createIntake(
+    req("https://partyperfect.app/api/mike/intake", {
+      method: "POST",
+      headers: { authorization: `Bearer ${MASON_TOKEN}`, "content-type": "application/json" },
+      body: JSON.stringify({ idempotencyKey: key, contentType: "audio/mp4", bytes: 2048 }),
+    }),
+    d,
+  );
+  const messageId = String(created.body.messageId);
+  const row = (await d.store.getByMessageId(messageId))!;
+  d.storage.put(row.objectPath, 2048, "audio/mp4");
+  await completeIntake(
+    req("https://partyperfect.app/api/mike/intake/complete", {
+      method: "POST",
+      headers: { authorization: `Bearer ${MASON_TOKEN}`, "content-type": "application/json" },
+      body: JSON.stringify({ messageId, idempotencyKey: key }),
+    }),
+    d,
+  );
+  const first = await workerLease(
+    req("https://partyperfect.app/api/mike/intake/worker/lease", {
+      method: "POST",
+      headers: { authorization: `Bearer ${WORKER_TOKEN}` },
+    }),
+    d,
+  );
+  const firstLease = String(first.body.leaseId);
+  await workerFail(
+    req("https://partyperfect.app/api/mike/intake/worker/fail", {
+      method: "POST",
+      headers: { authorization: `Bearer ${WORKER_TOKEN}`, "content-type": "application/json" },
+      body: JSON.stringify({ messageId, leaseId: firstLease, reason: "retry" }),
+    }),
+    d,
+  );
+  const second = await workerLease(
+    req("https://partyperfect.app/api/mike/intake/worker/lease", {
+      method: "POST",
+      headers: { authorization: `Bearer ${WORKER_TOKEN}` },
+    }),
+    d,
+  );
+  const secondLease = String(second.body.leaseId);
+  assert.notEqual(firstLease, secondLease, "each lease must get a fresh token");
+
+  const crossed = await workerAck(
+    req("https://partyperfect.app/api/mike/intake/worker/ack", {
+      method: "POST",
+      headers: { authorization: `Bearer ${WORKER_TOKEN}`, "content-type": "application/json" },
+      body: JSON.stringify({ messageId, leaseId: firstLease }),
+    }),
+    d,
+  );
+  assert.equal(crossed.status, 409, "an old lease token must not ack a newer attempt");
+  assert.equal((await d.store.getByMessageId(messageId))!.state, "LEASED");
+});
+
+await check("ack and fail require a lease token at all", async () => {
+  const d = deps();
+  for (const [name, fn] of [["ack", workerAck], ["fail", workerFail]] as const) {
+    const res = await fn(
+      req(`https://partyperfect.app/api/mike/intake/worker/${name}`, {
+        method: "POST",
+        headers: { authorization: `Bearer ${WORKER_TOKEN}`, "content-type": "application/json" },
+        body: JSON.stringify({ messageId: uuid() }),
+      }),
+      d,
+    );
+    assert.equal(res.status, 400, `${name} without a leaseId must be rejected`);
+  }
+});
+
+// P2 unsupported-mime-queued. normalizeContentType() returns null for an unsupported
+// type; the old condition required it to be truthy before comparing, so the whole
+// check short-circuited to false and the object was queued anyway.
+await check("unsupported stored content type is rejected, not queued", async () => {
+  const d = deps();
+  const key = uuid();
+  const created = await createIntake(
+    req("https://partyperfect.app/api/mike/intake", {
+      method: "POST",
+      headers: { authorization: `Bearer ${MASON_TOKEN}`, "content-type": "application/json" },
+      body: JSON.stringify({ idempotencyKey: key, contentType: "audio/mp4", bytes: 1024 }),
+    }),
+    d,
+  );
+  const messageId = String(created.body.messageId);
+  const row = (await d.store.getByMessageId(messageId))!;
+  // Reserved as audio/mp4, but what actually landed is not an audio type at all.
+  d.storage.put(row.objectPath, 1024, "application/x-msdownload");
+  const done = await completeIntake(
+    req("https://partyperfect.app/api/mike/intake/complete", {
+      method: "POST",
+      headers: { authorization: `Bearer ${MASON_TOKEN}`, "content-type": "application/json" },
+      body: JSON.stringify({ messageId, idempotencyKey: key }),
+    }),
+    d,
+  );
+  assert.equal(done.status, 415, "an unsupported stored type must be refused");
+  assert.notEqual(
+    (await d.store.getByMessageId(messageId))!.state,
+    "QUEUED",
+    "an unsupported object must never reach the worker queue",
+  );
 });
 
 await check("PII/secret leakage guards", async () => {

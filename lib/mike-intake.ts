@@ -192,6 +192,7 @@ export async function createIntake(
     attemptCount: 0,
     leaseUntil: null,
     leaseOwner: null,
+    leaseId: null,
     deadLetterReason: null,
     retainUntil: null,
     correlationId,
@@ -322,12 +323,16 @@ export async function completeIntake(
   if (head.bytes != null && head.bytes > MIKE_INTAKE_MAX_BYTES) {
     return { status: 413, body: { error: "audio too large" } };
   }
-  if (
-    head.contentType &&
-    normalizeContentType(head.contentType) &&
-    normalizeContentType(head.contentType) !== row.contentType
-  ) {
-    return { status: 415, body: { error: "unsupported media type" } };
+  // An UNSUPPORTED uploaded type must be rejected, not waved through.
+  // The previous form required normalizeContentType(...) to be truthy before comparing,
+  // so an unrecognized type normalized to null, the condition short-circuited to false,
+  // and the object was queued anyway. Reject when the stored type is unsupported OR
+  // when it disagrees with the type reserved at CREATE.
+  if (head.contentType) {
+    const actual = normalizeContentType(head.contentType);
+    if (!actual || actual !== row.contentType) {
+      return { status: 415, body: { error: "unsupported media type" } };
+    }
   }
 
   const queued = await deps.store.markQueued({
@@ -420,6 +425,9 @@ export async function workerLease(
       attemptCount: row.attemptCount,
       maxAttempts: MIKE_INTAKE_MAX_ATTEMPTS,
       leaseUntil: row.leaseUntil,
+      // The worker must send this back on ack/fail. It is what makes a callback from a
+      // stale attempt refusable.
+      leaseId: row.leaseId,
       correlationId: row.correlationId,
     },
   };
@@ -442,8 +450,12 @@ export async function workerAck(
   }
   const messageId = String(body.messageId || "").trim();
   if (!messageId) return { status: 400, body: { error: "messageId required" } };
-  const row = await deps.store.ackDelivered(messageId, "mac-outbound");
-  if (!row) return { status: 404, body: { error: "not_found" } };
+  const leaseId = String(body.leaseId || "").trim();
+  if (!leaseId) return { status: 400, body: { error: "leaseId required" } };
+  const row = await deps.store.ackDelivered(messageId, "mac-outbound", leaseId);
+  // 409, not 404: the message exists, but this caller is holding a lease token that is
+  // no longer current. Distinguishing the two matters when reading worker logs.
+  if (!row) return { status: 409, body: { error: "stale_lease" } };
   if (body.deleteAudio === true) {
     await deps.storage.deleteObject(row.objectPath);
   }
@@ -475,6 +487,8 @@ export async function workerFail(
   }
   const messageId = String(body.messageId || "").trim();
   if (!messageId) return { status: 400, body: { error: "messageId required" } };
+  const leaseId = String(body.leaseId || "").trim();
+  if (!leaseId) return { status: 400, body: { error: "leaseId required" } };
   const current = await deps.store.getByMessageId(messageId);
   if (!current) return { status: 404, body: { error: "not_found" } };
   const deadLetter =
@@ -482,21 +496,22 @@ export async function workerFail(
   const row = await deps.store.failAttempt({
     messageId,
     workerId: "mac-outbound",
+    leaseId,
     deadLetter,
     reason: String(body.reason || "worker_fail"),
   });
+  // A refused FAIL must not be reported as a successful retry. This is the exact path
+  // that used to resurrect an already-delivered message.
+  if (!row) return { status: 409, body: { error: "stale_lease" } };
   await note(deps, {
     messageId,
     senderId: "worker",
-    state: row?.state || "QUEUED",
+    state: row.state,
     resultCode: 200,
     workerDeliveryState: deadLetter ? "dead_letter" : "retry",
     correlationId: current.correlationId,
   });
-  return {
-    status: 200,
-    body: { messageId, status: row?.state || (deadLetter ? "DEAD_LETTER" : "QUEUED") },
-  };
+  return { status: 200, body: { messageId, status: row.state } };
 }
 
 export async function workerHeartbeat(

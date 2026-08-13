@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import type {
   MikeIntakeCommand,
   MikeIntakeEvent,
@@ -83,27 +84,35 @@ export class MemoryMikeIntakeStore implements MikeIntakeStore {
       this.commands.set(row.messageId, dead);
       return { ...dead };
     }
+    // Mirrors mike-intake-pg.leaseNext: a fresh fencing token on every lease.
     const next: MikeIntakeCommand = {
       ...row,
       state: "LEASED",
       attemptCount: row.attemptCount + 1,
       leaseOwner: workerId,
       leaseUntil: leaseUntilIso,
+      leaseId: randomUUID(),
       updatedAt: new Date().toISOString(),
     };
     this.commands.set(row.messageId, next);
     return { ...next };
   }
 
-  async ackDelivered(messageId: string, workerId: string) {
+  async ackDelivered(messageId: string, workerId: string, leaseId: string) {
     const row = this.commands.get(messageId);
-    if (!row || row.leaseOwner !== workerId) return null;
+    // Same three-part guard as the pg backend: owner, lease token, and LEASED state.
+    // These two implementations must not diverge — the suite runs this one, so a
+    // difference here is a bug that ships silently.
+    if (!row || row.state !== "LEASED" || row.leaseOwner !== workerId || row.leaseId !== leaseId)
+      return null;
     const next: MikeIntakeCommand = {
       ...row,
       state: "DELIVERED",
       deliveredAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       leaseUntil: null,
+      leaseOwner: null,
+      leaseId: null,
     };
     this.commands.set(messageId, next);
     return { ...next };
@@ -112,17 +121,25 @@ export class MemoryMikeIntakeStore implements MikeIntakeStore {
   async failAttempt(input: {
     messageId: string;
     workerId: string;
+    leaseId: string;
     deadLetter: boolean;
     reason: string;
   }) {
     const row = this.commands.get(input.messageId);
-    if (!row || row.leaseOwner !== input.workerId) return null;
+    if (
+      !row ||
+      row.state !== "LEASED" ||
+      row.leaseOwner !== input.workerId ||
+      row.leaseId !== input.leaseId
+    )
+      return null;
     const next: MikeIntakeCommand = {
       ...row,
       state: input.deadLetter ? "DEAD_LETTER" : "QUEUED",
       deadLetterReason: input.deadLetter ? input.reason : null,
       leaseUntil: null,
       leaseOwner: null,
+      leaseId: null,
       updatedAt: new Date().toISOString(),
     };
     this.commands.set(input.messageId, next);

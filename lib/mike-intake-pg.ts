@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { isAiCoreConfigured } from "./ai-core";
 import type {
   MikeIntakeCommand,
@@ -37,6 +38,7 @@ function mapRow(r: Record<string, unknown>): MikeIntakeCommand {
     attemptCount: Number(r.attempt_count || 0),
     leaseUntil: r.lease_until ? new Date(String(r.lease_until)).toISOString() : null,
     leaseOwner: r.lease_owner == null ? null : String(r.lease_owner),
+    leaseId: r.lease_id == null ? null : String(r.lease_id),
     deadLetterReason: r.dead_letter_reason == null ? null : String(r.dead_letter_reason),
     retainUntil: r.retain_until ? new Date(String(r.retain_until)).toISOString() : null,
     correlationId: String(r.correlation_id),
@@ -155,12 +157,15 @@ export class PostgresMikeIntakeStore implements MikeIntakeStore {
         await client.query("commit");
         return dead.rows[0] ? mapRow(dead.rows[0]) : null;
       }
+      // A fresh fencing token per lease. Everything issued under a previous attempt is
+      // invalidated the moment this row is re-leased.
+      const leaseId = randomUUID();
       const leased = await client.query(
         `update ai_core.intake_commands
             set state='LEASED', attempt_count=attempt_count+1,
-                lease_owner=$2, lease_until=$3::timestamptz, updated_at=now()
+                lease_owner=$2, lease_until=$3::timestamptz, lease_id=$4, updated_at=now()
           where message_id=$1 returning *`,
-        [current.messageId, workerId, leaseUntilIso],
+        [current.messageId, workerId, leaseUntilIso, leaseId],
       );
       await client.query("commit");
       return leased.rows[0] ? mapRow(leased.rows[0]) : null;
@@ -172,13 +177,17 @@ export class PostgresMikeIntakeStore implements MikeIntakeStore {
     }
   }
 
-  async ackDelivered(messageId: string, workerId: string) {
+  async ackDelivered(messageId: string, workerId: string, leaseId: string) {
+    // Guarded on state='LEASED' AND the exact lease token, and it CLEARS lease_owner
+    // and lease_id. Previously lease_owner survived the ACK, so a later FAIL still
+    // matched and pushed a delivered message back to QUEUED — a duplicate delivery.
     const { rows } = await db().query(
       `update ai_core.intake_commands
-          set state='DELIVERED', delivered_at=now(), updated_at=now(), lease_until=null
-        where message_id=$1 and lease_owner=$2
+          set state='DELIVERED', delivered_at=now(), updated_at=now(),
+              lease_until=null, lease_owner=null, lease_id=null
+        where message_id=$1 and lease_owner=$2 and lease_id=$3 and state='LEASED'
         returning *`,
-      [messageId, workerId],
+      [messageId, workerId, leaseId],
     );
     return rows[0] ? mapRow(rows[0]) : null;
   }
@@ -186,17 +195,20 @@ export class PostgresMikeIntakeStore implements MikeIntakeStore {
   async failAttempt(input: {
     messageId: string;
     workerId: string;
+    leaseId: string;
     deadLetter: boolean;
     reason: string;
   }) {
     const { rows } = await db().query(
       `update ai_core.intake_commands
-          set state=$3, dead_letter_reason=$4, lease_until=null, lease_owner=null, updated_at=now()
-        where message_id=$1 and lease_owner=$2
+          set state=$4, dead_letter_reason=$5, lease_until=null, lease_owner=null,
+              lease_id=null, updated_at=now()
+        where message_id=$1 and lease_owner=$2 and lease_id=$3 and state='LEASED'
         returning *`,
       [
         input.messageId,
         input.workerId,
+        input.leaseId,
         input.deadLetter ? "DEAD_LETTER" : "QUEUED",
         input.deadLetter ? input.reason : null,
       ],

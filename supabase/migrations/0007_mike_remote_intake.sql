@@ -34,6 +34,11 @@ create table if not exists ai_core.intake_commands (
   attempt_count      integer not null default 0,
   lease_until        timestamptz,
   lease_owner        text,
+  -- Fencing token. lease_owner alone cannot fence a callback: the worker identity is
+  -- the fixed string 'mac-outbound', so every lease has the same owner and a stale
+  -- ACK/FAIL matches a lease it was never issued for. lease_id is regenerated on every
+  -- lease, so a callback from an expired attempt no longer matches.
+  lease_id           text,
   dead_letter_reason text,
   retain_until       timestamptz,
   correlation_id     uuid not null,

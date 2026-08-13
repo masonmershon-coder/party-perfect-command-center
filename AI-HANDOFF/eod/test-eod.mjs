@@ -404,5 +404,17 @@ await at("R8. bridge restart replays the same event without a second run", async
   assert.equal(replay.eod_run_id, first.eod_run_id);
 });
 
+await at("R9. SYNCHRONIZE performs a durable write, not just inspection", async () => {
+  const trig = evaluateEodTrigger({ text: CMD_TEST, authenticatedHandle: MASON, messageRowId: 93001 }, CFG);
+  const r = await runEodCheckpoint(trig, {
+    agents: ["claude"], probeAgent: () => cpFor(), porMirrorAgeHours: 1,
+    queueCodexAudit: async () => "X",
+  });
+  assert.ok(r.run.synchronized, "synchronize phase must record what it wrote");
+  assert.ok(r.run.synchronized.written?.length, "synchronize must write something durable");
+  assert.equal(r.run.synchronized.record.label, "OBSERVED",
+    "synchronized knowledge must carry an evidence label, never be promoted silently");
+});
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

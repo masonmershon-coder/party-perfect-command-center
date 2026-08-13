@@ -438,6 +438,42 @@ export function assertNoShutdownPrimitives() {
   return { safe: found.length === 0, found };
 }
 
+/**
+ * Write the day's checkpoint into durable storage so it outlives this process.
+ * Every record carries an evidence label — an AI summary is never promoted to
+ * company truth. Non-destructive: appends and writes new files only.
+ */
+export function syncDurableState(run, { tasks = {}, tree } = {}) {
+  const written = [];
+  const record = {
+    eod_run_id: run.eod_run_id,
+    business_date: run.business_date,
+    cutoff_timestamp: run.cutoff_timestamp,
+    test_mode: run.test_mode,
+    label: "OBSERVED",
+    agents_reported: run.checkpoints.filter((c) => c.reported).map((c) => c.agent),
+    agents_missing: run.checkpoints.filter((c) => !c.reported).map((c) => c.agent),
+    continuation: run.continuation_decisions,
+    working_tree: run.working_tree,
+    open_task_count: Object.keys(tasks).length,
+    untracked_implementation: tree?.untracked_implementation ?? [],
+  };
+  if (MEMORY_MODE) return { written: ["<memory>"], record };
+  try {
+    const dir = path.join(HANDOFF, "EVIDENCE");
+    if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+    const f = path.join(dir, `EOD_${run.eod_run_id}.json`);
+    writeFileSync(f, JSON.stringify(record, null, 2) + "\n");
+    written.push(path.relative(REPO, f));
+    const ledger = path.join(EOD_DIR, "eod-history.jsonl");
+    appendFileSync(ledger, JSON.stringify({ at: nowIso(), ...record }) + "\n");
+    written.push(path.relative(REPO, ledger));
+  } catch (err) {
+    return { written, error: String(err.message).slice(0, 160) };
+  }
+  return { written, record };
+}
+
 // ---------------------------------------------------------------- orchestrator
 /**
  * THE ENTRY POINT. Runs the whole sequence in order:
@@ -479,13 +515,18 @@ export async function runEodCheckpoint(trigger, io = {}) {
   run.continuation_decisions = checkpoints.map((c) =>
     c.reported ? { agent: c.agent, ...continuationDecision(c) } : { agent: c.agent, decision: "FAILED" });
 
-  // Phase 4 — synchronize durable state. Read-only inspection; commits nothing.
+  // Phase 4 — SYNCHRONIZE. Codex finding `synchronize-not-performed`: this phase
+  // previously only read git status and recorded counts, which is inspection, not
+  // synchronization. It now WRITES the day's durable record so the checkpoint
+  // survives this process. It still never commits, merges, pushes or deploys —
+  // synchronizing knowledge is not the same as mutating the repository.
   setStatus(run, "SYNCHRONIZING");
   const tree = inspectWorkingTree();
   run.working_tree = tree.ok
     ? { branch: tree.branch, head: tree.head, untracked_count: tree.untracked_count,
         modified_count: tree.modified_count, untracked_implementation: tree.untracked_implementation }
     : { error: tree.error };
+  run.synchronized = syncDurableState(run, { tasks: loadTasks(), tree });
 
   // Phase 5 — backup verification.
   setStatus(run, "BACKING_UP");

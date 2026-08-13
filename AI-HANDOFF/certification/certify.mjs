@@ -30,7 +30,20 @@ const BASE = process.env.CC_BASE_URL || "https://partyperfect.app";
 
 const now = () => new Date().toISOString();
 const manifest = JSON.parse(readFileSync(MANIFEST, "utf8"));
-const ORACLE = manifest.oracles.ssd;
+// Prefer the replicated live mirror when it exists and is verified-fresh;
+// fall back to the dated SSD export. The freshness gate then does its job
+// automatically: a fresh mirror unblocks "today" questions, a stale one does not.
+function pickOracle() {
+  const live = manifest.oracles.live_mirror_ssd;
+  if (live && existsSync(live.path)) {
+    try {
+      const st = JSON.parse(readFileSync(live.state_file, "utf8"));
+      if (st.last_success) return { ...live, as_of: st.last_success, id: "live_mirror_ssd" };
+    } catch { /* fall through to the dated export */ }
+  }
+  return { ...manifest.oracles.ssd, id: "ssd" };
+}
+const ORACLE = pickOracle();
 
 const STATE = {
   PASS: "PASS", FAIL: "FAIL", PARTIAL: "PARTIAL",
@@ -441,7 +454,7 @@ for (const c of manifest.certifications) {
   }
   const row = {
     at: now(), id: c.id, category: c.category, name: c.name, severity: c.severity,
-    oracle: "ssd", oracle_as_of: ORACLE.as_of, oracle_age_days: age,
+    oracle: ORACLE.id, oracle_as_of: ORACLE.as_of, oracle_age_days: age,
     ...r,
   };
   if ((r.state === STATE.FAIL || r.subject_conforms === false) && !noTasks) row.implementation_task = openDefect(c, r);

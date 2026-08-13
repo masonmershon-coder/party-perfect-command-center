@@ -15,6 +15,14 @@
       "status": "OWNER_GATED \u2014 not reachable by the engine today",
       "independent_of_command_center": false,
       "note": "Reading the mirror through the app under test weakens independence. Prefer a direct read when one exists."
+    },
+    "live_mirror_ssd": {
+      "kind": "replicated POR mirror on the SSD (preferred oracle)",
+      "path": "/Volumes/PARTYPERF/PARTY-PERFECT-BRAIN/15-RAW-EXPORTS/_LIVE-MIRROR",
+      "state_file": "/Volumes/PARTYPERF/PARTY-PERFECT-BRAIN/17-MIGRATION-LOGS/replication-state.json",
+      "as_of": "DYNAMIC \u2014 read from replication-state.last_success",
+      "independent_of_command_center": true,
+      "note": "Written by por-replication/ingest-batches.mjs only after checksum + row-count + completeness verification. This is what unblocks the freshness-gated certifications."
     }
   },
   "certifications": [

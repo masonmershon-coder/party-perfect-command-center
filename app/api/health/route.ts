@@ -19,6 +19,7 @@ import {
   getPorSyncMeta,
   isPorSyncConfigured,
 } from "@/lib/por-snapshot";
+import { readSession } from "@/lib/server-auth";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
@@ -65,8 +66,7 @@ async function fetchTwilioCompliance() {
   }
 }
 
-/** Lightweight health check for hosting / uptime monitors */
-export async function GET(request: Request) {
+async function authenticatedHealthPayload(request: Request) {
   const { searchParams } = new URL(request.url);
   const deep = searchParams.get("probe") === "1";
   const dbProbe = searchParams.get("probe") === "db";
@@ -86,12 +86,10 @@ export async function GET(request: Request) {
     : {
         ok: isDurableRedisConfigured(),
         mode: durableStoreMode(),
-        error: isDurableRedisConfigured()
-          ? undefined
-          : "Redis not configured",
+        error: isDurableRedisConfigured() ? undefined : "Redis not configured",
       };
 
-  return NextResponse.json({
+  return {
     ok: true,
     service: "party-perfect-command-center",
     company: "Party Perfect Event Rentals",
@@ -129,5 +127,19 @@ export async function GET(request: Request) {
     aiCoreConfigured: isAiCoreConfigured(),
     checkedAt: new Date().toISOString(),
     ...(database ? { database } : {}),
-  });
+  };
+}
+
+/** Public: {ok, service, version}. Authenticated session: full ops inventory. */
+export async function GET(request: Request) {
+  const version = getAppVersionPayload();
+  const session = await readSession();
+  if (!session) {
+    return NextResponse.json({
+      ok: true,
+      service: "party-perfect-command-center",
+      version: version.version,
+    });
+  }
+  return NextResponse.json(await authenticatedHealthPayload(request));
 }

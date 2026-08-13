@@ -26,6 +26,11 @@ Approved decisions worth preserving. Keep short. No secrets.
 - Note: Claude's `README.md` write overwrote Cursor's (uncommitted); kept as the Mason-facing explainer, references updated to AGENTS.md + history/.
 - **PP-HANDOFF-001 → VERIFIED.**
 
+## 2026-08-13 — Customer site: rental company, not planners (Mason)
+
+- **Decision:** Party Perfect is a **full-service event rental company**. Do not present as a wedding/event planning company. Planners are B2B customers. Empty Get Quote must offer guided choices (browse / start quote / request help / tent consultation). Careers → partyperfectjobs.com. No invented rates. No POR pricing changes. No deploy until review.
+- **Source:** Mason Priority 3 (2026-08-13).
+
 ## 2026-08-13 — Jobs: Quick Apply removed (Mason)
 
 - **Decision:** Party Perfect Jobs is **full application only**. The 60-second / Quick Apply path is **not** part of the product. Do not bring it back as a fallback, mobile path, feature flag, secondary CTA, or optional shortcut unless Mason explicitly changes this decision.

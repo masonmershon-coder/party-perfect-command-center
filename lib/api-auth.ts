@@ -15,6 +15,12 @@ import {
   type SessionRole,
 } from "@/lib/server-auth";
 import { NO_STORE_HEADERS } from "@/lib/no-store";
+import {
+  MATTER_FOR_PERMISSION,
+  matterHttpGate,
+  matterRoleForSession,
+  type MatterMappedPermission,
+} from "@/lib/matter-http";
 
 export { isAuthError };
 export type { AuthSession, SessionRole };
@@ -37,7 +43,8 @@ export type ApiPermission =
   | "bookkeeping"
   | "reports"
   | "admin"
-  | "sms_ops";
+  | "sms_ops"
+  | "security";
 
 const OWNER_ONLY: ReadonlySet<ApiPermission> = new Set([
   "marketing",
@@ -45,6 +52,7 @@ const OWNER_ONLY: ReadonlySet<ApiPermission> = new Set([
   "reports",
   "admin",
   "sms_ops",
+  "security",
 ]);
 
 export function roleHasPermission(
@@ -71,6 +79,36 @@ export function privateJson(
  * Server-side gate for Command Center JSON APIs.
  * Unauthenticated → 401 · authenticated but insufficient → 403.
  */
+function applyMatterGate(
+  session: AuthSession,
+  permission: ApiPermission,
+): NextResponse | AuthSession {
+  const mapping =
+    MATTER_FOR_PERMISSION[permission as MatterMappedPermission];
+  if (!mapping) {
+    return privateJson(
+      { error: "Forbidden", reason: "fail_closed_unlisted_resource" },
+      { status: 403 },
+    );
+  }
+  const matter = matterHttpGate({
+    role: matterRoleForSession(session.role),
+    resource: mapping.resource,
+    action: mapping.action,
+  });
+  if (!matter.allowed) {
+    return privateJson(
+      {
+        error: "Forbidden",
+        reason: matter.decision.reason,
+        code: "MATTER_GATEWAY",
+      },
+      { status: 403 },
+    );
+  }
+  return session;
+}
+
 export async function requireApiAuth(
   permission: ApiPermission = "session",
 ): Promise<AuthSession | NextResponse> {
@@ -80,7 +118,7 @@ export async function requireApiAuth(
       gate.headers.set("Cache-Control", NO_STORE_HEADERS["Cache-Control"]);
       return gate;
     }
-    return gate;
+    return applyMatterGate(gate, permission);
   }
 
   const gate = await requireSession();
@@ -91,7 +129,7 @@ export async function requireApiAuth(
   if (!roleHasPermission(gate.role, permission)) {
     return privateJson({ error: "Forbidden" }, { status: 403 });
   }
-  return gate;
+  return applyMatterGate(gate, permission);
 }
 
 /** Routes that are intentionally reachable without a CC session cookie. */
@@ -100,8 +138,9 @@ export const PUBLIC_API_ROUTES = [
   { path: "/api/auth/meta/callback", reason: "OAuth callback" },
   { path: "/api/auth/google-ads/callback", reason: "OAuth callback" },
   { path: "/api/jobs/apply", reason: "public job application" },
-  { path: "/api/health", reason: "uptime / ops probe (no secrets in body)" },
+  { path: "/api/health", reason: "uptime / ops probe (public: ok/service/version only)" },
   { path: "/api/sms/inbound", reason: "Twilio webhook (signature auth)" },
+  { path: "/api/get-quote/inquiry", reason: "public website quote/help intake" },
 ] as const;
 
 /** Machine principals — not cookie auth; each route validates its own secret. */

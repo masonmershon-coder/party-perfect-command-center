@@ -11,15 +11,20 @@ import {
   fetchPorCatalogStatus,
   fetchQuoteCandidates,
   fetchSavedQuotes,
+  fetchWebQuoteInquiries,
   matchQuotePhoto,
   QuoteOverbookedError,
   rememberQuoteMatchApi,
   saveQuoteToQueue,
   searchPorCatalogApi,
   updateSavedQuoteApi,
+  updateWebQuoteInquiryApi,
   type QuoteCandidateLine,
   type QuoteGuardPayload,
 } from "@/lib/client-api";
+import { WebsiteInquiriesPanel } from "@/app/components/dashboard/website-inquiries-panel";
+import { QuoteCustomerPanel } from "@/app/components/dashboard/quote-customer-panel";
+import type { WebQuoteInquiry } from "@/lib/web-quote-inquiry";
 import { useSpeechToText } from "@/lib/speech-to-text";
 import type {
   DesignMatchedItem,
@@ -50,7 +55,15 @@ type PickRow = {
   selectedSku: string | null;
   customName: string;
   customRate: number;
-  candidates: Array<PorCatalogItem & { score: number; learned?: boolean }>;
+  candidates: Array<
+    PorCatalogItem & {
+      score: number;
+      learned?: boolean;
+      viaKitName?: string;
+      viaKitSku?: string;
+      suggestedQuantity?: number;
+    }
+  >;
   /** When from photo matcher */
   match?: DesignMatchedItem;
 };
@@ -121,6 +134,7 @@ export function QuotingSection({
   const [screen, setScreen] = useState<Screen>("queue");
   const [step, setStep] = useState<BuilderStep>("capture");
   const [queue, setQueue] = useState<SavedQuote[]>([]);
+  const [inquiries, setInquiries] = useState<WebQuoteInquiry[]>([]);
   const [queueLoading, setQueueLoading] = useState(true);
   const [queueError, setQueueError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -164,7 +178,12 @@ export function QuotingSection({
     setQueueLoading(true);
     setQueueError(null);
     try {
-      setQueue(await fetchSavedQuotes());
+      const [quotes, webInquiries] = await Promise.all([
+        fetchSavedQuotes(),
+        fetchWebQuoteInquiries().catch(() => [] as WebQuoteInquiry[]),
+      ]);
+      setQueue(quotes);
+      setInquiries(webInquiries);
     } catch (err) {
       setQueueError((err as Error).message);
     } finally {
@@ -210,6 +229,27 @@ export function QuotingSection({
     setScreen("builder");
   }
 
+  function startFromInquiry(row: WebQuoteInquiry) {
+    resetBuilder();
+    setCustomer({
+      ...emptyCustomer(),
+      customerName: row.customerName,
+      customerPhone: row.phone,
+      customerEmail: row.email,
+      eventDate: row.eventDate,
+      venue: row.venue,
+      guestCount: row.guestCount,
+      fulfillment: row.fulfillment === "delivery" ? "delivery" : "pickup",
+      notes: [`Website ${row.intent}`, row.notes].filter(Boolean).join(" — "),
+    });
+    setCommand(row.notes || "");
+    setScreen("builder");
+    setStep("capture");
+    void updateWebQuoteInquiryApi(row.id, "open")
+      .then(() => refreshQueue())
+      .catch(() => undefined);
+  }
+
   function openSaved(row: SavedQuote) {
     setEditingId(row.id);
     setCustomer({ ...emptyCustomer(), ...row.customer });
@@ -250,7 +290,9 @@ export function QuotingSection({
       qty: line.qty,
       // One clear hit → preselect; otherwise girl must choose (this vs that).
       selectedSku:
-        line.candidates.length === 1 ? (line.candidates[0]?.sku ?? null) : null,
+        line.candidates.length === 1 && !line.candidates[0]?.viaKitName
+          ? (line.candidates[0]?.sku ?? null)
+          : null,
       customName: line.term,
       customRate: 0,
       candidates: line.candidates,
@@ -434,9 +476,7 @@ export function QuotingSection({
           matches,
           quantities,
           serviceLines: [],
-          customerName: customer.customerName || undefined,
-          eventDate: customer.eventDate || undefined,
-          salesRep: customer.salesRep || createdBy,
+          ...quoteBuildFields(),
         });
         nextQuote = built.quote;
         nextEmail = built.emailDraft;
@@ -448,9 +488,7 @@ export function QuotingSection({
               ...customLines,
             ],
             serviceLines: nextQuote.serviceLines.map(lineToInput),
-            customerName: customer.customerName || undefined,
-            eventDate: customer.eventDate || undefined,
-            salesRep: customer.salesRep || createdBy,
+            ...quoteBuildFields(),
           });
           nextQuote = merged.quote;
           nextEmail = merged.emailDraft;
@@ -459,9 +497,7 @@ export function QuotingSection({
       } else {
         const built = await buildQuoteApi({
           productLines: customLines,
-          customerName: customer.customerName || undefined,
-          eventDate: customer.eventDate || undefined,
-          salesRep: customer.salesRep || createdBy,
+          ...quoteBuildFields(),
         });
         nextQuote = built.quote;
         nextEmail = built.emailDraft;
@@ -482,6 +518,23 @@ export function QuotingSection({
     }
   }
 
+  function quoteBuildFields() {
+    return {
+      customerName: customer.customerName || undefined,
+      eventDate: customer.eventDate || undefined,
+      salesRep: customer.salesRep || createdBy,
+      taxCode: customer.taxCode,
+      taxExemptNumber: customer.taxExemptNumber,
+      applyDamageWaiver: customer.applyDamageWaiver !== false,
+      damageWaiverExempt: customer.damageWaiverExempt === true,
+      deliveryDateTime: customer.deliveryDateTime,
+      pickupDateTime: customer.pickupDateTime,
+      transactionNotes: customer.transactionNotes || customer.notes,
+      deliveryNotes: customer.deliveryNotes,
+      pickupNotes: customer.pickupNotes,
+    };
+  }
+
   function lineToInput(line: QuoteLine): QuoteLineInput {
     return {
       qty: line.qty,
@@ -493,6 +546,9 @@ export function QuotingSection({
       size: line.size,
       color: line.color,
       kind: line.kind,
+      chargeKind: line.chargeKind,
+      lineNote: line.lineNote,
+      lineDesc: line.lineDesc,
     };
   }
 
@@ -503,9 +559,7 @@ export function QuotingSection({
       const built = await buildQuoteApi({
         productLines: next.productLines.map(lineToInput),
         serviceLines: next.serviceLines.map(lineToInput),
-        customerName: customer.customerName || undefined,
-        eventDate: customer.eventDate || undefined,
-        salesRep: customer.salesRep || createdBy,
+        ...quoteBuildFields(),
         applyRounding: false,
       });
       setQuote(built.quote);
@@ -574,6 +628,7 @@ export function QuotingSection({
           description: "Delivery",
           unitRate: 0,
           kind: "service",
+          chargeKind: "service",
           lineTotal: 0,
         },
       ],
@@ -801,6 +856,18 @@ export function QuotingSection({
       ) : null}
 
       {screen === "queue" ? (
+        <WebsiteInquiriesPanel
+          inquiries={inquiries}
+          onStartQuote={startFromInquiry}
+          onHandled={(id) => {
+            void updateWebQuoteInquiryApi(id, "handled")
+              .then(() => refreshQueue())
+              .catch(() => undefined);
+          }}
+        />
+      ) : null}
+
+      {screen === "queue" ? (
         <QueueView
           queue={queue}
           loading={queueLoading}
@@ -964,7 +1031,7 @@ export function QuotingSection({
           ) : null}
 
           {step === "customer" ? (
-            <CustomerPanel
+            <QuoteCustomerPanel
               customer={customer}
               busy={busy}
               onChange={setCustomer}
@@ -1481,8 +1548,9 @@ function PickPanel({
   return (
     <div className="space-y-4">
       <p className="text-sm text-[var(--pp-text-muted)]">
-        Tap the right SKU for each item (usually 2 choices). Madison remembers
-        your picks for next time. Leave unmatched as a custom line — don’t guess.
+        Tap the right SKU for each item. Kit headers are expanded — choose the
+        component; POR never auto-picks. Leave unmatched as a custom line — don’t
+        guess.
       </p>
       {picks.map((row) => (
         <div key={row.id} className="pp-panel rounded-2xl p-4 lg:p-5">
@@ -1516,13 +1584,18 @@ function PickPanel({
 
           {row.candidates.length > 0 ? (
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-              {row.candidates.slice(0, 3).map((c) => {
+              {row.candidates.slice(0, 8).map((c) => {
                 const selected = row.selectedSku === c.sku;
                 return (
                   <button
-                    key={c.sku}
+                    key={`${c.sku}-${c.viaKitSku || ""}`}
                     type="button"
-                    onClick={() => onUpdate(row.id, { selectedSku: c.sku })}
+                    onClick={() =>
+                      onUpdate(row.id, {
+                        selectedSku: c.sku,
+                        qty: c.suggestedQuantity || row.qty,
+                      })
+                    }
                     className={`rounded-xl border p-3 text-left transition ${
                       selected
                         ? "border-[var(--pp-accent)] bg-[var(--pp-accent-soft)]"
@@ -1531,6 +1604,11 @@ function PickPanel({
                   >
                     <p className="text-sm font-medium text-[var(--pp-text)]">
                       {c.name}
+                      {c.viaKitName ? (
+                        <span className="ml-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--pp-accent)]">
+                          Kit: {c.viaKitName}
+                        </span>
+                      ) : null}
                       {c.learned ? (
                         <span className="ml-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--pp-accent)]">
                           Learned
@@ -1916,6 +1994,10 @@ function QuoteReviewPanel({
             >
               Check availability
             </button>
+            <p className="max-w-[220px] text-[10px] leading-4 text-[var(--pp-text-muted)]">
+              Firm available excludes reservations/open orders. POR quote holds
+              (4 days) are soft/tight only — not subtracted from firm available.
+            </p>
             <button
               type="button"
               disabled={busy}
@@ -1992,7 +2074,7 @@ function QuoteReviewPanel({
                       </span>
                     ) : a?.tight ? (
                       <span className="font-semibold text-amber-600">
-                        Tight — {a.softHeld} pending quotes
+                        Tight — {a.softHeld} quote holds (4-day HoldQuoteContracts)
                       </span>
                     ) : a ? (
                       <span className="text-[var(--pp-text-muted)]">
@@ -2064,11 +2146,26 @@ function QuoteReviewPanel({
         <div className="pp-panel rounded-2xl p-5">
           <h3 className="mb-3 text-sm font-semibold">Totals</h3>
           <dl className="space-y-2 text-sm">
-            <TotRow label="Product subtotal" value={money(t.productSubtotal)} />
+            <TotRow label="RENT subtotal" value={money(t.rentSubtotal ?? t.productSubtotal)} />
+            {t.saleSubtotal ? (
+              <TotRow label="SALE subtotal" value={money(t.saleSubtotal)} />
+            ) : null}
             <TotRow label="Service subtotal" value={money(t.serviceSubtotal)} />
             <TotRow label="Subtotal" value={money(t.subtotal)} />
-            <TotRow label="Sales tax (8.517%)" value={money(t.salesTax)} />
-            <TotRow label="Damage waiver (5%)" value={money(t.damageWaiver)} />
+            <TotRow
+              label={
+                t.taxCode ? `Sales tax (TaxCode ${t.taxCode})` : "Sales tax (no TaxCode)"
+              }
+              value={money(t.salesTax)}
+            />
+            <TotRow
+              label={
+                t.waiverApplied === false
+                  ? "Damage waiver (not applied)"
+                  : "Damage waiver (5% of RENT)"
+              }
+              value={money(t.damageWaiver)}
+            />
             <TotRow label="Total" value={money(t.total)} bold />
             <TotRow label="Deposit (50%)" value={money(t.deposit)} accent />
           </dl>

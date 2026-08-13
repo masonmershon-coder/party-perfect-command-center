@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { corsHeadersForOrigin } from "@/lib/security-headers";
 
 const PRIMARY_HOST = "partyperfect.app";
 
@@ -13,6 +14,21 @@ const LEGACY_COMMAND_HOSTS = new Set([
 
 /** Jobs host rewrite + legacy Command Center host redirects → partyperfect.app */
 export function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // Strict API CORS. Do not redirect /api on legacy hosts (Twilio / POR webhooks).
+  if (pathname.startsWith("/api/")) {
+    const cors = corsHeadersForOrigin(request.headers.get("origin"));
+    if (request.method === "OPTIONS") {
+      return new NextResponse(null, { status: 204, headers: cors });
+    }
+    const res = NextResponse.next();
+    for (const [key, value] of Object.entries(cors)) {
+      res.headers.set(key, value);
+    }
+    return res;
+  }
+
   const host = (request.headers.get("host")?.toLowerCase() ?? "").split(":")[0];
 
   if (LEGACY_COMMAND_HOSTS.has(host)) {
@@ -32,7 +48,6 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const { pathname } = request.nextUrl;
   if (
     pathname === "/" ||
     pathname === "" ||
@@ -47,7 +62,6 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  // Keep /api on every attached host so Twilio / POR / OAuth webhooks
-  // still work on legacy domains until those services are updated.
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|api/|.*\\..*).*)"],
+  // Include /api for CORS only (no legacy-host redirect on API).
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\..*).*)"],
 };

@@ -570,4 +570,8 @@ export const DURABLE_ROOT_KEYS = [
   "por-reservations.json",
   "quotes.json",
   "quote-match-memory.json",
+  "web-quote-inquiries.json",
+  "por-tax-table.json",
+  "por-salesmen.json",
+  "sentinel-app-events.json",
 ] as const;

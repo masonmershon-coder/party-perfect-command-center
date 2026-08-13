@@ -9,7 +9,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-const EVENTS = path.join(path.dirname(HERE), "SECURITY_EVENTS.jsonl");
+// Must resolve the SAME way sentinel.mjs does, or the suite backs up one file and the
+// module writes another. See the note on EVENTS in sentinel.mjs.
+const EVENTS = process.env.PP_SECURITY_EVENTS_PATH || path.join(path.dirname(HERE), "SECURITY_EVENTS.jsonl");
 const backup = existsSync(EVENTS) ? readFileSync(EVENTS, "utf8") : null;
 const restore = () => (backup != null ? writeFileSync(EVENTS, backup) : rmSync(EVENTS, { force: true }));
 process.on("exit", restore);
@@ -68,7 +70,7 @@ ok("the secret does not survive into the record", !/sk-abcdefghijklmnop/.test(JS
 
 // 7 — Sentinel heartbeat loss
 console.log("\n7. Sentinel heartbeat loss");
-const HEALTH = path.join(HERE, "sentinel-health.json");
+const HEALTH = process.env.PP_SENTINEL_HEALTH_PATH || path.join(HERE, "sentinel-health.json");
 const hb = existsSync(HEALTH) ? readFileSync(HEALTH, "utf8") : null;
 writeFileSync(HEALTH, JSON.stringify({ last_scan: new Date(Date.now() - 48 * 3600e3).toISOString(), detector_errors: [] }));
 const h = health();

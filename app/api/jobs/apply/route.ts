@@ -23,6 +23,8 @@ import {
 import { extractResumeText } from "@/lib/job-resume-text";
 import { storeJobResume } from "@/lib/job-resume";
 import { type JobApplicationInput } from "@/lib/jobs";
+import { screenUntrusted } from "@/lib/matter-gateway";
+import { recordInjectionSignals } from "@/lib/sentinel-telemetry";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
@@ -194,6 +196,31 @@ export async function POST(request: Request) {
     });
     if (validationError) {
       return NextResponse.json({ error: validationError }, { status: 400 });
+    }
+
+    const injectionText = [
+      input.physicalStory,
+      input.whyPartyPerfect,
+      input.experience,
+      input.availability,
+      input.schoolingNotes,
+      input.resumeText,
+      ...(input.workHistory || []).flatMap((row) => [
+        row.employer,
+        row.roleTitle,
+      ]),
+    ]
+      .filter(Boolean)
+      .join("\n");
+    const injection = screenUntrusted(injectionText);
+    if (injection.flagged) {
+      void recordInjectionSignals({
+        surface: "jobs.apply",
+        signalCount: injection.signalCount,
+        signalIds: injection.signalIds,
+        ip: clientIp(request),
+        userAgent: request.headers.get("user-agent"),
+      });
     }
 
     if (enrichId) {

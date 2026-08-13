@@ -15,12 +15,14 @@ Showroom / HQ: **8401 E 41st St, Tulsa OK 74145**
 Showroom & warehouse hours (site): Mon–Fri 9–4 · Sat 9–2 · Sun closed
 Owners / design roots: **Josh & Michelle Mershon** — event industry since **1997**, acquired Party Perfect **2007**. Longest-thriving / first party rental story in Tulsa market (use carefully: “premier” + “decades of style,” not false Super Bowl claims).
 Brand promise: highest quality products, outstanding service, fashion-forward + traditional, boutique showroom specialists daily — **no appointment needed**.
-POR / Get Quote path on site: legacy ASP cart (reviewOrder.asp) still on partyperfecteventrental.com — SESSION TIMEOUTS force restarts. Long-term: surface partyperfect.app quoting as the customer quote builder. Until then, showroom uses Command Center Quoting → POR ticket copy/paste.
+Positioning (required): **full-service event rental company** — not a wedding/event planning company. Planners / caterers / florists / venues are B2B customers. Showroom helps style rentals; we do not sell “we plan your wedding.”
+POR / Get Quote path on site: legacy ASP cart (reviewOrder.asp) still on partyperfecteventrental.com — empty cart used to be a session-timeout dead-end. Recovery: **https://partyperfect.app/get-quote** (browse catalog · start a quote · request help · tent consultation). Showroom still builds official quotes from live POR. Do not invent website rates.
 Design CTA: **Design Studio / Madison on partyperfect.app** (NOT tryjune.ai or other third-party AI). Never send customers to tryjune.
-Trust / SEO gaps to fix on the public rental site: homepage meta description, customer reviews/testimonials, founding story (1997 industry / 2007 Party Perfect), and a visible Privacy Policy link (Command Center already hosts /legal/privacy).
+Careers CTA (public site + ads sitelink): **https://partyperfectjobs.com**
+Trust / SEO gaps to fix on the public rental site: homepage meta description, customer reviews/testimonials, founding story (1997 industry / 2007 Party Perfect), visible Privacy Policy link, and **remove planner-company language** still on live ASP home/about/design pages until FTP patch.
 
 ## Who we sell to (conversion goals for Google)
-1. **Weddings** — tents, linens, china, chargers, glass, flatware, dance floor, décor, design/planning support
+1. **Weddings** — tents, linens, china, chargers, glass, flatware, dance floor, décor, showroom styling help
 2. **Corporate / banquets / large galas** — full service tables/chairs, staging presence, high volume
 3. **Movie / production / TV / photo sets** — props, specialty décor, fashion-forward inventory (site claims trust for networks, production, movie sets, NFL/celebs — use as “premium / production-ready inventory,” don’t invent client names)
 4. **Concerts / festivals / outdoor activations** — tents, climate/power, flooring, bars, crowd service gear
@@ -32,7 +34,7 @@ Trust / SEO gaps to fix on the public rental site: homepage meta description, cu
 ## Full-service inventory themes (from site catalog)
 Linens · Chairs & barstools · Tents · China · Chargers · Tables · Glassware · Flatware · Beverage / bars · Catering equipment · Event décor & props · Wedding package looks · Furnishings · Dance floors / flooring / stage · Lighting · Climate control & power · Fabric draping & backdrops · Games · Design Team props · Trade show booths · Prints & patterns exclusive linens
 
-Core line card for ads: **tents, tables & chairs, linens, china/glass/flatware, dance floor, décor, showroom design**
+Core line card for ads: **tents, tables & chairs, linens, china/glass/flatware, dance floor, décor, showroom rental specialists**
 
 ## Service radius / markets
 Home base Tulsa. Delivery NE OK + surrounding: Owasso, Sand Springs, Tahlequah, Oklahoma City (select), Skiatook, Inola, Claremore, Muskogee, Pryor, Bartlesville, McAlester, Ponca City, Wagoner, Independence KS, Joplin MO, Fayetteville / Siloam Springs / Fort Smith AR. Linens ship nationwide.
@@ -55,14 +57,14 @@ Objective: When someone in NE Oklahoma googles party/event rental need (wedding,
 
 Site final URL (default all Search ad groups unless microsite): 
 https://www.partyperfecteventrental.com
-Secondary CTAs: tel:918-258-7368 · Get Quote · showroom visit (Mon–Sat hours) · Design Studio on partyperfect.app (Madison — never tryjune.ai)
+Secondary CTAs: tel:918-258-7368 · Get Quote (partyperfect.app/get-quote if cart empty) · showroom visit (Mon–Sat hours) · Careers partyperfectjobs.com · Design Studio on partyperfect.app (Madison — never tryjune.ai)
 
 ## Strategy pillars
 1. **Own high-intent Search** (tables, tents, linens, china, dance floor, wedding rental Tulsa)
 2. **Own category + occasion** (corporate gala, production set décor, outdoor wedding, trade show)
 3. **Own geos** (Tulsa + suburbs first; Bartlesville / Claremore / Owasso etc. as budget allows)
 4. **Brand defense** (“Party Perfect Tulsa rentals”) so competitors can’t siphon name searches
-5. **Conversion hygiene** — ads + website copy match: full-service, showroom open, decades of style, delivery radius
+5. **Conversion hygiene** — ads + website copy match: **full-service event rental**, showroom open, decades of style, delivery radius. Never run ads that call PP a wedding/event planning company.
 
 ## Priority campaign map (Search)
 
@@ -112,7 +114,7 @@ Always true to site claims; never invent awards or exclusive celebs by name.
 ## Extensions
 - Call: 918-258-7368
 - Location: 8401 E 41st St
-- Sitelinks: Products, Wedding Gallery, Corporate Gallery, Contact, Get Quote
+- Sitelinks: Products, Wedding Gallery, Corporate Gallery, Contact, Get Quote, Careers (partyperfectjobs.com)
 - Callouts: Full-service · Showroom open Mon–Sat · NE Oklahoma delivery · Linen ship nationwide
 
 ## Organic / content edge (Madison + Mike joint)

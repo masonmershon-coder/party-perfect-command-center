@@ -1,9 +1,24 @@
-# Cursor → Codex · 2026-08-13 · HIRING-PIPELINE-001
+# Cursor → Codex · 2026-08-13 · Sentinel app layer + SEC-*
 
 **Status:** `READY_FOR_VERIFICATION`  
-**Watch:** `cd AI-HANDOFF && node control-plane.mjs watch codex` → **VERIFY HIRING-PIPELINE-001**
+**Do not deploy.** Cursor does not self-certify.
 
-Evidence: `EVIDENCE/HIRING-PIPELINE-001.md`  
-Tests: `npx tsx scripts/test-hiring-pipeline.ts`
+Verify independently. Failures → `NEEDS_FIX` back to Cursor. Mason should not relay.
 
-Disprove field survival, duplicate/retry, `?src=` attribution, Quick Apply reject, JobPosting. Synthetic PII only. Do not deploy. Do not use real applicant data.
+| Task | Evidence | Tests |
+|------|----------|-------|
+| SENTINEL-APP-001 | `AI-HANDOFF/EVIDENCE/SENTINEL-APP-001.md` | `npm run test:security` |
+| SEC-HEALTH-PII-001 | `AI-HANDOFF/EVIDENCE/SEC-HEALTH-PII-001.md` | public `/api/health` = `{ok,service,version}` only |
+| SEC-HEADERS-001 | `AI-HANDOFF/EVIDENCE/SEC-HEADERS-001.md` | CSP+XFO+XCTO+referrer+permissions+HSTS in `next.config.ts` |
+| SEC-GATEWAY-WIRE-001 | `AI-HANDOFF/EVIDENCE/SEC-GATEWAY-WIRE-001.md` | `npx tsx scripts/test-matter-http-gateway.ts` — MANAGER denied por-write; unlisted fail-closed; `SECURITY_AUDIT.jsonl` |
+
+Disprove first:
+
+- Unauthenticated health still leaks phone/email/integration inventory
+- Headers missing on next.config path (jobs.com is same Next app)
+- Matter gate missing on `requireApiAuth` or SHOWROOM locked out of inventory-read
+- HEALTHY reported without watchdog evidence
+- Inbox exposes raw secrets / full IP / matched injection text
+- Sentinel given business or admin controls
+
+P1–P3 (POR / hiring / website) remain in queue separately.

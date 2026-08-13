@@ -26,6 +26,7 @@ export const navItems: {
   { id: "bookkeeping", label: "Bookkeeping", icon: "◈", ownerOnly: true },
   { id: "marketing", label: "Marketing / Ads", icon: "◉", ownerOnly: true },
   { id: "hiring", label: "Hiring", icon: "✎" },
+  { id: "security", label: "Security", icon: "⚑", ownerOnly: true },
   { id: "reports", label: "Reports", icon: "▤", ownerOnly: true },
 ];
 

@@ -1,5 +1,16 @@
 #!/usr/bin/env node
-// SENTINEL — Party Perfect security monitoring. DETERMINISTIC detection.
+// ⚠️ SUPERSEDED ARCHITECTURE — DO NOT SCHEDULE OR TREAT AS THE PRODUCTION MONITOR
+//
+// Codex reviewed this and returned APPROVE WITH CHANGES on 2026-08-13: Sentinel
+// must be a SYSTEM of separate components (collectors / evidence ledger /
+// analyst / containment broker / watchdog), not one module holding all of them.
+// See AI-HANDOFF/EVIDENCE/SENTINEL_ARCHITECTURE_REVIEW_2026-08-13.md and
+// AI-HANDOFF/sentinel/SENTINEL_PERMISSION_MATRIX.md.
+//
+// Kept for its 25 synthetic tests and two real findings, which carry forward as
+// component requirements. Not the design.
+//
+// SENTINEL V1 (superseded) — Party Perfect security monitoring.
 //
 //   node sentinel.mjs --scan       run all detectors, emit events
 //   node sentinel.mjs --inbox      owner security inbox (grouped)
@@ -24,8 +35,13 @@ import { fileURLToPath } from "node:url";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const HANDOFF = path.dirname(HERE);
 const REPO = path.dirname(HANDOFF);
-const EVENTS = path.join(HANDOFF, "SECURITY_EVENTS.jsonl");
-const HEALTH = path.join(HERE, "sentinel-health.json");
+// Paths are overridable so an INDEPENDENT verifier can reproduce the suite.
+// Codex runs read-only on the repo; a test suite that can only write inside the repo
+// is a suite only its author can run, which is the opposite of independent
+// verification. Pointing these at a temp dir lets the verifier re-derive the result
+// instead of taking the owner's word for it. Unset => normal live paths.
+const EVENTS = process.env.PP_SECURITY_EVENTS_PATH || path.join(HANDOFF, "SECURITY_EVENTS.jsonl");
+const HEALTH = process.env.PP_SENTINEL_HEALTH_PATH || path.join(HERE, "sentinel-health.json");
 const now = () => new Date().toISOString();
 
 export const SEVERITY = ["INFO", "WATCH", "HIGH", "CRITICAL", "EMERGENCY"];

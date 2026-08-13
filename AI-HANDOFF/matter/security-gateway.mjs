@@ -18,7 +18,9 @@ import { fileURLToPath } from "node:url";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const HANDOFF = path.dirname(HERE);
-const AUDIT = path.join(HANDOFF, "SECURITY_AUDIT.jsonl");
+// Overridable so an independent, read-only verifier can reproduce --test without
+// write access to the repo. Unset => the normal live audit log.
+const AUDIT = process.env.PP_SECURITY_AUDIT_PATH || path.join(HANDOFF, "SECURITY_AUDIT.jsonl");
 const now = () => new Date().toISOString();
 
 // ---------------------------------------------------------------- tiers
@@ -151,7 +153,13 @@ function audit(entry) {
 }
 
 // ---------------------------------------------------------------- cli
-const argv = process.argv.slice(2);
+// Guarded: without this check the CLI ran on IMPORT, so any module that imported
+// `evaluate` or `screenUntrusted` inherited this file's argv handling — including its
+// `process.exit`. The github bridge hit exactly that: `github-ingest.mjs --test` ran
+// the GATEWAY's tests and exited before its own ever started. A policy engine must be
+// importable without side effects.
+const IS_MAIN = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+const argv = IS_MAIN ? process.argv.slice(2) : [];
 
 if (argv.includes("--matrix")) {
   console.log("ROLE × MAX TIER (without additional owner approval)");
@@ -194,4 +202,4 @@ if (checkIdx >= 0) {
   process.exit(d.allow ? 0 : 1);
 }
 
-console.log("usage: --matrix | --test | --check '<json>'");
+if (IS_MAIN) console.log("usage: --matrix | --test | --check '<json>'");

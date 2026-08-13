@@ -1,22 +1,29 @@
 import { roundRack } from "@/lib/sales-web-quote";
-import type { Quote, QuoteLine, QuoteLineInput, QuoteTotals } from "@/lib/types";
+import type {
+  PorTaxCodeRow,
+} from "@/lib/por-tax";
+import type {
+  Quote,
+  QuoteChargeKind,
+  QuoteLine,
+  QuoteLineInput,
+  QuoteTotals,
+} from "@/lib/types";
 
 /**
- * Quote-assembly engine for Party Perfect. Turns matched rental lines + service
- * lines into a full quote (subtotal, tax, damage waiver, total, 50% deposit) plus
- * a printable POR-ready ticket and a client email draft.
+ * Quote-assembly engine. POR is the spec:
+ *   - Damage waiver = 5% of RENT subtotal only (sale/merchandise excluded).
+ *   - Waiver is declinable / exempt per ticket (AskDamageWaiver / DamageWaiverExempt).
+ *   - Tax follows customer TaxCode → TaxTable (TaxRent / TaxSale / TaxDW separately).
+ *   - Deposit 50% is still the observed live-reservation pattern, not a new rule.
  *
- * Money math mirrors the paper Rental Proposal form the girls use today:
- *   SUBTOTAL → +8.517% sales tax → +5% damage waiver → TOTAL → 50% deposit.
- * CONFIRM against a real POR quote PDF (Contracts-PDF) before go-live.
- *
- * Damage waiver is on product (rental) subtotal only — not delivery/service.
- * Tax base still includes services until a real POR PDF confirms otherwise.
+ * Never invent a tax rate. Unknown / missing TaxCode → tax 0 + a note.
  */
 
-export const SALES_TAX_RATE = 0.08517; // Tulsa combined rate
-export const DAMAGE_WAIVER_RATE = 0.05; // 5% (always applied; rare negotiated exceptions)
-export const DEPOSIT_RATE = 0.5; // 50% to reserve; balance due 11 days before delivery
+/** @deprecated Do not use as a store-wide rate. Tax follows TaxCode. */
+export const SALES_TAX_RATE = 0.08517;
+export const DAMAGE_WAIVER_RATE = 0.05;
+export const DEPOSIT_RATE = 0.5;
 
 function round2(n: number): number {
   return Math.round((n + Number.EPSILON) * 100) / 100;
@@ -89,6 +96,14 @@ function roundQty(
   return { qty };
 }
 
+function resolveChargeKind(line: QuoteLineInput): QuoteChargeKind {
+  if (line.chargeKind === "sale" || line.chargeKind === "rent" || line.chargeKind === "service") {
+    return line.chargeKind;
+  }
+  if (line.kind === "service") return "service";
+  return "rent";
+}
+
 export function buildQuote(input: {
   productLines: QuoteLineInput[];
   serviceLines?: QuoteLineInput[];
@@ -96,6 +111,14 @@ export function buildQuote(input: {
   applyRounding?: boolean;
   /** Shop rental minimum (merchandise only). Silent if omitted. */
   rentalMinimum?: number;
+  /** CustomerFile.TaxCode → TaxTable row. Required for tax; never invent. */
+  taxCode?: string;
+  taxRow?: PorTaxCodeRow | null;
+  taxExemptNumber?: string;
+  /** AskDamageWaiver — default true. */
+  applyDamageWaiver?: boolean;
+  /** DamageWaiverExempt */
+  damageWaiverExempt?: boolean;
 }): Quote {
   const notes: string[] = [];
 
@@ -110,13 +133,16 @@ export function buildQuote(input: {
       }
     }
     const unitRate = Math.max(0, l.unitRate || 0);
+    const chargeKind = resolveChargeKind(l);
     return {
       ...l,
       kind: "product" as const,
+      chargeKind,
       qty,
       unitRate,
       lineTotal: round2(qty * unitRate),
       lineNote,
+      lineDesc: l.lineDesc,
     };
   });
 
@@ -126,6 +152,7 @@ export function buildQuote(input: {
     return {
       ...l,
       kind: "service" as const,
+      chargeKind: "service" as const,
       qty,
       unitRate,
       lineTotal: round2(qty * unitRate),
@@ -135,14 +162,54 @@ export function buildQuote(input: {
   const productSubtotal = round2(
     productLines.reduce((s, l) => s + l.lineTotal, 0),
   );
+  const rentSubtotal = round2(
+    productLines
+      .filter((l) => l.chargeKind !== "sale")
+      .reduce((s, l) => s + l.lineTotal, 0),
+  );
+  const saleSubtotal = round2(
+    productLines
+      .filter((l) => l.chargeKind === "sale")
+      .reduce((s, l) => s + l.lineTotal, 0),
+  );
   const serviceSubtotal = round2(
     serviceLines.reduce((s, l) => s + l.lineTotal, 0),
   );
   const subtotal = round2(productSubtotal + serviceSubtotal);
-  // Tax on product+service until a real POR PDF confirms otherwise.
-  const salesTax = round2(subtotal * SALES_TAX_RATE);
-  // Waiver on rental merchandise only — not delivery/labor fees.
-  const damageWaiver = round2(productSubtotal * DAMAGE_WAIVER_RATE);
+
+  const waiverOn =
+    input.applyDamageWaiver !== false && input.damageWaiverExempt !== true;
+  const damageWaiver = waiverOn ? round2(rentSubtotal * DAMAGE_WAIVER_RATE) : 0;
+  if (waiverOn) {
+    for (const line of productLines) {
+      line.dmgWvr =
+        line.chargeKind === "sale" ? 0 : round2(line.lineTotal * DAMAGE_WAIVER_RATE);
+    }
+  } else {
+    for (const line of productLines) line.dmgWvr = 0;
+  }
+
+  const taxRow = input.taxRow ?? null;
+  const taxExempt = Boolean(String(input.taxExemptNumber || "").trim());
+  let taxRent = 0;
+  let taxSale = 0;
+  let taxWaiver = 0;
+  if (taxExempt) {
+    notes.push(
+      `Tax exempt${input.taxExemptNumber ? ` (${input.taxExemptNumber})` : ""} — tax not applied.`,
+    );
+  } else if (taxRow) {
+    taxRent = round2(rentSubtotal * taxRow.taxRent);
+    taxSale = round2(saleSubtotal * taxRow.taxSale);
+    taxWaiver = taxRow.taxDw > 0 ? round2(damageWaiver * taxRow.taxDw) : 0;
+  } else if (input.taxCode) {
+    notes.push(
+      `TaxCode ${input.taxCode} is not in TaxTable — tax not invented. Select a known POR tax code.`,
+    );
+  } else {
+    notes.push("No customer TaxCode — tax not applied until the customer is selected.");
+  }
+  const salesTax = round2(taxRent + taxSale + taxWaiver);
   const total = round2(subtotal + salesTax + damageWaiver);
   const deposit = round2(total * DEPOSIT_RATE);
 
@@ -173,9 +240,16 @@ export function buildQuote(input: {
   const totals: QuoteTotals = {
     productSubtotal,
     serviceSubtotal,
+    rentSubtotal,
+    saleSubtotal,
     subtotal,
     salesTax,
+    taxRent,
+    taxSale,
+    taxWaiver,
+    taxCode: taxRow?.code || input.taxCode,
     damageWaiver,
+    waiverApplied: waiverOn && damageWaiver > 0,
     total,
     deposit,
     ...(belowRentalMinimum ? { belowRentalMinimum: true } : {}),
@@ -192,6 +266,12 @@ export interface QuoteMeta {
   customerName?: string;
   eventDate?: string;
   salesRep?: string;
+  taxCode?: string;
+  deliveryDateTime?: string;
+  pickupDateTime?: string;
+  transactionNotes?: string;
+  deliveryNotes?: string;
+  pickupNotes?: string;
 }
 
 /** Plain-text POR-ready ticket for the showroom to review / key in. */
@@ -199,12 +279,19 @@ export function formatQuoteTicket(quote: Quote, meta: QuoteMeta = {}): string {
   const out: string[] = ["RENTAL PROPOSAL — Party Perfect Event Rentals"];
   if (meta.customerName) out.push(`Customer: ${meta.customerName}`);
   if (meta.eventDate) out.push(`Event date: ${meta.eventDate}`);
+  if (meta.deliveryDateTime) out.push(`DeliveryDate: ${meta.deliveryDateTime}`);
+  if (meta.pickupDateTime) out.push(`PickupDate: ${meta.pickupDateTime}`);
+  if (meta.salesRep) out.push(`Salesman: ${meta.salesRep}`);
+  if (meta.taxCode) out.push(`TaxCode: ${meta.taxCode}`);
   out.push("");
   for (const l of quote.productLines) {
     out.push(
       `${String(l.qty).padStart(4)} x ${(l.porItemName || l.description)}  @ ${money(l.unitRate)} = ${money(l.lineTotal)}`,
     );
-    if (l.lineNote) out.push(`        (${l.lineNote})`);
+    if (l.lineDesc) out.push(`        Desc: ${l.lineDesc}`);
+    if (l.lineNote) out.push(`        Comments: ${l.lineNote}`);
+    if (l.chargeKind === "sale") out.push(`        (SALE — excluded from damage waiver)`);
+    if (l.dmgWvr) out.push(`        DmgWvr: ${money(l.dmgWvr)}`);
   }
   if (quote.serviceLines.length) {
     out.push("-- Services --");
@@ -213,9 +300,20 @@ export function formatQuoteTicket(quote: Quote, meta: QuoteMeta = {}): string {
     }
   }
   out.push("");
+  if (meta.transactionNotes) out.push(`Notes: ${meta.transactionNotes}`);
+  if (meta.deliveryNotes) out.push(`DeliveryNotes: ${meta.deliveryNotes}`);
+  if (meta.pickupNotes) out.push(`PickupNotes: ${meta.pickupNotes}`);
+  out.push(`RENT subtotal:      ${money(quote.totals.rentSubtotal)}`);
+  if (quote.totals.saleSubtotal > 0) {
+    out.push(`SALE subtotal:      ${money(quote.totals.saleSubtotal)}`);
+  }
   out.push(`Subtotal:           ${money(quote.totals.subtotal)}`);
-  out.push(`Sales tax (8.517%): ${money(quote.totals.salesTax)}`);
-  out.push(`Damage waiver (5%): ${money(quote.totals.damageWaiver)}`);
+  out.push(
+    `Sales tax${quote.totals.taxCode ? ` (TaxCode ${quote.totals.taxCode})` : ""}: ${money(quote.totals.salesTax)}`,
+  );
+  out.push(
+    `Damage waiver (5% of RENT${quote.totals.waiverApplied ? "" : ", not applied"}): ${money(quote.totals.damageWaiver)}`,
+  );
   out.push(`TOTAL:              ${money(quote.totals.total)}`);
   out.push(
     `Deposit (50%):      ${money(quote.totals.deposit)}  (reserves the date; balance due 11 days before delivery)`,
@@ -239,8 +337,8 @@ export function formatQuoteEmail(quote: Quote, meta: QuoteMeta = {}): string {
     ...quote.serviceLines.map((l) => `  • ${l.description} — ${money(l.lineTotal)}`),
     "",
     `Subtotal: ${money(quote.totals.subtotal)}`,
-    `Sales tax (8.517%): ${money(quote.totals.salesTax)}`,
-    `Damage waiver (5%): ${money(quote.totals.damageWaiver)}`,
+    `Sales tax: ${money(quote.totals.salesTax)}`,
+    `Damage waiver (5% of rentals): ${money(quote.totals.damageWaiver)}`,
     `Total: ${money(quote.totals.total)}`,
     "",
     `A 50% deposit of ${money(quote.totals.deposit)} reserves your date and items; the remaining 50% is due 11 days before delivery. You can pay by card, cash, or check.`,

@@ -1,10 +1,10 @@
 {
-  "id": "20260813T171423Z-cursor",
+  "id": "20260813T185949Z-cursor",
   "from": "cursor",
-  "to": "claude",
+  "to": "codex",
   "status": "READY_FOR_VERIFICATION",
-  "summary": "HIRING-PIPELINE-001 ready for Codex: full apply path certified with synthetic tests. ?src= fixed, Mike fallback visible, JobPosting schema wired. Not deployed.",
-  "updated_at": "2026-08-13T17:14:23Z",
+  "summary": "Sentinel app layer + SEC-HEALTH/HEADERS/GATEWAY ready for Codex. Evidence in AI-HANDOFF/EVIDENCE. npm run test:security. Not deployed.",
+  "updated_at": "2026-08-13T18:59:49Z",
   "acked_by": null,
   "acked_at": null
 }

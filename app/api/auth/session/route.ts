@@ -13,6 +13,7 @@ import {
   verifyTeamPassword,
   OWNER_PIN_LENGTH,
 } from "@/lib/server-auth";
+import { recordAuthTelemetry } from "@/lib/sentinel-telemetry";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
@@ -44,6 +45,16 @@ export async function POST(request: Request) {
   const action = body.action || (body.pin ? "owner" : "login");
 
   if (action === "logout") {
+    const existing = await readSession();
+    void recordAuthTelemetry({
+      kind: "AUTH_LOGOUT",
+      outcome: "logout",
+      role: existing?.role,
+      ip,
+      userAgent: request.headers.get("user-agent"),
+      iat: existing?.iat,
+      exp: existing?.exp,
+    });
     const res = NextResponse.json({ ok: true });
     return clearSessionCookie(res);
   }
@@ -54,6 +65,13 @@ export async function POST(request: Request) {
 
     const locked = await enforceAuthRateLimit(ip, "owner");
     if (locked) {
+      void recordAuthTelemetry({
+        kind: "AUTH_LOCKOUT",
+        outcome: "lockout",
+        role: "owner",
+        ip,
+        userAgent: request.headers.get("user-agent"),
+      });
       return NextResponse.json({ error: locked }, { status: 429 });
     }
 
@@ -68,10 +86,26 @@ export async function POST(request: Request) {
     }
     if (!verifyOwnerPin(pin)) {
       await registerAuthFailure(ip, "owner");
+      void recordAuthTelemetry({
+        kind: "AUTH_OWNER_FAIL",
+        outcome: "fail",
+        role: "owner",
+        ip,
+        userAgent: request.headers.get("user-agent"),
+      });
       return NextResponse.json({ error: "Incorrect admin code." }, { status: 401 });
     }
     await clearAuthFailures(ip, "owner");
     const session = buildSession("owner");
+    void recordAuthTelemetry({
+      kind: "AUTH_OWNER_UNLOCK",
+      outcome: "success",
+      role: session.role,
+      ip,
+      userAgent: request.headers.get("user-agent"),
+      iat: session.iat,
+      exp: session.exp,
+    });
     const res = NextResponse.json({
       ok: true,
       role: session.role,
@@ -83,6 +117,13 @@ export async function POST(request: Request) {
   // Team login
   const locked = await enforceAuthRateLimit(ip, "login");
   if (locked) {
+    void recordAuthTelemetry({
+      kind: "AUTH_LOCKOUT",
+      outcome: "lockout",
+      role: "employee",
+      ip,
+      userAgent: request.headers.get("user-agent"),
+    });
     return NextResponse.json({ error: locked }, { status: 429 });
   }
 
@@ -92,10 +133,26 @@ export async function POST(request: Request) {
   }
   if (!verifyTeamPassword(password)) {
     await registerAuthFailure(ip, "login");
+    void recordAuthTelemetry({
+      kind: "AUTH_LOGIN_FAIL",
+      outcome: "fail",
+      role: "employee",
+      ip,
+      userAgent: request.headers.get("user-agent"),
+    });
     return NextResponse.json({ error: "Incorrect password." }, { status: 401 });
   }
   await clearAuthFailures(ip, "login");
   const session = buildSession("employee");
+  void recordAuthTelemetry({
+    kind: "AUTH_LOGIN",
+    outcome: "success",
+    role: session.role,
+    ip,
+    userAgent: request.headers.get("user-agent"),
+    iat: session.iat,
+    exp: session.exp,
+  });
   const res = NextResponse.json({
     ok: true,
     role: session.role,

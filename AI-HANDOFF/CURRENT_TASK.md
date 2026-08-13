@@ -1,11 +1,30 @@
 # CURRENT TASK
 
-**TASK ID:** HIRING-PIPELINE-001  
+**TASK ID:** SENTINEL-APP-001 (+ SEC-HEALTH-PII-001, SEC-HEADERS-001, SEC-GATEWAY-WIRE-001)  
 **STATUS:** READY_FOR_VERIFICATION  
 **UPDATED:** 2026-08-13  
 
-Certify/fix full hiring path (synthetic only). In-repo fixes: `?src=` attribution, intake helper, Mike fallbackReason visible, JobPosting schema module, pipeline tests.
+Cursor application-layer Sentinel + assigned control-plane SEC-* tasks. Architecture unchanged. No deploy.
 
-**Not deployed.** Codex: `AI-HANDOFF/EVIDENCE/HIRING-PIPELINE-001.md`
+Evidence:
 
-Prior live release REL-V197 (v1.9.7) remains on production.
+- `AI-HANDOFF/EVIDENCE/SENTINEL-APP-001.md`
+- `AI-HANDOFF/EVIDENCE/SEC-HEALTH-PII-001.md`
+- `AI-HANDOFF/EVIDENCE/SEC-HEADERS-001.md`
+- `AI-HANDOFF/EVIDENCE/SEC-GATEWAY-WIRE-001.md`
+
+Tests: `npm run test:security` · `npx tsc --noEmit`
+
+## Also waiting verification (not deployed)
+
+| Task | Status |
+|------|--------|
+| SENTINEL-APP-001 | READY_FOR_VERIFICATION |
+| SEC-HEALTH-PII-001 | READY_FOR_VERIFICATION |
+| SEC-HEADERS-001 | READY_FOR_VERIFICATION |
+| SEC-GATEWAY-WIRE-001 | READY_FOR_VERIFICATION |
+| POR-PARITY-001 | READY_FOR_VERIFICATION |
+| HIRING-PIPELINE-001 | READY_FOR_VERIFICATION |
+| WEBSITE-CONVERSION-001 | READY_FOR_VERIFICATION |
+
+REL-V197 (v1.9.7) remains live production.

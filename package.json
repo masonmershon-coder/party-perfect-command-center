@@ -15,7 +15,8 @@
     "por:probe-db": "node scripts/probe-supabase-readonly.mjs",
     "ai-core:apply-0003": "node --env-file=.env.local scripts/apply-0003-ai-core.mjs",
     "por:ingest": "node --env-file=.env.local scripts/ingest-por-full.mjs",
-    "test:api-auth": "node scripts/test-api-auth-matrix.mjs"
+    "test:api-auth": "node scripts/test-api-auth-matrix.mjs",
+    "test:security": "node scripts/check-security-regression.mjs && node scripts/test-api-auth-matrix.mjs && npx tsx scripts/test-matter-http-gateway.ts && npx tsx scripts/test-sentinel-app.ts"
   },
   "engines": {
     "node": ">=20"

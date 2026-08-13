@@ -1,0 +1,8 @@
+{
+  "state": "BLOCKED",
+  "ok": false,
+  "code": "GH_NOT_AUTHENTICATED",
+  "owner_action": "Mason runs `gh auth login` locally. Claude must not handle the credential.",
+  "ingested": 0,
+  "note": "Bridge could NOT read GitHub. This is not 'no issues found' — it is 'we did not look'."
+}

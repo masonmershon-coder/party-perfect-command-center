@@ -19,6 +19,7 @@ export type NavSection =
   | "marketing"
   | "reports"
   | "hiring"
+  | "security"
   | "chat";
 
 export type DesignAspectRatio =
@@ -649,6 +650,9 @@ export interface PorCatalogState {
   kitMembers?: PorKitMember[];
 }
 
+/** POR charge class — waiver is 5% of rent only; sale is excluded. */
+export type QuoteChargeKind = "rent" | "sale" | "service";
+
 /** A single line to price in a quote (rental product or service/fee). */
 export interface QuoteLineInput {
   qty: number;
@@ -660,21 +664,37 @@ export interface QuoteLineInput {
   size?: string;
   color?: string;
   kind?: "product" | "service";
+  /** Default product = rent. Sale/merchandise is excluded from damage waiver. */
+  chargeKind?: QuoteChargeKind;
   lineNote?: string;
+  /** TransactionItems.Desc — distinct from Comments / lineNote. */
+  lineDesc?: string;
+  /** TransactionItems.DmgWvr for this line (computed on rent lines when waiver applies). */
+  dmgWvr?: number;
 }
 
 export interface QuoteLine extends QuoteLineInput {
   kind: "product" | "service";
   lineTotal: number;
+  chargeKind: QuoteChargeKind;
   lineNote?: string;
 }
 
 export interface QuoteTotals {
   productSubtotal: number;
   serviceSubtotal: number;
+  /** RENT merchandise only (waiver base). */
+  rentSubtotal: number;
+  /** SALE / merchandise lines (excluded from waiver). */
+  saleSubtotal: number;
   subtotal: number;
   salesTax: number;
+  taxRent: number;
+  taxSale: number;
+  taxWaiver: number;
+  taxCode?: string;
   damageWaiver: number;
+  waiverApplied: boolean;
   total: number;
   deposit: number;
   /** True when productSubtotal is under the caller-supplied rental minimum. */
@@ -696,16 +716,43 @@ export interface QuoteCustomerEvent {
   customerPhone: string;
   customerEmail: string;
   customerAddress?: string;
-  /** YYYY-MM-DD — drives availability check */
+  /** YYYY-MM-DD — date portion of DeliveryDate; drives availability check */
   eventDate: string;
+  /** HH:mm from DeliveryDate datetime (POR has no separate time-window column). */
   eventStartTime: string;
+  /** datetime-local → Transactions.DeliveryDate (date+time live here). */
+  deliveryDateTime?: string;
+  /** datetime-local → Transactions.PickupDate. */
+  pickupDateTime?: string;
   fulfillment: "pickup" | "delivery";
   deliveryAddress?: string;
   locationType?: string;
   venue?: string;
   guestCount?: string;
   themeColors?: string;
+  /** POR Salesman.Name / id */
   salesRep?: string;
+  salesmanId?: string;
+  customerCnum?: string;
+  taxCode?: string;
+  taxExemptNumber?: string;
+  damageWaiverExempt?: boolean;
+  applyDamageWaiver?: boolean;
+  jobSiteId?: string;
+  jobSiteLabel?: string;
+  /** Transactions.Notes */
+  transactionNotes?: string;
+  /** Transactions.DeliveryNotes — do not merge with pickup. */
+  deliveryNotes?: string;
+  /** Transactions.PickupNotes */
+  pickupNotes?: string;
+  /** Read-only CustomerComments.COMMENTS1 */
+  customerComments?: string;
+  /** Read-only CustomerJobSite.SiteNotes */
+  jobSiteNotes?: string;
+  /** Read-only CustomerJobSite.SiteDeliveryInstructions */
+  jobSiteDeliveryInstructions?: string;
+  /** @deprecated use transactionNotes / deliveryNotes / pickupNotes — kept for old queue rows */
   notes?: string;
 }
 

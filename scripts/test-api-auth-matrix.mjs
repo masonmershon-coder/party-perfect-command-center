@@ -64,10 +64,17 @@ function isMachinePath(routePath) {
 }
 
 const AUTH_RE =
-  /requireApiAuth|requireSession|requireOwner|POR_SYNC_SECRET|CRON_SECRET|validateTwilioSignature/;
+  /requireApiAuth|requireSession|requireOwner|POR_SYNC_SECRET|CRON_SECRET|validateTwilioSignature|SENTINEL_COLLECTOR_SECRET|matterHttpGate/;
 
 check("employee lacks owner-only permissions", () => {
-  for (const p of ["marketing", "bookkeeping", "reports", "admin", "sms_ops"]) {
+  for (const p of [
+    "marketing",
+    "bookkeeping",
+    "reports",
+    "admin",
+    "sms_ops",
+    "security",
+  ]) {
     assert.equal(roleHasPermission("employee", p), false);
   }
 });

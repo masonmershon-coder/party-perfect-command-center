@@ -37,6 +37,7 @@ import type {
   QuoteQueueStatus,
   SavedQuote,
 } from "./types";
+import type { WebQuoteInquiry, WebQuoteInquiryStatus } from "./web-quote-inquiry";
 import type { EmailAccount, EmailConnectionInfo } from "./email-accounts";
 import { CORE_AGENT_SLUGS } from "@/lib/user-roles";
 import { connectionHeaders } from "./client-connection-store";
@@ -766,7 +767,15 @@ export async function generateWeeklyRecapReport() {
 export type QuoteCandidateLine = {
   qty: number;
   term: string;
-  candidates: Array<PorCatalogItem & { score: number; learned?: boolean }>;
+  candidates: Array<
+    PorCatalogItem & {
+      score: number;
+      learned?: boolean;
+      viaKitName?: string;
+      viaKitSku?: string;
+      suggestedQuantity?: number;
+    }
+  >;
 };
 
 export async function fetchQuoteCandidates(command: string, perItem = 3) {
@@ -786,6 +795,15 @@ export async function buildQuoteFromMatchesApi(input: {
   customerName?: string;
   eventDate?: string;
   salesRep?: string;
+  taxCode?: string;
+  taxExemptNumber?: string;
+  applyDamageWaiver?: boolean;
+  damageWaiverExempt?: boolean;
+  deliveryDateTime?: string;
+  pickupDateTime?: string;
+  transactionNotes?: string;
+  deliveryNotes?: string;
+  pickupNotes?: string;
 }) {
   return parseJson<{
     quote: Quote;
@@ -807,6 +825,15 @@ export async function buildQuoteApi(input: {
   eventDate?: string;
   salesRep?: string;
   applyRounding?: boolean;
+  taxCode?: string;
+  taxExemptNumber?: string;
+  applyDamageWaiver?: boolean;
+  damageWaiverExempt?: boolean;
+  deliveryDateTime?: string;
+  pickupDateTime?: string;
+  transactionNotes?: string;
+  deliveryNotes?: string;
+  pickupNotes?: string;
 }) {
   return parseJson<{
     quote: Quote;
@@ -901,6 +928,26 @@ export async function fetchSavedQuotes() {
     await fetch("/api/quotes"),
   );
   return payload.quotes;
+}
+
+export async function fetchWebQuoteInquiries() {
+  const payload = await parseJson<{ inquiries: WebQuoteInquiry[] }>(
+    await fetch("/api/quotes/inquiries"),
+  );
+  return payload.inquiries;
+}
+
+export async function updateWebQuoteInquiryApi(
+  id: string,
+  status: WebQuoteInquiryStatus,
+) {
+  return parseJson<{ inquiry: WebQuoteInquiry }>(
+    await fetch(`/api/quotes/inquiries/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+    }),
+  );
 }
 
 export type QuoteGuardPayload = {

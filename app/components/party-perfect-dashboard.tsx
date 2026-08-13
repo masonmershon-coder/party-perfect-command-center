@@ -10,6 +10,7 @@ import { EmailsSection } from "@/app/components/dashboard/emails-section";
 import { MarketingSection } from "@/app/components/dashboard/marketing-section";
 import { HiringSection } from "@/app/components/dashboard/hiring-section";
 import { ReportsSection } from "@/app/components/dashboard/reports-section";
+import { SecuritySection } from "@/app/components/dashboard/security-section";
 import { InventorySection } from "@/app/components/dashboard/inventory-section";
 import { CommandCenterHeader } from "@/app/components/dashboard/page-header";
 import { LiveNotifications } from "@/app/components/dashboard/live-notifications";
@@ -781,6 +782,7 @@ export default function PartyPerfectDashboard() {
             onNavigateReports={() => setActiveSection("reports")}
             onCatchUpOpen={handleCatchUpOpen}
             onSelectAgent={openAgentChat}
+            onNavigateSecurity={() => setActiveSection("security")}
           />
         ) : null;
       case "agents":
@@ -955,6 +957,8 @@ export default function PartyPerfectDashboard() {
         return (
           <MarketingSection marketing={marketing} />
         );
+      case "security":
+        return ownerUnlocked ? <SecuritySection /> : null;
       case "hiring":
         return (
           <HiringSection

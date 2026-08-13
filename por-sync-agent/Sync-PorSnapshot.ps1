@@ -308,15 +308,15 @@ WHERE LEFT(CAST(STAT AS nvarchar(10)),1) IN (N'R', N'O')
 SELECT COUNT(*) FROM dbo.Transactions
 WHERE DeliveryDate IS NOT NULL
   AND CAST(DeliveryDate AS date) = CAST(GETDATE() AS date)
-  AND ISNULL(Archived,0)=0
-  AND ISNULL(Cancelled,0)=0
+  AND $script:PorSqlLive
+  AND UPPER(ISNULL(SUBSTRING(CAST(STAT AS nvarchar(10)),2,1),N' ')) <> N'C'
 "@)
     $returnsDueToday = [int](Get-Scalar $conn @"
 SELECT COUNT(*) FROM dbo.Transactions
 WHERE PickupDate IS NOT NULL
   AND CAST(PickupDate AS date) = CAST(GETDATE() AS date)
-  AND ISNULL(Archived,0)=0
-  AND ISNULL(Cancelled,0)=0
+  AND $script:PorSqlLive
+  AND UPPER(ISNULL(SUBSTRING(CAST(STAT AS nvarchar(10)),2,1),N' ')) <> N'C'
 "@)
   } catch {
     Write-Log ("Transactions deliveries/returns today unavailable: {0}" -f $_.Exception.Message) "WARN"
@@ -542,14 +542,15 @@ WHERE ISNULL(ti.Archived,0)=0
   AND ISNULL(t.Cancelled,0)=0
   AND (t.PickupDate IS NULL OR CAST(t.PickupDate AS date) >= CAST(GETDATE() AS date))
   AND ISNULL(ti.QTY,0) BETWEEN 1 AND 100000
-  AND UPPER(LEFT(LTRIM(RTRIM(CAST(ISNULL(t.STAT, N'') AS nvarchar(10)))), 1)) IN (N'R', N'O', N'Q')
+  AND $(Get-PorScopeSql 'ActivePipeline')
 "@
     $reservationsQueryOk = $true
     foreach ($row in $resRows) {
-      $status = ([string]$row.Status).Trim().ToUpperInvariant()
-      if (-not $status) { continue }
-      $first = $status.Substring(0, 1)
+      # NEVER LTRIM STAT — blank primary = Completed, not padding.
+      $status = [string]$row.Status
+      $first = Get-PorPrimaryChar $status
       if ($first -notin @('R', 'O', 'Q')) { continue }
+      if ((Get-PorSecondaryChar $status) -eq 'C') { continue }
       $firm = ($first -eq 'R' -or $first -eq 'O')
       $delivery = $null
       $pickup = $null

@@ -1,4 +1,5 @@
 import { buildQuote, type QuoteMeta } from "@/lib/quote-engine";
+import type { PorTaxCodeRow } from "@/lib/por-tax";
 import type { DesignMatchedItem, Quote, QuoteLineInput } from "@/lib/types";
 
 /**
@@ -27,9 +28,19 @@ export function buildQuoteFromMatches(input: {
   quantities?: Record<string, number>;
   serviceLines?: QuoteLineInput[];
   meta?: QuoteMeta;
+  taxCode?: string;
+  taxRow?: PorTaxCodeRow | null;
+  taxExemptNumber?: string;
+  applyDamageWaiver?: boolean;
+  damageWaiverExempt?: boolean;
 }): Quote {
   return buildQuote({
     productLines: quoteLinesFromMatches(input.matches, input.quantities || {}),
     serviceLines: input.serviceLines,
+    taxCode: input.taxCode,
+    taxRow: input.taxRow,
+    taxExemptNumber: input.taxExemptNumber,
+    applyDamageWaiver: input.applyDamageWaiver,
+    damageWaiverExempt: input.damageWaiverExempt,
   });
 }

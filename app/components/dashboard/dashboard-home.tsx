@@ -1,6 +1,7 @@
 "use client";
 
 import { CatchUpPanel } from "@/app/components/dashboard/catch-up-panel";
+import { SecurityHealthCard } from "@/app/components/dashboard/security-health-card";
 import { PageHeader } from "@/app/components/dashboard/page-header";
 import {
   PorFreshnessBadge,
@@ -27,6 +28,7 @@ export function DashboardHome({
   onNavigateReports,
   onCatchUpOpen,
   onSelectAgent,
+  onNavigateSecurity,
 }: {
   stats: DashboardStats;
   agents: Agent[];
@@ -42,6 +44,7 @@ export function DashboardHome({
   onNavigateReports: () => void;
   onCatchUpOpen: (item: CatchUpItem, draftReply: boolean) => void;
   onSelectAgent: (agentId: string) => void;
+  onNavigateSecurity?: () => void;
 }) {
   const recentTasks = tasks.slice(0, 5);
   const latestReport = reports[0] ?? null;
@@ -159,6 +162,10 @@ export function DashboardHome({
       {porLive && porMeta ? (
         <PorSyncBanner source="por" porMeta={porMeta} label="ops snapshot" />
       ) : null}
+
+      <SecurityHealthCard
+        onOpenInbox={isOwner ? onNavigateSecurity : undefined}
+      />
 
       <div
         className={`grid gap-4 sm:grid-cols-2 lg:grid-cols-3 ${

@@ -6,9 +6,15 @@ import type { PorReservation, PorReservationState } from "@/lib/types";
  * Availability-by-date / overbooking. Reservations come from POR
  * (Transactions + TransactionItems). Firm holds (Status R or O) reduce
  * availability; soft holds (Q quotes) are pending warnings only.
+ * POR HoldQuoteContracts=True, HOLD_DAYS=4 — quote holds without a pickup
+ * date span delivery .. delivery+4 days. Exact Counter expire-from-create
+ * semantics are unobserved; firm available still excludes quote holds.
  * Total owned qty comes from the full catalog (ItemFile.QTY).
  * Join: reservation.itemKey = ItemFile.NUM (not KEY).
  */
+
+/** POR HoldQuoteContracts HOLD_DAYS. */
+export const QUOTE_HOLD_DAYS = 4;
 const KEY = "por-reservations.json";
 const CACHE_MS = 5 * 60 * 1000;
 let cache: { state: PorReservationState; at: number } | null = null;
@@ -60,11 +66,19 @@ export async function getReservations(): Promise<PorReservationState> {
   return safe;
 }
 
-function coversDate(delivery: string, pickup: string, day: number): boolean {
+function coversDate(
+  delivery: string,
+  pickup: string,
+  day: number,
+  firm: boolean,
+): boolean {
   const del = Date.parse(delivery);
   if (!Number.isFinite(del)) return false;
   const pick = Date.parse(pickup);
-  const end = Number.isFinite(pick) ? pick : del;
+  let end = Number.isFinite(pick) ? pick : del;
+  if (!firm && (!Number.isFinite(pick) || pick === del)) {
+    end = del + QUOTE_HOLD_DAYS * 24 * 60 * 60 * 1000;
+  }
   return day >= del && day <= end;
 }
 
@@ -73,7 +87,10 @@ export interface ItemAvailability {
   total: number;
   firmHeld: number;
   softHeld: number;
+  /** total - firm (POR QYOT-style). Does not subtract quote holds. */
   available: number;
+  /** total - firm - soft quote holds (4-day HoldQuoteContracts). Advisory. */
+  availableLessQuoteHolds: number;
 }
 
 export async function availableOn(
@@ -92,12 +109,20 @@ export async function availableOn(
   if (Number.isFinite(day) && num) {
     for (const r of reservations) {
       if (r.itemKey !== num) continue;
-      if (!coversDate(r.delivery, r.pickup, day)) continue;
+      if (!coversDate(r.delivery, r.pickup, day, r.firm)) continue;
       if (r.firm) firm += r.qty;
       else soft += r.qty;
     }
   }
-  return { itemKey: key, total, firmHeld: firm, softHeld: soft, available: Math.max(0, total - firm) };
+  const available = Math.max(0, total - firm);
+  return {
+    itemKey: key,
+    total,
+    firmHeld: firm,
+    softHeld: soft,
+    available,
+    availableLessQuoteHolds: Math.max(0, available - soft),
+  };
 }
 
 export interface AvailabilityLineResult extends ItemAvailability {

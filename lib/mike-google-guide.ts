@@ -36,7 +36,7 @@ Priorities for Party Perfect:
   linen rental Tulsa, wedding rental Tulsa, dance floor rental Tulsa, corporate event rental Tulsa
 - Title/H1 = intent + Tulsa; body = real inventory + showroom + delivery radius
 - Internal links from home → categories → Get Quote / tel
-- FAQ blocks that answer planner questions (deposit, delivery, showroom hours)
+- FAQ blocks that answer renter questions (deposit, delivery, showroom hours); planners are B2B customers, not who we are
 - Keep claims true to site (1997 roots / 2007 PP / Social Butterfly) — no fake awards
 - Technical: HTTPS, mobile, fast images, unique meta; don’t break existing GA4/AdRoll without Josh OK
 
@@ -66,9 +66,9 @@ Maps wins quotes for “near me” — treat GBP as equal priority to Ads when b
 AI answers prefer clear, repeated facts:
 - Who: Party Perfect Event Rentals (Josh & Michelle Mershon)
 - Where: 8401 E 41st St, Tulsa OK 74145 · 918-258-7368
-- What: full-service event rentals + design (list core lines)
+- What: full-service event rentals (showroom styling help; **not** a wedding/event planning company)
 - Where we deliver: Tulsa metro + NE OK (and linen ship nationwide)
-- How to buy: showroom / Get Quote / call — deposit ~14 days via POR
+- How to buy: showroom / Get Quote (empty cart → partyperfect.app/get-quote) / call — deposit ~14 days via POR
 
 Coach content that AI can cite: FAQ page, About, service-area page, gallery captions.
 Do **not** promise “#1 in ChatGPT.” Promise better entity clarity + reviews + Ads presence.

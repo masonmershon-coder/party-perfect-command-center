@@ -17,7 +17,187 @@
       "summary": "15 commit(s) on 'claude/por-stat-classification' not in main — fixes are written but not deployed",
       "evidence": "git rev-list main..claude/por-stat-classification",
       "opened_at": "2026-08-13T11:30:00.599Z"
+    },
+    {
+      "key": "SENTINEL-PHASE1-REVIEW-001:collector-action-boundary-collapse",
+      "task_id": "SENTINEL-PHASE1-REVIEW-001",
+      "severity": "P1",
+      "code": "collector-action-boundary-collapse",
+      "summary": "AI input screening uses `sentinel.action.quarantine_artifact` both to read signals and quarantine artifacts, combining collection with broker capability; there are only seven unique named identities across eight sections because agent health and cost share a scope.",
+      "evidence": "AI-HANDOFF/sentinel/SENTINEL_PERMISSION_MATRIX.md:109,122-129",
+      "opened_at": "2026-08-13T17:19:19.720Z"
+    },
+    {
+      "key": "SENTINEL-PHASE1-REVIEW-001:pii-secret-redaction-gaps",
+      "task_id": "SENTINEL-PHASE1-REVIEW-001",
+      "severity": "P1",
+      "code": "pii-secret-redaction-gaps",
+      "summary": "SENSITIVE_PII and secrets are not demonstrably unreachable: unrestricted header values, actor identity, replication error strings, and artifact references lack mandatory sanitization and could carry cookies, personal identifiers, credentials, or source text.",
+      "evidence": "AI-HANDOFF/sentinel/SENTINEL_PERMISSION_MATRIX.md:43-45,71-72,84-85,123-125",
+      "opened_at": "2026-08-13T17:19:19.720Z"
+    },
+    {
+      "key": "SENTINEL-PHASE1-REVIEW-001:containment-properties-unspecified",
+      "task_id": "SENTINEL-PHASE1-REVIEW-001",
+      "severity": "P1",
+      "code": "containment-properties-unspecified",
+      "summary": "Auto actions are not defined with enforceable scope, reversal, TTL, and idempotency semantics; rate limits, task pauses, retry stops, snapshot trust changes, notifications, and quarantines lack one or more required properties.",
+      "evidence": "AI-HANDOFF/sentinel/SENTINEL_PERMISSION_MATRIX.md:34,62,75,88,114,128; AI-HANDOFF/EVIDENCE/SENTINEL_ARCHITECTURE_REVIEW_2026-08-13.md:32",
+      "opened_at": "2026-08-13T17:19:19.720Z"
+    },
+    {
+      "key": "SENTINEL-PHASE1-REVIEW-001:identity-isolation-unproven",
+      "task_id": "SENTINEL-PHASE1-REVIEW-001",
+      "severity": "P1",
+      "code": "identity-isolation-unproven",
+      "summary": "Analyst-to-collector and analyst-to-broker isolation is asserted but no identity inventory, ACL, process boundary, broker authorization protocol, or runtime evidence establishes it; the analyst also directly emits proposals toward the broker.",
+      "evidence": "AI-HANDOFF/sentinel/SENTINEL_PERMISSION_MATRIX.md:147-159",
+      "opened_at": "2026-08-13T17:19:19.720Z"
+    },
+    {
+      "key": "SENTINEL-PHASE1-REVIEW-001:healthy-not-evidence-gated",
+      "task_id": "SENTINEL-PHASE1-REVIEW-001",
+      "severity": "P1",
+      "code": "healthy-not-evidence-gated",
+      "summary": "The HEALTHY state has no required evidence source, freshness threshold, transition rule, or fail-closed behavior when watchdog evidence is absent, so the document does not prevent an unsupported HEALTHY report.",
+      "evidence": "AI-HANDOFF/sentinel/SENTINEL_PERMISSION_MATRIX.md:155-168,179",
+      "opened_at": "2026-08-13T17:19:19.720Z"
+    },
+    {
+      "key": "SENTINEL-PHASE1-REVIEW-001:matter-separation-only-asserted",
+      "task_id": "SENTINEL-PHASE1-REVIEW-001",
+      "severity": "P1",
+      "code": "matter-separation-only-asserted",
+      "summary": "No process/account/key/token/write-role/queue/release-approval/health-monitor sharing is asserted but not confirmed by inventories, deployment definitions, credential bindings, queue ACLs, or runtime evidence.",
+      "evidence": "AI-HANDOFF/sentinel/SENTINEL_PERMISSION_MATRIX.md:159; AI-HANDOFF/EVIDENCE/SENTINEL_ARCHITECTURE_REVIEW_2026-08-13.md:35-39",
+      "opened_at": "2026-08-13T17:19:19.720Z"
+    },
+    {
+      "key": "GH-BRIDGE-001:title-injection-forwarded",
+      "task_id": "GH-BRIDGE-001",
+      "severity": "P1",
+      "code": "title-injection-forwarded",
+      "summary": "Injection screening includes the issue title, but the unsanitized title is still copied into the agent-consumed objective, contradicting quarantine guarantees.",
+      "evidence": "AI-HANDOFF/bridge/github-ingest.mjs:120",
+      "opened_at": "2026-08-13T18:59:10.527Z"
+    },
+    {
+      "key": "GH-BRIDGE-001:label-order-demotion",
+      "task_id": "GH-BRIDGE-001",
+      "severity": "P1",
+      "code": "label-order-demotion",
+      "summary": "Routing applies labels sequentially with last-label-wins semantics, so conflicting labels such as p0 and p2 produce different risk tiers depending on GitHub label order instead of failing closed.",
+      "evidence": "AI-HANDOFF/bridge/github-ingest.mjs:74",
+      "opened_at": "2026-08-13T18:59:10.527Z"
+    },
+    {
+      "key": "GH-BRIDGE-001:ingest-failure-reports-ok",
+      "task_id": "GH-BRIDGE-001",
+      "severity": "P1",
+      "code": "ingest-failure-reports-ok",
+      "summary": "A control-plane task creation failure is placed in skipped, but the final bridge health still reports state OK and READ_SUCCEEDED.",
+      "evidence": "AI-HANDOFF/bridge/github-ingest.mjs:185",
+      "opened_at": "2026-08-13T18:59:10.527Z"
+    },
+    {
+      "key": "SEC-HEALTH-PII-001:required-auth-gate-bypassed",
+      "task_id": "SEC-HEALTH-PII-001",
+      "severity": "P1",
+      "code": "required-auth-gate-bypassed",
+      "summary": "The full operational inventory is gated only by readSession(), not requireApiAuth as required by the objective.",
+      "evidence": "app/api/health/route.ts:110",
+      "opened_at": "2026-08-13T19:01:21.749Z"
+    },
+    {
+      "key": "SEC-GATEWAY-WIRE-001:manager-http-case-unproven",
+      "task_id": "SEC-GATEWAY-WIRE-001",
+      "severity": "P1",
+      "code": "manager-http-case-unproven",
+      "summary": "No HTTP session can map to MANAGER; the cited test calls matterHttpGate directly, so it does not prove that a MANAGER-role session is refused por-write by requireApiAuth.",
+      "evidence": "lib/matter-gateway.ts:153",
+      "opened_at": "2026-08-13T19:03:24.737Z"
+    },
+    {
+      "key": "SEC-GATEWAY-WIRE-001:mutation-policy-not-mapped",
+      "task_id": "SEC-GATEWAY-WIRE-001",
+      "severity": "P1",
+      "code": "mutation-policy-not-mapped",
+      "summary": "requireApiAuth maps each permission to a fixed read action, and no application mapping uses por-write, so mutating HTTP operations are not classified by their actual action/resource risk.",
+      "evidence": "lib/matter-http.ts:59",
+      "opened_at": "2026-08-13T19:03:24.737Z"
+    },
+    {
+      "key": "SEC-GATEWAY-WIRE-001:gateway-engine-drift",
+      "task_id": "SEC-GATEWAY-WIRE-001",
+      "severity": "P1",
+      "code": "gateway-engine-drift",
+      "summary": "The HTTP boundary does not use the stated security-gateway engine; it uses a divergent TypeScript copy where inventory-read is tier 1 instead of tier 2 and role/agent policies differ materially.",
+      "evidence": "lib/matter-gateway.ts:14",
+      "opened_at": "2026-08-13T19:03:24.737Z"
+    },
+    {
+      "key": "SENTINEL-APP-001:signal-id-data-leak",
+      "task_id": "SENTINEL-APP-001",
+      "severity": "P1",
+      "code": "signal-id-data-leak",
+      "summary": "Collector-supplied signalIds are accepted as arbitrary strings, bypass text redaction, returned by APIs, and displayed in the owner drilldown, so secrets or PII can leak despite the counts-only claim.",
+      "evidence": "lib/sentinel-inbox.ts:68",
+      "opened_at": "2026-08-13T19:04:35.920Z"
+    },
+    {
+      "key": "SENTINEL-PHASE1-REVIEW-001:read-fields-without-detections",
+      "task_id": "SENTINEL-PHASE1-REVIEW-001",
+      "severity": "P2",
+      "code": "read-fields-without-detections",
+      "summary": "TLS metadata and dependency advisory IDs are readable despite no named TLS or dependency-vulnerability detection, contradicting the rule that every readable field is required by a named detection.",
+      "evidence": "AI-HANDOFF/sentinel/SENTINEL_PERMISSION_MATRIX.md:6-7,43,47",
+      "opened_at": "2026-08-13T17:19:19.720Z"
+    },
+    {
+      "key": "GH-BRIDGE-001:regression-evidence-incomplete",
+      "task_id": "GH-BRIDGE-001",
+      "severity": "P2",
+      "code": "regression-evidence-incomplete",
+      "summary": "Bridge tests reproduced 14/14, but gateway execution stopped after one assertion because it writes SECURITY_AUDIT.jsonl, while the sentinel suite is also filesystem-mutating; only static counts of 14 and 25 assertions were independently established.",
+      "evidence": "AI-HANDOFF/matter/security-gateway.mjs:134",
+      "opened_at": "2026-08-13T18:59:10.527Z"
+    },
+    {
+      "key": "SEC-HEALTH-PII-001:security-test-unproven",
+      "task_id": "SEC-HEALTH-PII-001",
+      "severity": "P2",
+      "code": "security-test-unproven",
+      "summary": "npm run test:security exits nonzero during the Matter gateway test with EPERM, while health-specific checks only inspect source text and do not execute authenticated and unauthenticated requests.",
+      "evidence": "scripts/check-security-regression.mjs:29",
+      "opened_at": "2026-08-13T19:01:21.749Z"
+    },
+    {
+      "key": "SEC-GATEWAY-WIRE-001:audit-not-http-proven",
+      "task_id": "SEC-GATEWAY-WIRE-001",
+      "severity": "P2",
+      "code": "audit-not-http-proven",
+      "summary": "SECURITY_AUDIT.jsonl contains the claimed decisions, but they were generated by direct unit calls labeled matter_http rather than demonstrated authenticated HTTP requests.",
+      "evidence": "scripts/test-matter-http-gateway.ts:29",
+      "opened_at": "2026-08-13T19:03:24.737Z"
+    },
+    {
+      "key": "SENTINEL-APP-001:future-watchdog-fake-green",
+      "task_id": "SENTINEL-APP-001",
+      "severity": "P2",
+      "code": "future-watchdog-fake-green",
+      "summary": "A HEALTHY watchdog timestamp arbitrarily far in the future is treated as fresh because only ages greater than 15 minutes are rejected; negative ages are accepted.",
+      "evidence": "lib/sentinel-health.ts:81",
+      "opened_at": "2026-08-13T19:04:35.920Z"
+    },
+    {
+      "key": "SENTINEL-APP-001:security-test-unproven",
+      "task_id": "SENTINEL-APP-001",
+      "severity": "P2",
+      "code": "security-test-unproven",
+      "summary": "npm run test:security did not pass end-to-end: the tsx CLI was blocked by IPC permissions, and loader-based execution exposed a failing Matter audit assertion, so the expected regression result is not established.",
+      "evidence": "scripts/test-matter-http-gateway.ts",
+      "opened_at": "2026-08-13T19:04:35.920Z"
     }
   ],
-  "updated_at": "2026-08-13T16:55:26.999Z"
+  "updated_at": "2026-08-13T19:04:35.920Z"
 }

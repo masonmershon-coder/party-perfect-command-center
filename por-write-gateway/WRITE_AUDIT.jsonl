@@ -1,0 +1,5 @@
+{"at":"2026-08-13T19:22:55.162Z","audit_id":"3b973c225364","idempotency_key":"idem-aiparty-0001","actor":"claude","state":"DRY_RUN","items":1}
+{"at":"2026-08-13T19:22:55.162Z","audit_id":"d34d6898352c","idempotency_key":"idem-aiparty-0001","actor":"claude","state":"DUPLICATE_SUPPRESSED"}
+{"at":"2026-08-13T19:22:55.163Z","audit_id":"dce43a8ce346","idempotency_key":"idem-noapproval-1","state":"REFUSED_NO_APPROVAL"}
+{"at":"2026-08-13T19:22:55.163Z","audit_id":"317c4868599d","idempotency_key":"idem-approved-1","actor":"claude","state":"COMMIT_ATTEMPTED","approval_ref":"mason-2026-08-13"}
+{"at":"2026-08-13T19:22:55.163Z","audit_id":"317c4868599d","idempotency_key":"idem-approved-1","state":"REFUSED_NO_ADAPTER","reason":"REFUSED: no write adapter exists. Stage A is dry-run only."}

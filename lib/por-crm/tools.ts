@@ -12,6 +12,7 @@ import {
   searchCustomers as searchPgCustomers,
 } from "@/lib/por-db";
 import { lookupInventory } from "@/lib/inventory-lookup";
+import { formatPorStatusPlain } from "@/lib/por-status";
 
 export const POR_CRM_TOOL_NAMES = [
   "por_customer_history",
@@ -343,6 +344,7 @@ function formatHistoryForAgent(
       cntr: c.cntr,
       date: c.date,
       stat: c.stat,
+      statusPlain: formatPorStatusPlain(c.stat),
       deliveryDate: c.deliveryDate,
       pickupDate: c.pickupDate,
       contact: showPii ? c.contact : undefined,

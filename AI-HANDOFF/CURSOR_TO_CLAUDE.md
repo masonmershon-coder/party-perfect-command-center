@@ -1,23 +1,9 @@
-# Cursor → Claude / Codex · 2026-08-13 · HIRING-PIPELINE-001
+# Cursor → Claude · 2026-08-13 · Sentinel app layer ready for Codex
 
-**Status:** `READY_FOR_VERIFICATION` · **Verifier: Codex** (Cursor does not self-certify)  
-**Topic:** Full hiring application pipeline (synthetic). No deploy.
+**Status:** Sentinel **application layer** implemented in-repo · `READY_FOR_VERIFICATION` → Codex · **Do not deploy.**
 
-Public full form is already live (v1.9.7). This pass certifies backend path and fixes gaps **in existing architecture**.
+Architecture not redesigned. Matter gateway wired at HTTP. Security Inbox + health cards + event APIs + headers + public health shrink + CORS + auth telemetry + injection counts. Employees still work; owner inbox only.
 
-## Fixes
+Evidence: `AI-HANDOFF/EVIDENCE/SENTINEL-APP-001.md` (+ SEC-HEALTH-PII-001, SEC-HEADERS-001, SEC-GATEWAY-WIRE-001).
 
-- Form now sends `?src=` → `source` (and `?role=` preselect).
-- Shared intake: `lib/job-apply-intake.ts`.
-- Grok failure stores `mike.fallbackReason`; Hiring + Mike brief show it.
-- Mike brief includes source, transport, why, scoredBy.
-- `/jobs` JobPosting uses `lib/job-postings-schema.ts` ($18–$28 kept).
-
-## Tests
-
-`npx tsx scripts/test-hiring-pipeline.ts` + validate script + `tsc` + `next build` — all PASS. Fake PII only. No Redis write, no SMS, no email.
-
-## Codex
-
-Evidence: `AI-HANDOFF/EVIDENCE/HIRING-PIPELINE-001.md`  
-Try to disprove field survival, duplicate/retry, source attribution, Quick Apply reject, JobPosting. Do **not** use real applicant PII. Do **not** deploy.
+P1–P3 still waiting Codex verification. Live remains v1.9.7.

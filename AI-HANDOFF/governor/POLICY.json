@@ -9,6 +9,19 @@
     "per_task_ceiling": null,
     "per_agent_ceiling": {}
   },
+  "subscription_compute": {
+    "enabled": true,
+    "approved_by": "mason (2026-08-13: handle Cursor->Codex verification automatically)",
+    "approved_at": "2026-08-13T16:41:44.584Z",
+    "runtimes": {
+      "codex": {
+        "basis": "subscription",
+        "auth": "chatgpt",
+        "note": "auth_mode=chatgpt, OPENAI_API_KEY null — cannot generate metered charges"
+      }
+    },
+    "max_runs_per_day": 40
+  },
   "limits": {
     "max_retries": 1,
     "max_repair_loops": 2,

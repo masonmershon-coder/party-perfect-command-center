@@ -2,3 +2,5 @@
 # This is NOT action/production approval. It only permits spending paid AI
 # resources on that task. Both gates must pass independently.
 # "*" would approve everything — deliberately not set.
+CODEX-ACCESS-SMOKE-001
+COMMAND-CENTER-EE42DA

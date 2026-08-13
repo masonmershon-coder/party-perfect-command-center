@@ -58,6 +58,17 @@ export const DEFAULT_POLICY = {
     per_task_ceiling: null,
     per_agent_ceiling: {},
   },
+  // Runtimes authenticated against a FLAT SUBSCRIPTION cannot produce a variable
+  // bill -- they consume plan quota. Gating them on a dollar ceiling is
+  // meaningless, so they get their own switch and a daily run cap instead.
+  // Metered/pay-as-you-go runtimes stay under autonomous_paid_compute.
+  subscription_compute: {
+    enabled: false,
+    approved_by: null,
+    approved_at: null,
+    runtimes: {},
+    max_runs_per_day: 40
+  },
   limits: {
     max_retries: 1,
     max_repair_loops: 2,
@@ -273,6 +284,21 @@ export function releaseEmergencyStop() {
  * The single decision point. Every paid invocation in the system must call this
  * and honour a non-ALLOWED result. Order matters: cheapest/hardest stops first.
  */
+/**
+ * Is this runtime billed per-use, or covered by a flat subscription?
+ * Subscription runtimes are declared explicitly in policy — never inferred,
+ * so a runtime cannot quietly reclassify itself into the cheaper gate.
+ */
+export function costBasis(runtime, policy = loadPolicy()) {
+  const entry = policy.subscription_compute?.runtimes?.[runtime];
+  return entry?.basis === "subscription" ? "subscription" : "metered";
+}
+
+function runsToday(runtime, ledger) {
+  const day = now().slice(0, 10);
+  return ledger.filter((r) => r.runtime === runtime && r.status === "STARTED" && String(r.at || "").startsWith(day)).length;
+}
+
 export function authorizePaidCompute(task, opts = {}) {
   const policy = opts.policy || loadPolicy();
   const agent = opts.agent || task.owner_agent || "unknown";
@@ -281,11 +307,25 @@ export function authorizePaidCompute(task, opts = {}) {
   if (emergencyStopEngaged())
     return deny(CODES.EMERGENCY_STOP, "emergency stop is engaged");
 
-  if (!masterSwitchOn(policy))
-    return deny(CODES.MASTER_OFF, "AUTONOMOUS_PAID_COMPUTE is OFF");
+  const runtime = opts.runtime || task.runtime || null;
+  const basis = runtime ? costBasis(runtime, policy) : "metered";
+  const sub = policy.subscription_compute || {};
 
-  if (!budgetApproved(policy))
-    return deny(CODES.NO_BUDGET, "no owner-approved budget with a monthly ceiling");
+  if (basis === "subscription") {
+    // Flat-plan runtime: no dollar ceiling applies, but it still needs an
+    // explicit owner switch and a run-rate cap.
+    if (!sub.enabled || !sub.approved_by)
+      return deny(CODES.MASTER_OFF, `subscription compute is OFF for ${runtime}`);
+    const used = runsToday(runtime, opts.ledger || readLedger());
+    const cap = sub.max_runs_per_day ?? 40;
+    if (used >= cap)
+      return deny(CODES.BUDGET_EXCEEDED, `${runtime} hit its daily run cap (${used}/${cap})`);
+  } else {
+    if (!masterSwitchOn(policy))
+      return deny(CODES.MASTER_OFF, "AUTONOMOUS_PAID_COMPUTE is OFF");
+    if (!budgetApproved(policy))
+      return deny(CODES.NO_BUDGET, "no owner-approved budget with a monthly ceiling");
+  }
 
   if (!hasComputeApproval(task))
     return deny(CODES.NOT_APPROVED, `${task.task_id} has no compute approval`);

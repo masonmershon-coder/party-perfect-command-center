@@ -63,7 +63,7 @@ export async function runPaidRuntime({
   repairCount = 0,
 }) {
   const policy = loadPolicy();
-  const decision = authorizePaidCompute(task, { agent, policy, repairCount });
+  const decision = authorizePaidCompute(task, { agent, policy, repairCount, runtime });
 
   if (!decision.allowed) {
     appendLedger({

@@ -15,6 +15,7 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import path from "node:path";
 import { runPaidRuntime } from "../governor/runner.mjs";
+import { recordUsage } from "../governor/accounting.mjs";
 import {
   HANDOFF_DIR,
   REPO_DIR,
@@ -271,6 +272,12 @@ export async function verifyTask(taskId) {
 
   const evidenceRef = path.relative(REPO_DIR, run.outFile);
 
+  // Codex prints "tokens used\n<N>" at the end of a run. Capture it so the cost
+  // ledger records real usage instead of UNKNOWN. Subscription auth means this
+  // is plan quota, not dollars -- tokens are the only true meter we get.
+  const tokenMatch = String(run.stdout).match(/tokens used\s*[\r\n]+\s*([\d,]+)/i);
+  const tokensUsed = tokenMatch ? Number(tokenMatch[1].replace(/,/g, "")) : null;
+
   if (parsed.verdict === "CERTIFIED_PASS") {
     clearFindings(taskId);
     transition(taskId, "CERTIFIED_PASS", { result: parsed.summary, evidence: evidenceRef });
@@ -295,7 +302,17 @@ export async function verifyTask(taskId) {
     checked: parsed.checked,
     evidence: evidenceRef,
     codex_version: probe.version || null,
+    tokens: tokensUsed ?? "UNKNOWN",
   });
+  if (tokensUsed != null) {
+    recordUsage({
+      task_id: taskId, agent: AGENT, provider: "openai", runtime: "codex",
+      model: "UNKNOWN", total_tokens: tokensUsed, status: "COMPLETED",
+      cost_amount: null, cost_classification: "FIXED_SUBSCRIPTION",
+      project: "codex-audit", trigger_source: "codex/dispatch",
+      result: parsed.verdict,
+    });
+  }
 
   refreshAll({ worker_health: { [worker]: { available: true, version: probe.version, checked_at: now() } } });
   plane(["heartbeat", AGENT, "idle"]);

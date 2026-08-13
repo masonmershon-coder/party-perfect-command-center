@@ -9,3 +9,6 @@
 {"at":"2026-08-12T21:50:30.140Z","task_id":"PP-SEC-001","by":"codex","reason":"Codex CLI not found on PATH (looked for \"codex\")","escalate":"agent"}
 {"at":"2026-08-12T21:55:10.764Z","task_id":"GOV-INT-001","by":"codex","reason":"Codex CLI not found on PATH (looked for \"codex\")","escalate":"agent"}
 {"at":"2026-08-12T21:56:40.559Z","task_id":"GOV-INT-001","by":"codex","reason":"Codex CLI not found on PATH (looked for \"codex\")","escalate":"agent"}
+{"at":"2026-08-13T16:40:47.892Z","task_id":"COMMAND-CENTER-EE42DA","by":"codex","reason":"BLOCKED_PAID_COMPUTE: AUTONOMOUS_PAID_COMPUTE is OFF","escalate":"agent"}
+{"at":"2026-08-13T16:40:49.409Z","task_id":"CODEX-ACCESS-SMOKE-001","by":"codex","reason":"BLOCKED_PAID_COMPUTE: AUTONOMOUS_PAID_COMPUTE is OFF","escalate":"agent"}
+{"at":"2026-08-13T16:43:36.191Z","task_id":"CODEX-ACCESS-SMOKE-001","by":"codex","reason":"Workspace writes are blocked by the read-only sandbox and approval settings, so Codex cannot produce the required on-disk verdict or control-plane transition.","escalate":"agent"}

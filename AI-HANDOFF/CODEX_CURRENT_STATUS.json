@@ -1,19 +1,19 @@
 {
-  "health": "RED",
-  "generated_at": "2026-08-13T11:30:00.603Z",
-  "last_verified_at": "2026-08-12T21:56:40.570Z",
+  "health": "YELLOW",
+  "generated_at": "2026-08-13T16:43:36.202Z",
+  "last_verified_at": "2026-08-13T16:43:36.196Z",
   "counts": {
     "open_p0": 0,
     "open_p1": 2,
-    "awaiting_verification": 1,
+    "awaiting_verification": 0,
     "codex_verifying": 0,
     "needs_fix": 0,
-    "blocked_total": 6,
-    "blocked_on_mason": 0,
-    "claude_tasks": 3,
-    "cursor_tasks": 5,
-    "certified_pass": 0,
-    "total_tasks": 8
+    "blocked_total": 7,
+    "blocked_on_mason": 1,
+    "claude_tasks": 5,
+    "cursor_tasks": 15,
+    "certified_pass": 1,
+    "total_tasks": 22
   },
   "open_p0": [],
   "open_p1": [
@@ -36,34 +36,32 @@
       "opened_at": "2026-08-13T11:30:00.599Z"
     }
   ],
-  "awaiting_verification": [
+  "awaiting_verification": [],
+  "blocked_on_mason": [
     {
-      "task_id": "COMMAND-CENTER-EE42DA",
-      "objective": "Add AI autonomy smoke marker file to prove repair loop",
-      "owner": "cursor",
-      "since": "2026-08-12T21:58:14.605Z",
-      "stale": true
+      "task_id": "CODEX-ACCESS-SMOKE-001",
+      "objective": "Harmless access proof: read this task from AI-HANDOFF, read one evidence file, inspect git state, and write a verdict back. No code changes.",
+      "reason": "Workspace writes are blocked by the read-only sandbox and approval settings, so Codex cannot produce the required on-disk verdict or control-plane transition."
     }
   ],
-  "blocked_on_mason": [],
   "worker_health": {
     "codex-local": {
-      "available": false,
-      "reason": "Codex CLI not found on PATH (looked for \"codex\")",
-      "checked_at": "2026-08-12T21:56:40.446Z"
+      "available": true,
+      "version": "codex-cli 0.147.0",
+      "checked_at": "2026-08-13T16:42:55.245Z"
     }
   },
   "codex_heartbeat": {
-    "current_task": "GOV-INT-001",
+    "current_task": "CODEX-ACCESS-SMOKE-001",
     "state": "verifying",
     "blocked_reason": null,
-    "last_seen": "2026-08-12T21:56:40.436Z"
+    "last_seen": "2026-08-13T16:42:56.443Z"
   },
   "codex_silent": false,
   "confidence": {
-    "level": "low",
-    "certified_ratio": 0,
-    "certified": 0,
+    "level": "high",
+    "certified_ratio": 1,
+    "certified": 1,
     "finished": 1
   },
   "evidence": {

@@ -1,0 +1,410 @@
+diff --git a/AI-HANDOFF/DECISIONS.md b/AI-HANDOFF/DECISIONS.md
+index 40b2367..682d0d7 100644
+--- a/AI-HANDOFF/DECISIONS.md
++++ b/AI-HANDOFF/DECISIONS.md
+@@ -105,3 +105,44 @@ Approved decisions worth preserving. Keep short. No secrets.
+ 
+ - **Decision:** `/time` is the standalone, role-aware application. Employee sees the small My Time / requests experience. Shelly signs into the same app and receives Review, Employees, Time Off, and Payroll tools. Mason receives Time Admin plus Security. Michelle receives complete owner/payroll/security access. Command Center remains an optional mirror/deep link over the **same `/api/time/*` backend**; Shelly never needs Command Center for normal Time administration. No duplicate Time data or workflows.
+ - **Source:** Mason architecture correction (PP-TIME-001, 2026-08-14).
++
++---
++
++## 2026-08-17 — PERMANENT: Business agents are roles, not providers (Matter policy 1.1.0)
++
++**Decision.** Party Perfect business agents represent responsibilities, not AI vendors. Matter
++dynamically assigns authorized workers, models and tools according to current capability, quality,
++reliability, availability, privacy and cost. Providers are replaceable. Capabilities do not grant
++authority. Deterministic software is preferred when intelligence is unnecessary. Matter controls
++paid compute escalation and may reassign any business role to a better authorized worker without
++changing the role's identity or history.
++
++**Authoritative location:** `AI-HANDOFF/matter/MATTER_POLICY.json` (extended in place — no new
++disconnected policy file). Version **1.1.0+b749d6f63bea** (content-addressed: any edit mints a new
++version and previously-recorded acks correctly go stale).
++
++**Executable, not just documented:**
++- Cost ladder deterministic → local → low-cost → standard → frontier, applied **only among workers
++  that already satisfy every hard requirement**, so cheap can never override safety or capability.
++- Deterministic-first gate: a task needing no judgement returns `route: DETERMINISTIC_SOFTWARE`
++  and wakes no model.
++- Worker contract extended with `estimated_cost`, `latency_class`, `local_or_remote`,
++  `data_boundaries`, `quality_history`, `verification_history` — defaulting to **UNKNOWN**, never
++  fabricated. UNKNOWN cost is treated as *standard*, never as cheap.
++- Matter owns escalation; workers may report a need but may not self-escalate into paid compute.
++
++**Safety bug found and fixed during implementation:** the first deterministic-first gate treated an
++*unrecognised* capability name as "deterministic", which let a permission-gated task (e.g. a POR
++write) skip the eligibility checks. Now any task carrying `required_permissions`, a protected
++action, or a verification requirement is barred from the short-circuit, and an unknown capability
++name counts as thinking. Regression tests R1/R2 lock this in.
++
++**Remaining hard-coded routes (classified):**
++- `control-plane.mjs` `SUBSYSTEM_OWNER` (18 literals) — **ARCHITECTURAL LOCK-IN**, scheduled for
++  provider-neutral replacement at V2 cutover.
++- `matter/orchestrate.mjs` `WORKERS` + `dispatchParallel(["cursor","codex"])` (6 literals) —
++  **ARCHITECTURAL LOCK-IN**, same cutover.
++- Both left functioning deliberately: production workflows must not be broken for theoretical purity.
++- `matter-registry.mjs` — **0 provider literals in routing logic**, asserted by test 9.
++
++**Tests:** 13/13 provider-neutrality + cost routing; 17/17 existing V1 suite (no regressions).
+diff --git a/AI-HANDOFF/PARTY_PERFECT_BRAIN_MANIFEST.json b/AI-HANDOFF/PARTY_PERFECT_BRAIN_MANIFEST.json
+index b456c8c..61f3170 100644
+--- a/AI-HANDOFF/PARTY_PERFECT_BRAIN_MANIFEST.json
++++ b/AI-HANDOFF/PARTY_PERFECT_BRAIN_MANIFEST.json
+@@ -67,7 +67,9 @@
+         "Codex returned NOT_READY_FOR_V2_CUTOVER (access); bundle now provided",
+         "acks are not cryptographically authenticated",
+         "all capabilities DECLARED, none MEASURED"
+-      ]
++      ],
++      "policy_version": "1.1.0+b749d6f63bea",
++      "cost_routing": "implemented (ladder applied only among eligible workers)"
+     },
+     "autonomy_execution_substrate": {
+       "status": "BUILT + TESTED, NOT RUNNING",
+@@ -206,5 +208,12 @@
+     "time_deploy": "HELD",
+     "watchdog": "UNARMED and NOT INSTALLED",
+     "reboot": "NOT PERFORMED"
++  },
++  "matter_policy": {
++    "version": "1.1.0+b749d6f63bea",
++    "location": "AI-HANDOFF/matter/MATTER_POLICY.json",
++    "statement": "Business agents represent responsibilities, not AI vendors. Providers are replaceable. Capability != authority. Deterministic software preferred. Matter controls paid escalation.",
++    "decision_recorded": "AI-HANDOFF/DECISIONS.md 2026-08-17",
++    "tests": "13/13 provider-neutrality, 17/17 V1"
+   }
+ }
+diff --git a/AI-HANDOFF/matter/MATTER_POLICY.json b/AI-HANDOFF/matter/MATTER_POLICY.json
+index 9a29fe0..c30ad8a 100644
+--- a/AI-HANDOFF/matter/MATTER_POLICY.json
++++ b/AI-HANDOFF/matter/MATTER_POLICY.json
+@@ -1,9 +1,21 @@
+ {
+   "policy_id": "MATTER_PROVIDER_NEUTRAL_ORCHESTRATION",
+-  "semver": "1.0.0",
+-  "effective": "2026-08-15",
++  "semver": "1.1.0",
++  "effective": "2026-08-17",
+   "principle": "STABLE MATTER. STABLE BUSINESS AGENTS. REPLACEABLE INTELLIGENCE. DYNAMIC ROUTING. DURABLE MEMORY. VERIFIED WORK. OWNER CONTROL.",
++  "policy_statement": "Party Perfect business agents represent responsibilities, not AI vendors. Matter dynamically assigns authorized workers, models and tools according to current capability, quality, reliability, availability, privacy and cost. Providers are replaceable. Capabilities do not grant authority. Deterministic software is preferred when intelligence is unnecessary. Matter controls paid compute escalation and may reassign any business role to a better authorized worker without changing the role's identity or history.",
+   "rules": {
++    "agents_are_roles_not_providers": "Business agents (mike, madison, hiring, time_watch, inbox_watch, security, operations, marketing, accounting) are stable BUSINESS ROLES. An agent identity must never mean 'the Claude agent' or 'the Grok agent'. Role identity, business rules, permissions, memory, task history and audit history persist unchanged when the underlying worker changes.",
++    "deterministic_first": "Never use an LLM for work ordinary software can reliably perform. Checking whether new email exists, whether an employee missed a punch, synchronizing Square records, checking heartbeat age, copying brain files — all deterministic. Wake an AI only when judgment, reasoning, communication, generation, planning, research or interpretation is genuinely required.",
++    "cost_ladder": "Default routing preference, cheapest capable option first: (1) deterministic software, (2) local / zero-marginal-cost compute, (3) low-cost model or API, (4) standard model or API, (5) expensive/frontier model or agent. Move up a rung only when the task actually requires the additional capability.",
++    "cheap_never_overrides_safety": "Cost preference applies only among workers that already satisfy the required capability, permission, privacy and verification level. Cheap must never override safety or a required capability.",
++    "no_agent_self_escalation": "A worker may report 'I need capability X', 'I cannot complete this', 'confidence is low', or 'another capability would improve this'. It may NOT escalate itself into paid compute outside Matter's approved budget and permission policy. MATTER OWNS ESCALATION.",
++    "capability_is_not_authority": "A declared or newly-discovered capability is a CLAIM until Matter verifies it. A provider update never automatically increases permissions or routing trust. CAPABILITY != AUTHORITY.",
++    "new_provider_onboarding": "A new provider joins by registering against the standard worker contract — registration, policy acknowledgement, health/availability proof, capability declaration, capability verification, permission assignment. Adding a provider must never require rewriting the routing engine.",
++    "multi_worker_tasks": "Matter may split one task across workers (deterministic detection -> low-cost classification -> specialist handling -> independent verification). No requirement that one provider perform an entire workflow.",
++    "roles_may_move_providers": "Matter may reassign a business role's runtime when another authorized worker is better, cheaper, faster, more reliable, more capable, more private or more appropriate — without erasing the role's identity, rules, history, memory, permissions or responsibilities.",
++    "no_permanent_category_ownership": "No provider owns a task category because it historically performed it. 'Coding = always Cursor', 'Verification = always Codex', 'Operations = always Claude', 'Research = always Grok' are acceptable CURRENT OPTIMIZATIONS, never permanent rules.",
++    "no_invented_measurement": "If cost, quality, latency or reliability is unknown, record UNKNOWN. Never fabricate precision.",
+     "provider_neutrality": "Matter owns the jobs. AI providers are replaceable workers. No provider is permanently assigned to a job. Routing is by CAPABILITY, never by provider name.",
+     "stable_agents": "Business agents (Mike=hiring/people, Madison=marketing/design) are stable roles. The intelligence executing for them is not.",
+     "builder_not_verifier": "For high-risk work Matter prefers builder != verifier. Required for: production deployment, authentication/security, payroll, POR writes, financial operations, database migrations, destructive actions, permission changes.",
+@@ -26,6 +38,22 @@
+     "permission_change",
+     "database_migration"
+   ],
++  "cost_classes": {
++    "deterministic": { "rung": 1, "relative_cost": 0, "note": "plain software; no model call" },
++    "local": { "rung": 2, "relative_cost": 0, "note": "local model / zero marginal cost" },
++    "subscription": { "rung": 3, "relative_cost": 1, "note": "flat-rate seat; no per-call charge" },
++    "low_cost_api": { "rung": 3, "relative_cost": 2 },
++    "standard_api": { "rung": 4, "relative_cost": 5 },
++    "frontier": { "rung": 5, "relative_cost": 20 },
++    "UNKNOWN": { "rung": 4, "relative_cost": null, "note": "unknown cost is treated as standard and never as cheap" }
++  },
++  "budget_dimensions": ["daily_total", "monthly_total", "provider_total", "model_total", "business_agent_total", "task_workflow_total"],
++  "worker_contract_fields": [
++    "worker_id", "provider", "model", "version", "capabilities", "capability_provenance",
++    "permissions", "availability", "health", "cost_class", "estimated_cost", "latency_class",
++    "local_or_remote", "data_boundaries", "policy_version_ack", "last_heartbeat",
++    "quality_history", "verification_history"
++  ],
+   "heartbeat_max_age_minutes": 60,
+   "verification_required_for": [
+     "production_deployment",
+diff --git a/AI-HANDOFF/matter/matter-registry.mjs b/AI-HANDOFF/matter/matter-registry.mjs
+index 20ca58d..b2e1387 100644
+--- a/AI-HANDOFF/matter/matter-registry.mjs
++++ b/AI-HANDOFF/matter/matter-registry.mjs
+@@ -75,7 +75,15 @@ export function register(input) {
+     detect: input.detect ?? prev.detect ?? null,           // real availability probe (argv array or string)
+     capabilities: input.capabilities ?? prev.capabilities ?? {},
+     permissions: input.permissions ?? prev.permissions ?? {},
+-    cost_class: input.cost_class ?? prev.cost_class ?? null,
++    // --- standard worker contract (policy: worker_contract_fields) ---
++    // UNKNOWN is a real, recorded value. Never fabricate cost/latency/quality precision.
++    cost_class: input.cost_class ?? prev.cost_class ?? "UNKNOWN",
++    estimated_cost: input.estimated_cost ?? prev.estimated_cost ?? "UNKNOWN",
++    latency_class: input.latency_class ?? prev.latency_class ?? "UNKNOWN",
++    local_or_remote: input.local_or_remote ?? prev.local_or_remote ?? "UNKNOWN",
++    data_boundaries: input.data_boundaries ?? prev.data_boundaries ?? "UNKNOWN",
++    quality_history: prev.quality_history ?? { samples: 0, verified_pass: 0 },
++    verification_history: prev.verification_history ?? { verified: 0, rejected: 0 },
+     context_tokens: input.context_tokens ?? prev.context_tokens ?? null,
+     limitations: input.limitations ?? prev.limitations ?? [],
+     // operational state — only ever set by a real probe/heartbeat, never by register()
+@@ -177,6 +185,45 @@ export function scoreFor(worker_id, task_category = null) {
+   return { score: Number(((good - bad) / n).toFixed(3)), samples: n };
+ }
+ 
++// ---- cost ladder (policy-driven; no provider names) ---------------------
++/** Rung on the cost ladder. UNKNOWN is treated as STANDARD, never as cheap. */
++export function costRung(policy, cost_class) {
++  const table = policy.cost_classes || {};
++  const entry = table[cost_class] || table.UNKNOWN;
++  return entry?.rung ?? 4;
++}
++export function relativeCost(policy, cost_class) {
++  const table = policy.cost_classes || {};
++  const entry = table[cost_class] || table.UNKNOWN;
++  return entry?.relative_cost ?? null;
++}
++/**
++ * Deterministic-first gate. A task that declares no need for judgement/reasoning/generation
++ * must NOT wake a model — the caller is told to run plain software instead. This is the rule
++ * that stops an LLM being used for "is there new email" or "is a heartbeat stale".
++ */
++export function requiresIntelligence(task) {
++  if (task.requires_intelligence === true) return true;
++  const caps = Object.keys(task.required_capabilities || {});
++  // A task that names ANY capability is not deterministic — an unrecognised capability name is
++  // NOT evidence that plain software can do the work. Defaulting unknown names to "deterministic"
++  // let a permission-gated task skip the eligibility checks entirely; treat unknown as thinking.
++  if (caps.length > 0) return true;
++  if (task.requires_intelligence === false) return false;
++  return false;
++}
++/**
++ * May the deterministic short-circuit be taken at all? Never for consequential work: anything
++ * requiring a permission, a protected action, or independent verification must go through the
++ * full eligibility gate so it can be BLOCKED rather than quietly declared "deterministic".
++ */
++export function deterministicShortCircuitAllowed(task, { needsVerification, isProtected }) {
++  if ((task.required_permissions || []).length > 0) return false;
++  if (isProtected) return false;
++  if (needsVerification) return false;
++  return true;
++}
++
+ // ---- the router --------------------------------------------------------
+ /**
+  * Select PRIMARY (+ VERIFIER when policy requires one) for a task, by capability.
+@@ -195,6 +242,22 @@ export function route(task) {
+   const isProtected = (task.protected_actions || []).some((a) => p.protected_actions.includes(a));
+   const maxAgeMs = (p.heartbeat_max_age_minutes ?? 60) * 60000;
+ 
++  // DETERMINISTIC-FIRST: if the task needs no judgement, refuse to select a model at all.
++  // Returning early (rather than picking a cheap worker) is the point — plain software runs it.
++  if (!requiresIntelligence(task) && deterministicShortCircuitAllowed(task, { needsVerification, isProtected })) {
++    const decision = {
++      kind: "ROUTING_DECISION", task_id: task.task_id || null, objective: task.objective || null,
++      task_category: task.task_category || null, policy_version: p.version,
++      required_capabilities: required, needs_verification: needsVerification, protected: isProtected,
++      primary: null, verifier: null, blocked: false,
++      route: "DETERMINISTIC_SOFTWARE",
++      selection_basis: "task declares no need for judgement/reasoning/generation — deterministic software must handle it; no model invoked",
++      owner_approval_required: isProtected, considered: [],
++    };
++    append(ROUTES, decision);
++    return decision;
++  }
++
+   const considered = [];
+   for (const w of Object.values(reg.workers)) {
+     const reasons = [];
+@@ -216,12 +279,23 @@ export function route(task) {
+       reasons.push(`policy not acknowledged (has ${w.policy_version_ack || "none"}, current ${p.version})`);
+ 
+     const s = scoreFor(w.worker_id, task.task_category);
+-    considered.push({ worker_id: w.worker_id, eligible: reasons.length === 0, reasons, score: s.score, samples: s.samples, latency_ms: w.latency_ms, cost_class: w.cost_class });
++    considered.push({ worker_id: w.worker_id, eligible: reasons.length === 0, reasons, score: s.score, samples: s.samples,
++      latency_ms: w.latency_ms, cost_class: w.cost_class, cost_rung: costRung(p, w.cost_class), relative_cost: relativeCost(p, w.cost_class) });
+   }
+ 
+-  // Rank: proven score first (nulls last, never invented), then lower latency, then name for determinism.
++  // Rank. ELIGIBILITY IS DECIDED FIRST (capability, permission, availability, policy) — cost only
++  // ever breaks ties AMONG workers that already satisfy every hard requirement, so cheap can never
++  // override safety or a required capability (policy: cheap_never_overrides_safety).
++  //   1. proven quality score (nulls last — never invented)
++  //   2. cheapest rung on the cost ladder (deterministic -> local -> low-cost -> standard -> frontier)
++  //   3. lower relative cost within the rung
++  //   4. lower measured latency
++  //   5. worker_id, purely for deterministic ordering
+   const eligible = considered.filter((c) => c.eligible).sort((a, b) => {
+     if ((b.score ?? -Infinity) !== (a.score ?? -Infinity)) return (b.score ?? -Infinity) - (a.score ?? -Infinity);
++    if (a.cost_rung !== b.cost_rung) return a.cost_rung - b.cost_rung;
++    const ac = a.relative_cost ?? Infinity, bc = b.relative_cost ?? Infinity;
++    if (ac !== bc) return ac - bc;
+     if ((a.latency_ms ?? 1e9) !== (b.latency_ms ?? 1e9)) return (a.latency_ms ?? 1e9) - (b.latency_ms ?? 1e9);
+     return a.worker_id < b.worker_id ? -1 : 1;
+   });
+diff --git a/AI-HANDOFF/matter/test-provider-neutrality.mjs b/AI-HANDOFF/matter/test-provider-neutrality.mjs
+new file mode 100644
+index 0000000..9a3eeb1
+--- /dev/null
++++ b/AI-HANDOFF/matter/test-provider-neutrality.mjs
+@@ -0,0 +1,160 @@
++#!/usr/bin/env node
++// The 9 provider-neutrality + cost-routing verifications required by the policy.
++// HERMETIC — scratch dir, synthetic workers, no real state, no model calls.
++//   node test-provider-neutrality.mjs
++import assert from "node:assert/strict";
++import { mkdtempSync, copyFileSync, readFileSync } from "node:fs";
++import { tmpdir } from "node:os";
++import path from "node:path";
++import { fileURLToPath } from "node:url";
++
++const HERE = path.dirname(fileURLToPath(import.meta.url));
++const SCRATCH = mkdtempSync(path.join(tmpdir(), "pn-"));
++process.env.MATTER_DIR = SCRATCH;
++copyFileSync(path.join(HERE, "MATTER_POLICY.json"), path.join(SCRATCH, "MATTER_POLICY.json"));
++const M = await import("./matter-registry.mjs");
++
++let pass = 0, fail = 0;
++const t = (name, fn) => {
++  try { fn(); console.log(`  PASS  ${name}`); pass++; }
++  catch (e) { console.log(`  FAIL  ${name}\n        ${String(e.message).split("\n")[0]}`); fail++; }
++};
++const OK = ["true"], BAD = ["false"];
++const ready = (id, caps, opts = {}) => {
++  M.register({ worker_id: id, detect: opts.detect || OK, capabilities: caps,
++    permissions: opts.permissions || {}, cost_class: opts.cost_class || "subscription",
++    provider: opts.provider || `prov-${id}` });
++  M.probe(id); M.heartbeat(id, {}); M.ack(id);
++};
++
++// 1 — register a synthetic NEW provider without modifying routing code
++t("1. a brand-new provider registers with NO routing-code change", () => {
++  const before = readFileSync(path.join(HERE, "matter-registry.mjs"), "utf8");
++  ready("vendor-from-2027", { widgetcraft: 0.9, reasoning: 0.8 });
++  const after = readFileSync(path.join(HERE, "matter-registry.mjs"), "utf8");
++  assert.equal(before, after, "registering a provider must not require editing the router");
++});
++
++// 2 + 3 — give it a capability and prove Matter can select it
++t("2/3. Matter considers and SELECTS the new provider on capability alone", () => {
++  const d = M.route({ task_id: "PN-1", required_capabilities: { widgetcraft: 0.8, reasoning: 0.5 } });
++  assert.equal(d.primary, "vendor-from-2027");
++  assert.equal(d.route, undefined, "a judgement task must not be routed to deterministic software");
++});
++
++// 4 — remove availability, prove Matter routes elsewhere
++t("4. availability loss reroutes to another worker", () => {
++  ready("backup-vendor", { widgetcraft: 0.85, reasoning: 0.5 });
++  M.register({ worker_id: "vendor-from-2027", detect: BAD });
++  M.probe("vendor-from-2027");
++  const d = M.route({ task_id: "PN-2", required_capabilities: { widgetcraft: 0.8, reasoning: 0.5 } });
++  assert.equal(d.primary, "backup-vendor", "must reroute when the preferred worker goes offline");
++  const gone = d.considered.find((c) => c.worker_id === "vendor-from-2027");
++  assert.ok(gone.reasons.some((r) => /not available/.test(r)));
++});
++
++// 5 — cost influences selection where quality permits
++t("5. among equally-capable workers, the CHEAPER cost class wins", () => {
++  ready("pricey-worker", { ledgerwork: 0.9, reasoning: 0.9 }, { cost_class: "frontier" });
++  ready("thrifty-worker", { ledgerwork: 0.9, reasoning: 0.9 }, { cost_class: "local" });
++  const d = M.route({ task_id: "PN-3", required_capabilities: { ledgerwork: 0.9, reasoning: 0.9 } });
++  assert.equal(d.primary, "thrifty-worker", "cheapest CAPABLE worker must win");
++  const chosen = d.considered.find((c) => c.worker_id === "thrifty-worker");
++  const other = d.considered.find((c) => c.worker_id === "pricey-worker");
++  assert.ok(chosen.cost_rung < other.cost_rung, "cost ladder must be reflected in the decision record");
++});
++
++t("5b. cost NEVER overrides a required capability (cheap-but-incapable loses)", () => {
++  ready("cheap-but-weak", { ledgerwork: 0.2, reasoning: 0.2 }, { cost_class: "local" });
++  const d = M.route({ task_id: "PN-4", required_capabilities: { ledgerwork: 0.9, reasoning: 0.9 } });
++  assert.notEqual(d.primary, "cheap-but-weak");
++  const weak = d.considered.find((c) => c.worker_id === "cheap-but-weak");
++  assert.ok(weak.reasons.some((r) => /level 0.2 < required/.test(r)), "must be rejected on capability, not price");
++});
++
++// 6 — capability without permission cannot perform the restricted task
++t("6. CAPABILITY != AUTHORITY: capable but unpermitted worker is refused", () => {
++  ready("capable-no-perm", { ledgerwork: 0.99, reasoning: 0.99 }, { cost_class: "local", permissions: { por_write: false } });
++  const d = M.route({ task_id: "PN-5", required_capabilities: { ledgerwork: 0.9 }, required_permissions: ["por_write"] });
++  const c = d.considered.find((x) => x.worker_id === "capable-no-perm");
++  assert.ok(c.reasons.some((r) => /lacks permission 'por_write'/.test(r)));
++  assert.equal(d.primary, null, "no worker holds por_write, so the task must not be assigned");
++  assert.equal(d.blocked, true);
++});
++
++// 7 — a business role changes provider without changing identity/history
++t("7. a business role can change providers without losing identity or history", () => {
++  const agents = JSON.parse(readFileSync(path.join(HERE, "BUSINESS_AGENTS.json"), "utf8")).agents;
++  const mike = agents.mike;
++  assert.ok(mike, "mike must exist as a stable role");
++  assert.ok(mike.required_capabilities, "the role declares CAPABILITIES, not a provider");
++  const asString = JSON.stringify(agents);
++  for (const p of ["cursor", "codex", "claude", "grok", "claw", "openai", "anthropic"])
++    assert.ok(!new RegExp(`"${p}"`, "i").test(asString), `business roles must not name provider ${p}`);
++  // route Mike's work twice against different fleets; identity is unchanged both times
++  ready("mike-runtime-A", { reasoning: 0.8, research: 0.6 }, { cost_class: "standard_api" });
++  const first = M.route({ task_id: "PN-6a", agent_id: "mike", required_capabilities: mike.required_capabilities });
++  ready("mike-runtime-B", { reasoning: 0.9, research: 0.9 }, { cost_class: "local" });
++  const second = M.route({ task_id: "PN-6b", agent_id: "mike", required_capabilities: mike.required_capabilities });
++  assert.notEqual(first.primary, second.primary, "the runtime moved to a better/cheaper worker");
++  assert.equal(mike.agent_id, "mike", "the role identity is untouched by the runtime change");
++});
++
++// 8 — deterministic tasks do not invoke an LLM
++t("8. DETERMINISTIC-FIRST: a no-judgement task is not routed to any model", () => {
++  const d = M.route({ task_id: "PN-7", objective: "check whether a heartbeat is stale",
++                      required_capabilities: {}, requires_intelligence: false });
++  assert.equal(d.route, "DETERMINISTIC_SOFTWARE");
++  assert.equal(d.primary, null, "no worker may be woken for deterministic work");
++  assert.match(d.selection_basis, /deterministic software/i);
++  // and the inverse still routes to a worker
++  const think = M.route({ task_id: "PN-8", required_capabilities: { reasoning: 0.5 } });
++  assert.notEqual(think.route, "DETERMINISTIC_SOFTWARE");
++});
++
++// 9 — no provider-name lock-in remains in the executable routing layer
++t("9. the executable router contains NO provider-name lock-in", () => {
++  const src = readFileSync(path.join(HERE, "matter-registry.mjs"), "utf8")
++    .split("\n").filter((l) => !l.trim().startsWith("//") && !l.trim().startsWith("*")).join("\n");
++  for (const name of ["cursor", "codex", "claude", "grok", "claw", "chatgpt", "openai", "anthropic"])
++    assert.ok(!new RegExp(`["'\`]${name}["'\`]`, "i").test(src), `router must not hard-code provider ${name}`);
++});
++
++t("+ UNKNOWN cost is treated as standard, never as cheap", () => {
++  const p = M.policy();
++  assert.equal(M.costRung(p, "UNKNOWN"), 4);
++  assert.equal(M.relativeCost(p, "UNKNOWN"), null);
++  assert.ok(M.costRung(p, "local") < M.costRung(p, "UNKNOWN"), "unknown must never outrank a known-cheap worker");
++});
++
++t("+ worker contract records UNKNOWN rather than fabricating precision", () => {
++  const w = M.register({ worker_id: "bare-worker" });
++  for (const f of ["cost_class", "estimated_cost", "latency_class", "local_or_remote", "data_boundaries"])
++    assert.equal(w[f], "UNKNOWN", `${f} must default to UNKNOWN`);
++  assert.deepEqual(w.quality_history, { samples: 0, verified_pass: 0 });
++});
++
++// REGRESSION — found by test 6 during implementation. An unrecognised capability name plus a
++// required permission was short-circuited to "deterministic", skipping the permission gate.
++// Consequential work must never take the deterministic path.
++t("R1. permission-gated work can NEVER take the deterministic short-circuit", () => {
++  const d = M.route({ task_id: "PN-R1", required_capabilities: { unheard_of_skill: 0.5 },
++                      required_permissions: ["por_write"] });
++  assert.notEqual(d.route, "DETERMINISTIC_SOFTWARE", "permission-gated work must go through the full gate");
++  assert.equal(d.blocked, true);
++  assert.ok(d.considered.length > 0, "workers must actually be evaluated and rejected with reasons");
++});
++
++t("R2. protected / verification-required work also bypasses the short-circuit", () => {
++  const prot = M.route({ task_id: "PN-R2", required_capabilities: {}, requires_intelligence: false,
++                         protected_actions: ["money_spend"] });
++  assert.notEqual(prot.route, "DETERMINISTIC_SOFTWARE");
++  assert.equal(prot.owner_approval_required, true);
++  const ver = M.route({ task_id: "PN-R3", required_capabilities: {}, requires_intelligence: false,
++                        risk_class: "por_write" });
++  assert.notEqual(ver.route, "DETERMINISTIC_SOFTWARE");
++});
++
++console.log(`\n${pass} passed, ${fail} failed`);
++console.log(`scratch: ${SCRATCH}`);
++process.exit(fail ? 1 : 0);

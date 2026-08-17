@@ -1,8 +1,8 @@
 {
-  "last_sync_attempt": "2026-08-17T17:11:41.598Z",
-  "last_successful_sync": "2026-08-17T17:11:41.743Z",
-  "files_changed": 52,
-  "manifest_version": "1.0.1",
+  "last_sync_attempt": "2026-08-17T17:11:54.367Z",
+  "last_successful_sync": "2026-08-17T17:11:54.375Z",
+  "files_changed": 1,
+  "manifest_version": "1.0.2",
   "errors": [],
-  "source_sha": "57c861c1e35293715f5aa4a34186e99aeb7823eb"
+  "source_sha": "fce33113164a520fddb153ae44fc465058eeda97"
 }

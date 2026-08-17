@@ -135,10 +135,11 @@ process.env.MATTER_DIR = SCRATCH; // restore for the remaining tests
 
 t("11. no independent verifier => task is BLOCKED, never auto-certified", () => {
   // The ONLY worker in this fleet can build and verify — but it may not verify itself.
-  M2.register({ worker_id: "solo-worker", detect: OK_PROBE, capabilities: { coding: measuredCap(0.9), verification: measuredCap(0.9) } });
+  M2.register({ worker_id: "solo-worker", detect: OK_PROBE, capabilities: { soloskill: measuredCap(0.9), verification: measuredCap(0.9) } });
   M2.grantPermission("solo-worker", "verification", true, { authority: AUTH });
   M2.probe("solo-worker"); M2.heartbeat("solo-worker", {}); M2.ack("solo-worker");
-  const d = M2.route({ task_id: "T6", required_capabilities: { coding: 0.9 }, risk_class: "por_write" });
+  // unique capability => only solo-worker can qualify, immune to leftovers from other tests
+  const d = M2.route({ task_id: "T6", required_capabilities: { soloskill: 0.9 }, risk_class: "por_write" });
   assert.equal(d.primary, "solo-worker");
   assert.equal(d.verifier, null, "the sole worker must NOT be allowed to verify its own build");
   assert.equal(d.blocked, true, "with no independent verifier the task must be blocked");

@@ -105,3 +105,44 @@ Approved decisions worth preserving. Keep short. No secrets.
 
 - **Decision:** `/time` is the standalone, role-aware application. Employee sees the small My Time / requests experience. Shelly signs into the same app and receives Review, Employees, Time Off, and Payroll tools. Mason receives Time Admin plus Security. Michelle receives complete owner/payroll/security access. Command Center remains an optional mirror/deep link over the **same `/api/time/*` backend**; Shelly never needs Command Center for normal Time administration. No duplicate Time data or workflows.
 - **Source:** Mason architecture correction (PP-TIME-001, 2026-08-14).
+
+---
+
+## 2026-08-17 — PERMANENT: Business agents are roles, not providers (Matter policy 1.1.0)
+
+**Decision.** Party Perfect business agents represent responsibilities, not AI vendors. Matter
+dynamically assigns authorized workers, models and tools according to current capability, quality,
+reliability, availability, privacy and cost. Providers are replaceable. Capabilities do not grant
+authority. Deterministic software is preferred when intelligence is unnecessary. Matter controls
+paid compute escalation and may reassign any business role to a better authorized worker without
+changing the role's identity or history.
+
+**Authoritative location:** `AI-HANDOFF/matter/MATTER_POLICY.json` (extended in place — no new
+disconnected policy file). Version **1.1.0+b749d6f63bea** (content-addressed: any edit mints a new
+version and previously-recorded acks correctly go stale).
+
+**Executable, not just documented:**
+- Cost ladder deterministic → local → low-cost → standard → frontier, applied **only among workers
+  that already satisfy every hard requirement**, so cheap can never override safety or capability.
+- Deterministic-first gate: a task needing no judgement returns `route: DETERMINISTIC_SOFTWARE`
+  and wakes no model.
+- Worker contract extended with `estimated_cost`, `latency_class`, `local_or_remote`,
+  `data_boundaries`, `quality_history`, `verification_history` — defaulting to **UNKNOWN**, never
+  fabricated. UNKNOWN cost is treated as *standard*, never as cheap.
+- Matter owns escalation; workers may report a need but may not self-escalate into paid compute.
+
+**Safety bug found and fixed during implementation:** the first deterministic-first gate treated an
+*unrecognised* capability name as "deterministic", which let a permission-gated task (e.g. a POR
+write) skip the eligibility checks. Now any task carrying `required_permissions`, a protected
+action, or a verification requirement is barred from the short-circuit, and an unknown capability
+name counts as thinking. Regression tests R1/R2 lock this in.
+
+**Remaining hard-coded routes (classified):**
+- `control-plane.mjs` `SUBSYSTEM_OWNER` (18 literals) — **ARCHITECTURAL LOCK-IN**, scheduled for
+  provider-neutral replacement at V2 cutover.
+- `matter/orchestrate.mjs` `WORKERS` + `dispatchParallel(["cursor","codex"])` (6 literals) —
+  **ARCHITECTURAL LOCK-IN**, same cutover.
+- Both left functioning deliberately: production workflows must not be broken for theoretical purity.
+- `matter-registry.mjs` — **0 provider literals in routing logic**, asserted by test 9.
+
+**Tests:** 13/13 provider-neutrality + cost routing; 17/17 existing V1 suite (no regressions).

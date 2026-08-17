@@ -67,7 +67,9 @@
         "Codex returned NOT_READY_FOR_V2_CUTOVER (access); bundle now provided",
         "acks are not cryptographically authenticated",
         "all capabilities DECLARED, none MEASURED"
-      ]
+      ],
+      "policy_version": "1.1.0+b749d6f63bea",
+      "cost_routing": "implemented (ladder applied only among eligible workers)"
     },
     "autonomy_execution_substrate": {
       "status": "BUILT + TESTED, NOT RUNNING",
@@ -206,5 +208,12 @@
     "time_deploy": "HELD",
     "watchdog": "UNARMED and NOT INSTALLED",
     "reboot": "NOT PERFORMED"
+  },
+  "matter_policy": {
+    "version": "1.1.0+b749d6f63bea",
+    "location": "AI-HANDOFF/matter/MATTER_POLICY.json",
+    "statement": "Business agents represent responsibilities, not AI vendors. Providers are replaceable. Capability != authority. Deterministic software preferred. Matter controls paid escalation.",
+    "decision_recorded": "AI-HANDOFF/DECISIONS.md 2026-08-17",
+    "tests": "13/13 provider-neutrality, 17/17 V1"
   }
 }

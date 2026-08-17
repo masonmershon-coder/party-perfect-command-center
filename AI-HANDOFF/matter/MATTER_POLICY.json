@@ -1,9 +1,21 @@
 {
   "policy_id": "MATTER_PROVIDER_NEUTRAL_ORCHESTRATION",
-  "semver": "1.0.0",
-  "effective": "2026-08-15",
+  "semver": "1.1.0",
+  "effective": "2026-08-17",
   "principle": "STABLE MATTER. STABLE BUSINESS AGENTS. REPLACEABLE INTELLIGENCE. DYNAMIC ROUTING. DURABLE MEMORY. VERIFIED WORK. OWNER CONTROL.",
+  "policy_statement": "Party Perfect business agents represent responsibilities, not AI vendors. Matter dynamically assigns authorized workers, models and tools according to current capability, quality, reliability, availability, privacy and cost. Providers are replaceable. Capabilities do not grant authority. Deterministic software is preferred when intelligence is unnecessary. Matter controls paid compute escalation and may reassign any business role to a better authorized worker without changing the role's identity or history.",
   "rules": {
+    "agents_are_roles_not_providers": "Business agents (mike, madison, hiring, time_watch, inbox_watch, security, operations, marketing, accounting) are stable BUSINESS ROLES. An agent identity must never mean 'the Claude agent' or 'the Grok agent'. Role identity, business rules, permissions, memory, task history and audit history persist unchanged when the underlying worker changes.",
+    "deterministic_first": "Never use an LLM for work ordinary software can reliably perform. Checking whether new email exists, whether an employee missed a punch, synchronizing Square records, checking heartbeat age, copying brain files — all deterministic. Wake an AI only when judgment, reasoning, communication, generation, planning, research or interpretation is genuinely required.",
+    "cost_ladder": "Default routing preference, cheapest capable option first: (1) deterministic software, (2) local / zero-marginal-cost compute, (3) low-cost model or API, (4) standard model or API, (5) expensive/frontier model or agent. Move up a rung only when the task actually requires the additional capability.",
+    "cheap_never_overrides_safety": "Cost preference applies only among workers that already satisfy the required capability, permission, privacy and verification level. Cheap must never override safety or a required capability.",
+    "no_agent_self_escalation": "A worker may report 'I need capability X', 'I cannot complete this', 'confidence is low', or 'another capability would improve this'. It may NOT escalate itself into paid compute outside Matter's approved budget and permission policy. MATTER OWNS ESCALATION.",
+    "capability_is_not_authority": "A declared or newly-discovered capability is a CLAIM until Matter verifies it. A provider update never automatically increases permissions or routing trust. CAPABILITY != AUTHORITY.",
+    "new_provider_onboarding": "A new provider joins by registering against the standard worker contract — registration, policy acknowledgement, health/availability proof, capability declaration, capability verification, permission assignment. Adding a provider must never require rewriting the routing engine.",
+    "multi_worker_tasks": "Matter may split one task across workers (deterministic detection -> low-cost classification -> specialist handling -> independent verification). No requirement that one provider perform an entire workflow.",
+    "roles_may_move_providers": "Matter may reassign a business role's runtime when another authorized worker is better, cheaper, faster, more reliable, more capable, more private or more appropriate — without erasing the role's identity, rules, history, memory, permissions or responsibilities.",
+    "no_permanent_category_ownership": "No provider owns a task category because it historically performed it. 'Coding = always Cursor', 'Verification = always Codex', 'Operations = always Claude', 'Research = always Grok' are acceptable CURRENT OPTIMIZATIONS, never permanent rules.",
+    "no_invented_measurement": "If cost, quality, latency or reliability is unknown, record UNKNOWN. Never fabricate precision.",
     "provider_neutrality": "Matter owns the jobs. AI providers are replaceable workers. No provider is permanently assigned to a job. Routing is by CAPABILITY, never by provider name.",
     "stable_agents": "Business agents (Mike=hiring/people, Madison=marketing/design) are stable roles. The intelligence executing for them is not.",
     "builder_not_verifier": "For high-risk work Matter prefers builder != verifier. Required for: production deployment, authentication/security, payroll, POR writes, financial operations, database migrations, destructive actions, permission changes.",
@@ -25,6 +37,22 @@
     "credential_change",
     "permission_change",
     "database_migration"
+  ],
+  "cost_classes": {
+    "deterministic": { "rung": 1, "relative_cost": 0, "note": "plain software; no model call" },
+    "local": { "rung": 2, "relative_cost": 0, "note": "local model / zero marginal cost" },
+    "subscription": { "rung": 3, "relative_cost": 1, "note": "flat-rate seat; no per-call charge" },
+    "low_cost_api": { "rung": 3, "relative_cost": 2 },
+    "standard_api": { "rung": 4, "relative_cost": 5 },
+    "frontier": { "rung": 5, "relative_cost": 20 },
+    "UNKNOWN": { "rung": 4, "relative_cost": null, "note": "unknown cost is treated as standard and never as cheap" }
+  },
+  "budget_dimensions": ["daily_total", "monthly_total", "provider_total", "model_total", "business_agent_total", "task_workflow_total"],
+  "worker_contract_fields": [
+    "worker_id", "provider", "model", "version", "capabilities", "capability_provenance",
+    "permissions", "availability", "health", "cost_class", "estimated_cost", "latency_class",
+    "local_or_remote", "data_boundaries", "policy_version_ack", "last_heartbeat",
+    "quality_history", "verification_history"
   ],
   "heartbeat_max_age_minutes": 60,
   "verification_required_for": [

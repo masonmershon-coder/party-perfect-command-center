@@ -75,7 +75,15 @@ export function register(input) {
     detect: input.detect ?? prev.detect ?? null,           // real availability probe (argv array or string)
     capabilities: input.capabilities ?? prev.capabilities ?? {},
     permissions: input.permissions ?? prev.permissions ?? {},
-    cost_class: input.cost_class ?? prev.cost_class ?? null,
+    // --- standard worker contract (policy: worker_contract_fields) ---
+    // UNKNOWN is a real, recorded value. Never fabricate cost/latency/quality precision.
+    cost_class: input.cost_class ?? prev.cost_class ?? "UNKNOWN",
+    estimated_cost: input.estimated_cost ?? prev.estimated_cost ?? "UNKNOWN",
+    latency_class: input.latency_class ?? prev.latency_class ?? "UNKNOWN",
+    local_or_remote: input.local_or_remote ?? prev.local_or_remote ?? "UNKNOWN",
+    data_boundaries: input.data_boundaries ?? prev.data_boundaries ?? "UNKNOWN",
+    quality_history: prev.quality_history ?? { samples: 0, verified_pass: 0 },
+    verification_history: prev.verification_history ?? { verified: 0, rejected: 0 },
     context_tokens: input.context_tokens ?? prev.context_tokens ?? null,
     limitations: input.limitations ?? prev.limitations ?? [],
     // operational state — only ever set by a real probe/heartbeat, never by register()
@@ -177,6 +185,45 @@ export function scoreFor(worker_id, task_category = null) {
   return { score: Number(((good - bad) / n).toFixed(3)), samples: n };
 }
 
+// ---- cost ladder (policy-driven; no provider names) ---------------------
+/** Rung on the cost ladder. UNKNOWN is treated as STANDARD, never as cheap. */
+export function costRung(policy, cost_class) {
+  const table = policy.cost_classes || {};
+  const entry = table[cost_class] || table.UNKNOWN;
+  return entry?.rung ?? 4;
+}
+export function relativeCost(policy, cost_class) {
+  const table = policy.cost_classes || {};
+  const entry = table[cost_class] || table.UNKNOWN;
+  return entry?.relative_cost ?? null;
+}
+/**
+ * Deterministic-first gate. A task that declares no need for judgement/reasoning/generation
+ * must NOT wake a model — the caller is told to run plain software instead. This is the rule
+ * that stops an LLM being used for "is there new email" or "is a heartbeat stale".
+ */
+export function requiresIntelligence(task) {
+  if (task.requires_intelligence === true) return true;
+  const caps = Object.keys(task.required_capabilities || {});
+  // A task that names ANY capability is not deterministic — an unrecognised capability name is
+  // NOT evidence that plain software can do the work. Defaulting unknown names to "deterministic"
+  // let a permission-gated task skip the eligibility checks entirely; treat unknown as thinking.
+  if (caps.length > 0) return true;
+  if (task.requires_intelligence === false) return false;
+  return false;
+}
+/**
+ * May the deterministic short-circuit be taken at all? Never for consequential work: anything
+ * requiring a permission, a protected action, or independent verification must go through the
+ * full eligibility gate so it can be BLOCKED rather than quietly declared "deterministic".
+ */
+export function deterministicShortCircuitAllowed(task, { needsVerification, isProtected }) {
+  if ((task.required_permissions || []).length > 0) return false;
+  if (isProtected) return false;
+  if (needsVerification) return false;
+  return true;
+}
+
 // ---- the router --------------------------------------------------------
 /**
  * Select PRIMARY (+ VERIFIER when policy requires one) for a task, by capability.
@@ -194,6 +241,22 @@ export function route(task) {
     (task.risk_class ? p.verification_required_for.includes(task.risk_class) : false);
   const isProtected = (task.protected_actions || []).some((a) => p.protected_actions.includes(a));
   const maxAgeMs = (p.heartbeat_max_age_minutes ?? 60) * 60000;
+
+  // DETERMINISTIC-FIRST: if the task needs no judgement, refuse to select a model at all.
+  // Returning early (rather than picking a cheap worker) is the point — plain software runs it.
+  if (!requiresIntelligence(task) && deterministicShortCircuitAllowed(task, { needsVerification, isProtected })) {
+    const decision = {
+      kind: "ROUTING_DECISION", task_id: task.task_id || null, objective: task.objective || null,
+      task_category: task.task_category || null, policy_version: p.version,
+      required_capabilities: required, needs_verification: needsVerification, protected: isProtected,
+      primary: null, verifier: null, blocked: false,
+      route: "DETERMINISTIC_SOFTWARE",
+      selection_basis: "task declares no need for judgement/reasoning/generation — deterministic software must handle it; no model invoked",
+      owner_approval_required: isProtected, considered: [],
+    };
+    append(ROUTES, decision);
+    return decision;
+  }
 
   const considered = [];
   for (const w of Object.values(reg.workers)) {
@@ -216,12 +279,23 @@ export function route(task) {
       reasons.push(`policy not acknowledged (has ${w.policy_version_ack || "none"}, current ${p.version})`);
 
     const s = scoreFor(w.worker_id, task.task_category);
-    considered.push({ worker_id: w.worker_id, eligible: reasons.length === 0, reasons, score: s.score, samples: s.samples, latency_ms: w.latency_ms, cost_class: w.cost_class });
+    considered.push({ worker_id: w.worker_id, eligible: reasons.length === 0, reasons, score: s.score, samples: s.samples,
+      latency_ms: w.latency_ms, cost_class: w.cost_class, cost_rung: costRung(p, w.cost_class), relative_cost: relativeCost(p, w.cost_class) });
   }
 
-  // Rank: proven score first (nulls last, never invented), then lower latency, then name for determinism.
+  // Rank. ELIGIBILITY IS DECIDED FIRST (capability, permission, availability, policy) — cost only
+  // ever breaks ties AMONG workers that already satisfy every hard requirement, so cheap can never
+  // override safety or a required capability (policy: cheap_never_overrides_safety).
+  //   1. proven quality score (nulls last — never invented)
+  //   2. cheapest rung on the cost ladder (deterministic -> local -> low-cost -> standard -> frontier)
+  //   3. lower relative cost within the rung
+  //   4. lower measured latency
+  //   5. worker_id, purely for deterministic ordering
   const eligible = considered.filter((c) => c.eligible).sort((a, b) => {
     if ((b.score ?? -Infinity) !== (a.score ?? -Infinity)) return (b.score ?? -Infinity) - (a.score ?? -Infinity);
+    if (a.cost_rung !== b.cost_rung) return a.cost_rung - b.cost_rung;
+    const ac = a.relative_cost ?? Infinity, bc = b.relative_cost ?? Infinity;
+    if (ac !== bc) return ac - bc;
     if ((a.latency_ms ?? 1e9) !== (b.latency_ms ?? 1e9)) return (a.latency_ms ?? 1e9) - (b.latency_ms ?? 1e9);
     return a.worker_id < b.worker_id ? -1 : 1;
   });

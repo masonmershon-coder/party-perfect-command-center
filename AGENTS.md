@@ -11,8 +11,13 @@ This version has breaking changes — APIs, conventions, and file structure may 
 | Role | Responsibility |
 |------|----------------|
 | **Mason** | Human GM / final approval for protected actions |
-| **Claude Code** | Brain/files, POR analysis, ops/server, research, requirements, reviews Cursor |
-| **Cursor** | `partyperfect.app` / Command Center app codebase, implementation, tests, quality |
+| **Matter** | Owns jobs, policy, routing, durable memory, verification gates |
+| **Business agents** | Stable roles (e.g. Mike=hiring/people, Madison=marketing/design). The intelligence under them is replaceable. |
+| **Workers / providers** | Replaceable (Claude, Cursor, Codex, Grok, Claw, future models). Selected by capability, never permanently assigned to a job. |
+
+**Foundational rule:** Matter owns the jobs. AI providers are replaceable workers. Do not hard-code “Cursor always codes / Codex always verifies / Claude always ops.” See `AI-HANDOFF/matter/MATTER_POLICY.json` and `AI-HANDOFF/EVIDENCE/MATTER_ORCHESTRATION_V1_AUDIT.md`.
+
+Current typical lanes (defaults only, not permanent assignments): Claude Code often handles brain/POR/ops; Cursor often implements Command Center; Codex often verifies. Matter may route differently whenever capabilities, health, or evidence support it.
 
 Claude and Cursor are teammates on the same Party Perfect work — not competitors.
 

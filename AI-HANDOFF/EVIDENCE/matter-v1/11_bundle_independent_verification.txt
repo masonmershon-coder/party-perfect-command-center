@@ -1,0 +1,20 @@
+=== INDEPENDENT BUNDLE VERIFICATION (clone from bundle only, no access to source repo) ===
+cloned HEAD          : 51c362cb1187d3459d103bd2768767ef3934612e
+matches candidate SHA: YES
+worktree clean       : 0 changes
+
+candidate files in clone:
+  MATTER_POLICY.json
+  MATTER_V1_AUDIT.md
+  matter-registry.mjs
+  orchestrate.mjs
+  security-gateway.mjs
+  test-matter-registry.mjs
+
+=== RERUN TESTS FROM THE CLONE ===
+command: MATTER_DIR=$(mktemp -d) node test-matter-registry.mjs
+  PASS  16. every routing decision is durably audited with reasons
+  PASS  17. THE ANTI-PATTERN IS ABSENT: no provider name drives routing
+
+17 passed, 0 failed
+scratch: /var/folders/5d/70tbp_5n3hx3v2m8zlyv_ck80000gn/T/tmp.zpoBqC3rLq

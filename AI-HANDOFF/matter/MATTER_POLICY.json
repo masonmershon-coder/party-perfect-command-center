@@ -1,0 +1,41 @@
+{
+  "policy_id": "MATTER_PROVIDER_NEUTRAL_ORCHESTRATION",
+  "semver": "1.0.0",
+  "effective": "2026-08-15",
+  "principle": "STABLE MATTER. STABLE BUSINESS AGENTS. REPLACEABLE INTELLIGENCE. DYNAMIC ROUTING. DURABLE MEMORY. VERIFIED WORK. OWNER CONTROL.",
+  "rules": {
+    "provider_neutrality": "Matter owns the jobs. AI providers are replaceable workers. No provider is permanently assigned to a job. Routing is by CAPABILITY, never by provider name.",
+    "stable_agents": "Business agents (Mike=hiring/people, Madison=marketing/design) are stable roles. The intelligence executing for them is not.",
+    "builder_not_verifier": "For high-risk work Matter prefers builder != verifier. Required for: production deployment, authentication/security, payroll, POR writes, financial operations, database migrations, destructive actions, permission changes.",
+    "evidence_over_vendor_claims": "A provider update does not gain authority because the vendor claims it is better. Routing weight changes only on Party Perfect's own evidence.",
+    "no_fake_precision": "Worker scores stay null until enough real samples exist. Never present an unproven score as measured.",
+    "know_vs_apply": "Workers may report that an update exists. They may not install software, change production dependencies, upgrade infrastructure, change permissions, spend money, change providers, move secrets, or deploy risky updates without explicit Matter policy authorization.",
+    "stale_policy_gate": "A worker whose acknowledged policy version is not current must not receive sensitive or newly-classified tasks until it syncs.",
+    "durable_tasks": "Workers are temporary; task history is permanent. Work is handed off through durable Matter tasks, never chat transcripts.",
+    "availability_is_probed": "A worker is available only when a real probe succeeds and its heartbeat is fresh. Availability is never asserted or hard-coded.",
+    "owner_authority": "Autonomy does not remove owner authority. Approval gates remain for money, customer-facing sends, production/destructive changes, financial/payroll writes, POR authoritative writes, credential/security changes, and other high-risk irreversible actions."
+  },
+  "protected_actions": [
+    "money_spend",
+    "customer_communication",
+    "production_deployment",
+    "destructive_change",
+    "payroll_write",
+    "por_authoritative_write",
+    "credential_change",
+    "permission_change",
+    "database_migration"
+  ],
+  "heartbeat_max_age_minutes": 60,
+  "verification_required_for": [
+    "production_deployment",
+    "security",
+    "payroll",
+    "por_write",
+    "financial",
+    "database_migration",
+    "destructive",
+    "permission_change"
+  ],
+  "min_samples_for_score": 5
+}

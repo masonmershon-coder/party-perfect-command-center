@@ -1,0 +1,72 @@
+
+===== A. generic coding + local execution =====
+requirements     : {"caps":{"coding":0.8,"local_execution":true},"verify":false,"protected":false}
+eligible         : claude-code, cursor-local
+  rejected       : codex-local -> missing capability 'local_execution'
+SELECTED primary : claude-code
+SELECTED verifier: NONE 
+selection_basis  : no proven scores yet — tie-broken by probe latency then worker_id (2 eligible)
+blocked          : false | owner_approval_required: false
+audit event      : ROUTING_DECISIONS.jsonl kind=ROUTING_DECISION task_id=EV-A policy=1.0.0+027e1c37c161
+
+===== B. generic verification-required task =====
+requirements     : {"caps":{"coding":0.8},"verify":true,"protected":false}
+eligible         : claude-code, cursor-local, codex-local
+SELECTED primary : codex-local
+SELECTED verifier: claude-code 
+selection_basis  : no proven scores yet — tie-broken by probe latency then worker_id (3 eligible)
+blocked          : false | owner_approval_required: false
+audit event      : ROUTING_DECISIONS.jsonl kind=ROUTING_DECISION task_id=EV-B policy=1.0.0+027e1c37c161
+
+===== C. unknown synthetic provider, best capability =====
+requirements     : {"caps":{"coding":0.95,"local_execution":true},"verify":false,"protected":false}
+eligible         : synthetic-vendor-x
+  rejected       : claude-code -> 'coding' level 0.9 < required 0.95
+  rejected       : cursor-local -> 'coding' level 0.85 < required 0.95
+  rejected       : codex-local -> 'coding' level 0.8 < required 0.95; missing capability 'local_execution'
+SELECTED primary : synthetic-vendor-x
+SELECTED verifier: NONE 
+selection_basis  : no proven scores yet — tie-broken by probe latency then worker_id (1 eligible)
+blocked          : false | owner_approval_required: false
+audit event      : ROUTING_DECISIONS.jsonl kind=ROUTING_DECISION task_id=EV-C policy=1.0.0+027e1c37c161
+
+===== D. highest-capability worker is OFFLINE =====
+requirements     : {"caps":{"coding":0.99},"verify":false,"protected":false}
+eligible         : synthetic-vendor-x
+  rejected       : claude-code -> 'coding' level 0.9 < required 0.99
+  rejected       : cursor-local -> 'coding' level 0.85 < required 0.99
+  rejected       : codex-local -> 'coding' level 0.8 < required 0.99
+  rejected       : preferred-but-offline -> not available (probe failed or never probed)
+SELECTED primary : synthetic-vendor-x
+SELECTED verifier: NONE 
+selection_basis  : no proven scores yet — tie-broken by probe latency then worker_id (1 eligible)
+blocked          : false | owner_approval_required: false
+audit event      : ROUTING_DECISIONS.jsonl kind=ROUTING_DECISION task_id=EV-D policy=1.0.0+027e1c37c161
+
+===== E. missing permission =====
+requirements     : {"caps":{"coding":0.8},"verify":false,"protected":false}
+eligible         : (none)
+  rejected       : claude-code -> lacks permission 'production_deploy'
+  rejected       : cursor-local -> lacks permission 'production_deploy'
+  rejected       : codex-local -> lacks permission 'production_deploy'
+  rejected       : synthetic-vendor-x -> lacks permission 'production_deploy'
+  rejected       : preferred-but-offline -> lacks permission 'production_deploy'; not available (probe failed or never probed)
+SELECTED primary : NONE
+SELECTED verifier: NONE 
+selection_basis  : no eligible worker
+blocked          : true | owner_approval_required: false
+audit event      : ROUTING_DECISIONS.jsonl kind=ROUTING_DECISION task_id=EV-E policy=1.0.0+027e1c37c161
+
+===== F. POR WRITE requiring por_write =====
+requirements     : {"caps":{"coding":0.8},"verify":true,"protected":true}
+eligible         : (none)
+  rejected       : claude-code -> lacks permission 'por_write'
+  rejected       : cursor-local -> lacks permission 'por_write'
+  rejected       : codex-local -> lacks permission 'por_write'
+  rejected       : synthetic-vendor-x -> lacks permission 'por_write'
+  rejected       : preferred-but-offline -> lacks permission 'por_write'; not available (probe failed or never probed)
+SELECTED primary : NONE
+SELECTED verifier: claude-code 
+selection_basis  : no eligible worker
+blocked          : true | owner_approval_required: true
+audit event      : ROUTING_DECISIONS.jsonl kind=ROUTING_DECISION task_id=EV-F policy=1.0.0+027e1c37c161

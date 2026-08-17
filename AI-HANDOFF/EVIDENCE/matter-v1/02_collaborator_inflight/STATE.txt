@@ -1,0 +1,19 @@
+COLLABORATOR FILES — UNCOMMITTED / IN-FLIGHT AT CAPTURE TIME
+These are NOT part of candidate 51c362cb1187d3459d103bd2768767ef3934612e. They were created by a second, concurrent agent.
+Captured read-only for context only. They must NOT be folded into the candidate.
+
+  BUSINESS_AGENTS.json
+    git state : ?? (?? = untracked/uncommitted)
+    sha256    : 9644df0d30dbf69d42e3fbaded363978f694fa2ee0994a300ae5603a9c2e01ea
+    mtime     : 2026-08-15T00:38:55Z
+    bytes     : 852
+  bootstrap-workers.mjs
+    git state : ?? (?? = untracked/uncommitted)
+    sha256    : 9392a6ec32f32e56f991337a98cb3e7f648f406d1baf63a59160262d304c9b24
+    mtime     : 2026-08-15T00:38:55Z
+    bytes     : 3747
+  worker-sync.mjs
+    git state : ?? (?? = untracked/uncommitted)
+    sha256    : 5e04a4215bc71d212aaa88021dc7c4faaa52bec58e7bc8775ea8d9ae21361cc1
+    mtime     : 2026-08-15T00:39:22Z
+    bytes     : 2417

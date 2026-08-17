@@ -1,0 +1,31 @@
+=== EXACT TEST COMMAND (from clean checkout of 51c362cb...) ===
+repo_checkout : /Users/mikeai/.pp-worktrees/matter-v1-verify  (detached @ 51c362cb1187d3459d103bd2768767ef3934612e)
+cwd           : /Users/mikeai/.pp-worktrees/matter-v1-verify/AI-HANDOFF/matter
+node          : v22.22.2
+platform      : Darwin 25.4.0 arm64
+env           : MATTER_DIR=<fresh mktemp -d>  (hermetic; no real state touched)
+command       : MATTER_DIR=$(mktemp -d) node test-matter-registry.mjs
+network       : none required
+
+----- COMPLETE OUTPUT -----
+  PASS  1. policy version is content-addressed (edit => new version)
+  PASS  2. register creates a record but never asserts availability
+  PASS  3. availability is measured by a real probe
+  PASS  4. heartbeat records capability CHANGES without granting authority
+  PASS  5. policy ack is recorded only when a worker actually acks
+  PASS  6. ROUTING IS BY CAPABILITY, NOT PROVIDER NAME
+  PASS  7. a brand-new provider becomes eligible with NO code change
+  PASS  8. unavailable / stale-heartbeat workers are excluded with reasons
+  PASS  9. missing permission blocks selection
+  PASS  10. builder != verifier for verification-required work
+  PASS  11. no independent verifier => task is BLOCKED, never auto-certified
+  PASS  12. protected action demands owner approval
+  PASS  13. stale-policy worker is refused sensitive work
+  PASS  14. NO FAKE PRECISION: score stays null below the sample floor
+  PASS  15. a worker's own completion claim does NOT count as success
+  PASS  16. every routing decision is durably audited with reasons
+  PASS  17. THE ANTI-PATTERN IS ABSENT: no provider name drives routing
+
+17 passed, 0 failed
+scratch: /var/folders/5d/70tbp_5n3hx3v2m8zlyv_ck80000gn/T/tmp.cA6ekO4Pss
+----- EXIT CODE: 0 -----

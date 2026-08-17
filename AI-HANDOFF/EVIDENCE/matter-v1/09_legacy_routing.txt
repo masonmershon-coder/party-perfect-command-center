@@ -1,0 +1,30 @@
+LEGACY PROVIDER-SPECIFIC DISPATCH — still present (proves V2 cutover NOT done)
+Captured from the CANDIDATE checkout @ 51c362cb1187d3459d103bd2768767ef3934612e
+
+--- control-plane.mjs: SUBSYSTEM_OWNER provider-name mapping ---
+26:const SUBSYSTEM_OWNER = {
+27-  por: "claude", enterprise: "claude", counter: "claude", rds: "claude", crystal: "claude",
+28-  printer: "claude", bridge: "claude", observer: "claude", legacy: "claude",
+29-  product: "cursor", frontend: "cursor", backend: "cursor", api: "cursor", "command-center": "cursor",
+30-  audit: "codex", verification: "codex", certification: "codex", security: "codex", regression: "codex",
+31-};
+32:const ownerFor = (subsystem) => SUBSYSTEM_OWNER[String(subsystem || "").toLowerCase()] || null;
+33-
+34-// ---- lifecycle (spec #2) ----
+35-const NEXT = {
+
+--- matter/orchestrate.mjs: named WORKERS ---
+57:const WORKERS = {
+58-  cursor: { cmd: ["node", path.join(HANDOFF, "cursor", "dispatch.mjs")], handles: (t) => t.owner_agent === "cursor" },
+59-  codex:  { cmd: ["node", path.join(HANDOFF, "codex", "dispatch.mjs")],  handles: (t) => t.verifier_agent === "codex" && t.status === "READY_FOR_VERIFICATION" },
+60-};
+
+--- matter/orchestrate.mjs: dispatchParallel hard-coded list ---
+204:const results = await dispatchParallel(["cursor", "codex"]);
+
+--- matter/orchestrate.mjs: fixed board rows ---
+164:  console.log(`CLAUDE    ${line("claude")}`);
+165:  console.log(`CURSOR    ${line("cursor")}`);
+166:  console.log(`CODEX     ${verifying.length ? `verifying ${verifying[0].task_id}` : `${awaitingVerify.length} awaiting`}  [${hb.codex?.status || "OFFLINE"}]`);
+
+CONCLUSION: V1 selection layer exists; legacy live dispatch remains provider-specific.

@@ -1,0 +1,25 @@
+REPOSITORY_PATH   : /Users/mikeai/grok-dashboard
+REMOTE_ORIGIN     : https://github.com/masonmershon-coder/party-perfect-command-center.git
+BRANCH            : claude/matter-provider-neutral-v1
+FULL_CANDIDATE_SHA: 51c362cb1187d3459d103bd2768767ef3934612e
+BASE_SHA          : 262d40924823db9440dc95403b3d468333b60e17
+COMMIT_DATE       : 2026-08-15T00:40:04-05:00
+TREE_SHA          : 80e84cbb70a13a255f6a51e4095d9d927be57045
+
+FILES IN CANDIDATE COMMIT (base..candidate):
+  A	AI-HANDOFF/matter/MATTER_POLICY.json
+  A	AI-HANDOFF/matter/MATTER_V1_AUDIT.md
+  A	AI-HANDOFF/matter/matter-registry.mjs
+  A	AI-HANDOFF/matter/test-matter-registry.mjs
+
+GIT BLOB IDS OF EACH CANDIDATE FILE (binds content to the commit):
+  MATTER_POLICY.json           blob=9a29fe0c51fe132b08435bf86cb99ec23c73039f
+  matter-registry.mjs          blob=20ca58d6d965f30883a87dcae5c835c13a12997d
+  test-matter-registry.mjs     blob=c7fcfb3dc57505105aaab8550a6a3f69910b195f
+  MATTER_V1_AUDIT.md           blob=1764b98ba5f1b70aea9c04dd4968d3feed583970
+
+WORKING TREE AT CAPTURE TIME (NOT part of the candidate):
+  current checked-out branch : agent/cursor/PP-TIME-001
+  uncommitted changes in repo: 84
+  WORKTREE_CLEAN             : NO (dirty, and on another agent's branch)
+  Verification binds to the immutable commit above, never the working tree.

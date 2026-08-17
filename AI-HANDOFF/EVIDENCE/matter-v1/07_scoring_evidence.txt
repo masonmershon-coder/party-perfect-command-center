@@ -1,0 +1,21 @@
+min_samples_for_score (exact rule from MATTER_POLICY.json): 5
+
+-- self-reported completions only --
+  after 1 reported_complete -> score=null samples=1 (insufficient samples (1 < 5))
+  after 2 reported_complete -> score=null samples=2 (insufficient samples (2 < 5))
+  after 3 reported_complete -> score=null samples=3 (insufficient samples (3 < 5))
+  after 4 reported_complete -> score=null samples=4 (insufficient samples (4 < 5))
+  after 5 reported_complete -> score=0 samples=5
+  after 6 reported_complete -> score=0 samples=6
+
+  => 6 self-reports produce score 0, NOT positive. A worker cannot inflate its own score.
+
+-- independently verified passes --
+  after 1 verified_pass -> score=null samples=1 (insufficient samples (1 < 5))
+  after 2 verified_pass -> score=null samples=2 (insufficient samples (2 < 5))
+  after 3 verified_pass -> score=null samples=3 (insufficient samples (3 < 5))
+  after 4 verified_pass -> score=null samples=4 (insufficient samples (4 < 5))
+  after 5 verified_pass -> score=1 samples=5
+  after 6 verified_pass -> score=1 samples=6
+
+  => score stays null below the threshold, then appears. Sample count always visible.

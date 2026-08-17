@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  MATTER WATCHDOG — supervision definition. DELIBERATELY NOT INSTALLED.
+
+  The filename ends in .NOT-INSTALLED so it cannot be loaded by accident and is obviously
+  inert on inspection. It is NOT in ~/Library/LaunchAgents.
+
+  DO NOT INSTALL UNTIL BOTH ARE TRUE:
+    1. macOS background permission approved
+       (System Settings -> General -> Login Items & Extensions -> Allow in the Background)
+    2. `bash launchd-control-test.sh` exits PASS
+
+  Installing before then produces a supervisor that never starts, never ticks and never
+  respawns - which is worse than none, because the board would look supervised.
+
+  To install once those hold:
+    cp com.partyperfect.watchdog.plist.NOT-INSTALLED ~/Library/LaunchAgents/com.partyperfect.watchdog.plist
+    launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.partyperfect.watchdog.plist
+    touch /Users/mikeai/grok-dashboard/AI-HANDOFF/matter/ARMED     # arms the watchdog
+    launchctl kickstart -p gui/$(id -u)/com.partyperfect.watchdog
+  Then verify supervision for real:
+    kill -9 $(launchctl print gui/$(id -u)/com.partyperfect.watchdog | awk '/pid =/{print $3}')
+    # KeepAlive must respawn it; if it does not, supervision is still broken.
+
+  Shape note: this runs ONE persistent process with its own internal timer, rather than a
+  periodic launch. On this Mac periodic launching is unreliable, while long-running processes
+  survive for days - so launchd only has to start it once and keep it alive.
+-->
+<plist version="1.0"><dict>
+  <key>Label</key><string>com.partyperfect.watchdog</string>
+  <key>ProgramArguments</key><array>
+    <string>/opt/homebrew/bin/node</string>
+    <string>/Users/mikeai/grok-dashboard/AI-HANDOFF/matter/watchdog.mjs</string>
+    <string>--daemon</string>
+  </array>
+  <key>EnvironmentVariables</key><dict>
+    <key>PATH</key><string>/Users/mikeai/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+    <key>HOME</key><string>/Users/mikeai</string>
+    <key>MATTER_WATCHDOG_INTERVAL_SEC</key><string>120</string>
+  </dict>
+  <!-- KeepAlive is the whole point: the supervisor must outlive its own crashes. -->
+  <key>KeepAlive</key><true/>
+  <key>RunAtLoad</key><true/>
+  <key>ThrottleInterval</key><integer>30</integer>
+  <key>StandardOutPath</key><string>/Users/mikeai/grok-dashboard/AI-HANDOFF/matter/.logs/watchdog.out.log</string>
+  <key>StandardErrorPath</key><string>/Users/mikeai/grok-dashboard/AI-HANDOFF/matter/.logs/watchdog.err.log</string>
+</dict></plist>

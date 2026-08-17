@@ -11,6 +11,10 @@ import { fileURLToPath } from "node:url";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const SCRATCH = process.env.MATTER_DIR || mkdtempSync(path.join(tmpdir(), "matter-test-"));
 process.env.MATTER_DIR = SCRATCH;
+// V1.2.2: permissions are no longer accepted at registration (P0 self-grant fix); they must be
+// granted through Matter's owner-controlled authority path, which these fixtures now simulate.
+const AUTH = "test-authority-token";
+process.env.MATTER_TRUST_AUTHORITY_TOKEN = AUTH;
 copyFileSync(path.join(HERE, "MATTER_POLICY.json"), path.join(SCRATCH, "MATTER_POLICY.json"));
 
 const M = await import("./matter-registry.mjs");
@@ -111,7 +115,8 @@ t("9. missing permission blocks selection", () => {
 
 t("10. builder != verifier for verification-required work", () => {
   mkWorker("builder-a", { coding: measuredCap(0.9) });
-  mkWorker("checker-b", { coding: measuredCap(0.3), verification: measuredCap(0.9) }, { permissions: { verification: true } });
+  mkWorker("checker-b", { coding: measuredCap(0.3), verification: measuredCap(0.9) });
+  M.grantPermission("checker-b", "verification", true, { authority: AUTH });
   M.probe(); M.heartbeat("builder-a", {}); M.heartbeat("checker-b", {});
   M.ack("builder-a"); M.ack("checker-b");
   const d = M.route({ task_id: "T5", required_capabilities: { coding: 0.9 }, risk_class: "production_deployment" });
@@ -130,7 +135,8 @@ process.env.MATTER_DIR = SCRATCH; // restore for the remaining tests
 
 t("11. no independent verifier => task is BLOCKED, never auto-certified", () => {
   // The ONLY worker in this fleet can build and verify — but it may not verify itself.
-  M2.register({ worker_id: "solo-worker", detect: OK_PROBE, capabilities: { coding: measuredCap(0.9), verification: measuredCap(0.9) }, permissions: { verification: true } });
+  M2.register({ worker_id: "solo-worker", detect: OK_PROBE, capabilities: { coding: measuredCap(0.9), verification: measuredCap(0.9) } });
+  M2.grantPermission("solo-worker", "verification", true, { authority: AUTH });
   M2.probe("solo-worker"); M2.heartbeat("solo-worker", {}); M2.ack("solo-worker");
   const d = M2.route({ task_id: "T6", required_capabilities: { coding: 0.9 }, risk_class: "por_write" });
   assert.equal(d.primary, "solo-worker");

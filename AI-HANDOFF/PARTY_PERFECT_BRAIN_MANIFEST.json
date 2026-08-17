@@ -1,6 +1,6 @@
 {
-  "manifest_version": "1.0.1",
-  "generated_at": "2026-08-17T16:40:00Z",
+  "manifest_version": "1.0.2",
+  "generated_at": "2026-08-17T16:50:00Z",
   "generated_by": "cursor (brain reconciliation P0; builds on claude v1.0.0)",
   "purpose": "Single machine-readable index of the authoritative version of each Party Perfect subsystem. No chat claims. Every SHA is verifiable with git rev-parse.",
   "inventory": "AI-HANDOFF/BRAIN_INVENTORY_2026-08-17.json",
@@ -15,7 +15,7 @@
   "authoritative_sources": {
     "source_code": "git (branches below)",
     "structured_runtime_state": "Supabase / AI Core + AI-HANDOFF JSONL ledgers",
-    "shared_knowledge_layer": "NOT YET — Google Drive absent; SSD POR brain mounted; brain-sync.mjs READY",
+    "shared_knowledge_layer": "NOT YET \u2014 Google Drive absent; SSD POR brain mounted; brain-sync.mjs READY",
     "business_truth_of_record": "Point of Rental on ENTERPRISE (read-only from here)"
   },
   "subsystems": {
@@ -24,12 +24,12 @@
       "repository": "grok-dashboard",
       "branch": "agent/cursor/PP-TIME-001",
       "full_sha": "ad5e8b680424aca55ba8828a0175eb33b6c25388",
-      "brain_package_sha": "25937673d79e85f1303861e4dee2674c55c777bd",
+      "brain_package_sha": "c48573d02b3a46ac22942d6575ee8a700acf0e8c",
       "deployed_sha": null,
       "last_verified": "2026-08-17 (bundle clone recovers app/time + lib/time + tests; runtime unverified)",
       "evidence_path": "AI-HANDOFF/EVIDENCE/PP-TIME-001*.md",
       "verification_bundle": "AI-HANDOFF/EVIDENCE/pp-time-001/pp-time-candidate-eeb5a8ff6662.bundle",
-      "runtime_status": "NOT PRODUCTION. Migration 0009 committed as FILE ONLY — NOT APPLIED. Square remains punch authority.",
+      "runtime_status": "NOT PRODUCTION. Migration 0009 committed as FILE ONLY \u2014 NOT APPLIED. Square remains punch authority.",
       "authoritative_source": "git branch agent/cursor/PP-TIME-001 @ ad5e8b6 (+ bundle)",
       "known_blockers": [
         "preview Vercel access unavailable to verifier",
@@ -49,7 +49,10 @@
       "evidence_path": "AI-HANDOFF/MATTER_24_7_AUTONOMY_AUDIT.md",
       "runtime_status": "manual kickstart only; launchd auto-scheduling degraded",
       "authoritative_source": "AI-HANDOFF/matter + audits",
-      "known_blockers": ["launchd timers dead", "legacy provider-name dispatch still controls real work"]
+      "known_blockers": [
+        "launchd timers dead",
+        "legacy provider-name dispatch still controls real work"
+      ]
     },
     "provider_neutral_routing": {
       "status": "CANDIDATE - bundle available for Codex",
@@ -63,7 +66,10 @@
       "verification_bundle": "AI-HANDOFF/EVIDENCE/matter-v1/matter-v1-candidate-51c362cb1187.bundle",
       "runtime_status": "NOT WIRED to live dispatch",
       "authoritative_source": "git @ 51c362c + matter-v1 bundle",
-      "known_blockers": ["acks not cryptographically authenticated", "capabilities DECLARED not MEASURED"]
+      "known_blockers": [
+        "acks not cryptographically authenticated",
+        "capabilities DECLARED not MEASURED"
+      ]
     },
     "autonomy_execution_substrate": {
       "status": "BUILT + TESTED, NOT RUNNING",
@@ -75,7 +81,9 @@
       "evidence_path": "AI-HANDOFF/MATTER_P0_STATUS.md",
       "runtime_status": "watchdog UNARMED and NOT installed",
       "authoritative_source": "git @ dbcd378",
-      "known_blockers": ["launchd cannot supervise"]
+      "known_blockers": [
+        "launchd cannot supervise"
+      ]
     },
     "mike": {
       "status": "PARTIAL - transport live, answer path unmerged",
@@ -92,7 +100,10 @@
       "evidence_path": "AI-HANDOFF/MIKE_LIVE_ROUTING_P0_STATUS.md",
       "runtime_status": "bridge alive; live-answer NOT armed",
       "authoritative_source": "git branches listed",
-      "known_blockers": ["bridge not wired to mike-brain", "arming is Mason's decision"]
+      "known_blockers": [
+        "bridge not wired to mike-brain",
+        "arming is Mason's decision"
+      ]
     },
     "madison": {
       "status": "NOT IMPLEMENTED",
@@ -104,7 +115,9 @@
       "evidence_path": null,
       "runtime_status": "named in BUSINESS_AGENTS.json only",
       "authoritative_source": "AI-HANDOFF/matter/BUSINESS_AGENTS.json",
-      "known_blockers": ["no worker binding"]
+      "known_blockers": [
+        "no worker binding"
+      ]
     },
     "command_center": {
       "status": "DEPLOYED v1.9.7 + local unpushed Aug 13-17 work",
@@ -115,9 +128,11 @@
       "origin_main_sha_not_live": "a10a09a49eae74241da8a7dc77b6d3d973176154",
       "last_verified": "2026-08-13 (RELEASE_STATE live checks)",
       "evidence_path": "AI-HANDOFF/RELEASE_STATE.md",
-      "runtime_status": "LIVE at https://partyperfect.app — APP_VERSION 1.9.7",
+      "runtime_status": "LIVE at https://partyperfect.app \u2014 APP_VERSION 1.9.7",
       "authoritative_source": "RELEASE_STATE.md",
-      "known_blockers": ["do not hotfix from stale origin/main"]
+      "known_blockers": [
+        "do not hotfix from stale origin/main"
+      ]
     },
     "por_bridge": {
       "status": "READ-ONLY, VERIFIED",
@@ -129,7 +144,9 @@
       "evidence_path": "AI-HANDOFF/EVIDENCE/POR-STAT-VERIFY-001.md",
       "runtime_status": "read-only; POR writes BLOCKED",
       "authoritative_source": "POR on ENTERPRISE",
-      "known_blockers": ["POR_WRITE blocked by policy — intentional"]
+      "known_blockers": [
+        "POR_WRITE blocked by policy \u2014 intentional"
+      ]
     },
     "ai_core": {
       "status": "DEPLOYED (older)",
@@ -141,14 +158,19 @@
       "evidence_path": "AI-HANDOFF/ (Supabase briefs)",
       "runtime_status": "0003-0005 applied historically; 0009 NOT applied",
       "authoritative_source": "Supabase project + deploy/ai-core-p2a",
-      "known_blockers": ["monthly budget NOT SET; cost capture incomplete"]
+      "known_blockers": [
+        "monthly budget NOT SET; cost capture incomplete"
+      ]
     },
     "security_recovery": {
       "status": "PRESERVED",
       "repository": "grok-dashboard",
       "branch": "recovery/party-perfect-approved-state",
       "full_sha": "b8479b3f10e407863cac598bc6ba5d01bb54ddc7",
-      "related_branches": ["recovery/v196-plus-pp-sec-001 @ 584285f", "deploy/pp-sec-001 @ ddfadc1 (PUSHED)"],
+      "related_branches": [
+        "recovery/v196-plus-pp-sec-001 @ 584285f",
+        "deploy/pp-sec-001 @ ddfadc1 (PUSHED)"
+      ],
       "deployed_sha": "ddfadc10208ce56bdd926d63c1a695de85959d59",
       "last_verified": "2026-08-13",
       "evidence_path": "AI-HANDOFF/EVIDENCE/",
@@ -179,10 +201,12 @@
     "automatic_sync_running": false,
     "design_doc": "AI-HANDOFF/BRAIN_SYNC_DESIGN.md",
     "sync_entry": "AI-HANDOFF/matter/brain-sync.mjs",
-    "last_successful_sync": null
+    "last_successful_sync": "2026-08-17T17:11:41.743Z",
+    "last_sync_attempt": "2026-08-17T17:11:41.598Z",
+    "ssd_manual_sync_note": "Manual BRAIN_SYNC_DEST to SSD 00-MANIFESTS/agent-brain succeeded; Google Drive still NONE; automatic sync still NOT RUNNING"
   },
   "verifier_access": {
-    "github_push": "NOT PERFORMED — requires Mason authorization",
+    "github_push": "NOT PERFORMED \u2014 requires Mason authorization",
     "proven_mechanism": "git bundle (self-contained pull of named branch)",
     "time_bundle": "AI-HANDOFF/EVIDENCE/pp-time-001/pp-time-candidate-eeb5a8ff6662.bundle",
     "matter_v1_bundle": "AI-HANDOFF/EVIDENCE/matter-v1/matter-v1-candidate-51c362cb1187.bundle",
@@ -194,9 +218,10 @@
     "por_writes": "BLOCKED",
     "migration_0009": "NOT APPLIED",
     "time_deploy": "HELD",
-    "square_cutover": "HELD — Square remains live punch authority",
+    "square_cutover": "HELD \u2014 Square remains live punch authority",
     "watchdog": "UNARMED",
     "google_drive_sync": "NOT IMPLEMENTED",
     "automatic_brain_sync": "NOT RUNNING"
-  }
+  },
+  "brain_package_sha": "c48573d02b3a46ac22942d6575ee8a700acf0e8c"
 }

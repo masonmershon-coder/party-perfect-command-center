@@ -1,0 +1,255 @@
+.kituwa-root {
+  min-height: 100dvh;
+  background:
+    radial-gradient(1200px 600px at 50% -10%, rgba(0, 229, 255, 0.08), transparent 55%),
+    radial-gradient(800px 500px at 110% 80%, rgba(255, 47, 146, 0.06), transparent 50%),
+    #05070c;
+  color: #d7f7ff;
+  font-family: var(--font-kituwa-mono), ui-monospace, monospace;
+  padding:
+    max(12px, env(safe-area-inset-top))
+    max(16px, env(safe-area-inset-right))
+    max(16px, env(safe-area-inset-bottom))
+    max(16px, env(safe-area-inset-left));
+}
+
+.kituwa-shell {
+  width: min(430px, 100%);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: calc(100dvh - 32px);
+}
+
+.kituwa-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.kituwa-brand {
+  font-family: var(--font-kituwa-display), sans-serif;
+  font-size: 1.55rem;
+  letter-spacing: 0.18em;
+  font-weight: 800;
+  color: #f4ffff;
+}
+
+.kituwa-status {
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #7ee7ff;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.kituwa-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 99px;
+  background: #3dffc4;
+  box-shadow: 0 0 10px #3dffc4;
+}
+
+.kituwa-dot[data-tone="blocked"] { background: #ffb020; box-shadow: 0 0 10px #ffb020; }
+.kituwa-dot[data-tone="wait"] { background: #7aa7ff; box-shadow: 0 0 10px #7aa7ff; }
+.kituwa-dot[data-tone="idle"] { background: #4d6b78; box-shadow: none; }
+.kituwa-dot[data-tone="live"] { background: #3dffc4; }
+
+.kituwa-core-wrap {
+  position: relative;
+  height: 220px;
+  border: 1px solid rgba(90, 230, 255, 0.18);
+  border-radius: 24px;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, rgba(8, 18, 28, 0.9), rgba(4, 8, 14, 0.95));
+}
+
+.kituwa-core-wrap canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.kituwa-prompt {
+  text-align: center;
+  font-family: var(--font-kituwa-display), sans-serif;
+  font-size: 1.15rem;
+  color: #e8fbff;
+}
+
+.kituwa-composer {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 8px;
+  align-items: end;
+}
+
+.kituwa-input {
+  width: 100%;
+  min-height: 52px;
+  resize: none;
+  border-radius: 16px;
+  border: 1px solid rgba(90, 230, 255, 0.28);
+  background: rgba(8, 14, 22, 0.85);
+  color: #e8fbff;
+  padding: 14px;
+  font: inherit;
+}
+
+.kituwa-icon-btn,
+.kituwa-send {
+  height: 52px;
+  min-width: 52px;
+  border: 0;
+  border-radius: 16px;
+  cursor: pointer;
+}
+
+.kituwa-icon-btn {
+  background: #101822;
+  color: #7ee7ff;
+  border: 1px solid rgba(90, 230, 255, 0.25);
+}
+
+.kituwa-icon-btn[data-hot="1"] {
+  background: #132a28;
+  color: #3dffc4;
+  box-shadow: 0 0 18px rgba(61, 255, 196, 0.25);
+}
+
+.kituwa-send {
+  background: linear-gradient(180deg, #1de0c1, #129f9a);
+  color: #041016;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.kituwa-panel {
+  border: 1px solid rgba(90, 230, 255, 0.16);
+  border-radius: 18px;
+  background: rgba(7, 12, 18, 0.72);
+  overflow: hidden;
+}
+
+.kituwa-panel summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 12px 14px;
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #8be7ff;
+}
+
+.kituwa-panel summary::-webkit-details-marker { display: none; }
+
+.kituwa-panel-body {
+  padding: 0 14px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.kituwa-step {
+  display: grid;
+  grid-template-columns: 16px 1fr;
+  gap: 8px;
+  font-size: 0.78rem;
+  color: #c5e8f0;
+}
+
+.kituwa-step small {
+  display: block;
+  color: #6f8b96;
+  font-size: 0.68rem;
+}
+
+.kituwa-mark { color: #3dffc4; }
+.kituwa-mark[data-s="active"] { color: #7ee7ff; }
+.kituwa-mark[data-s="pending"] { color: #3a4c55; }
+.kituwa-mark[data-s="blocked"] { color: #ffb020; }
+.kituwa-mark[data-s="waiting"] { color: #7aa7ff; }
+
+.kituwa-office {
+  image-rendering: pixelated;
+  background:
+    repeating-linear-gradient(0deg, transparent 0 7px, rgba(80, 255, 220, 0.04) 7px 8px),
+    #071018;
+  border: 2px solid #16323a;
+  min-height: 128px;
+  padding: 10px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.kituwa-station {
+  border: 2px solid #2a5a66;
+  background: #0b1820;
+  min-height: 72px;
+  padding: 6px;
+  font-family: var(--font-kituwa-pixel), monospace;
+  font-size: 7px;
+  line-height: 1.5;
+  color: #b8fff0;
+}
+
+.kituwa-station[data-busy="1"] {
+  box-shadow: inset 0 0 0 1px #3dffc4;
+}
+
+.kituwa-station[data-blocked="1"] {
+  border-color: #8a5a12;
+  color: #ffd089;
+}
+
+.kituwa-health dt {
+  color: #6f8b96;
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.kituwa-health dd {
+  margin: 0 0 8px;
+  font-size: 0.8rem;
+}
+
+.kituwa-login {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 48px;
+}
+
+.kituwa-msg {
+  font-size: 0.8rem;
+  color: #bdefff;
+  border-left: 2px solid #1de0c1;
+  padding-left: 10px;
+}
+
+.kituwa-using {
+  color: #6f8b96;
+  font-size: 0.7rem;
+  margin-top: 4px;
+}
+
+.kituwa-error { color: #ff8d8d; font-size: 0.78rem; }
+.kituwa-hidden { display: none; }
+.kituwa-signout {
+  background: none;
+  border: 0;
+  color: #4d6b78;
+  font: inherit;
+  font-size: 0.65rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  align-self: flex-end;
+}

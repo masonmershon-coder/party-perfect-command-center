@@ -96,7 +96,7 @@ export function useSpeechToText(options?: {
       }
     }
 
-    const recognition = new Ctor();
+    const recognition: SpeechRecognitionLike = new Ctor();
     recognition.continuous = continuousRef.current;
     recognition.interimResults = true;
     recognition.lang = options?.lang ?? "en-US";

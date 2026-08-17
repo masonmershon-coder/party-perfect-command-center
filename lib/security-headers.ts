@@ -33,7 +33,7 @@ export const SECURITY_HEADER_ENTRIES: Array<{ key: string; value: string }> = [
     value: [
       "default-src 'self'",
       "base-uri 'self'",
-      "form-action 'self' https://partyperfect.app https://www.partyperfect.app https://partyperfectjobs.com https://www.partyperfectjobs.com",
+      "form-action 'self' https://partyperfect.app https://www.partyperfect.app https://partyperfectjobs.com https://www.partyperfectjobs.com https://kituwa.app https://www.kituwa.app",
       "frame-ancestors 'self'",
       "object-src 'none'",
       "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://vercel.live",
@@ -81,7 +81,8 @@ export const API_CORS_ALLOW_ORIGINS = [
   "https://partyperfectjobs.com",
   "https://www.partyperfectjobs.com",
   "https://partyperfecteventrental.com",
-  "https://www.partyperfecteventrental.com",
+  "https://kituwa.app",
+  "https://www.kituwa.app",
 ] as const;
 
 export function isAllowedApiCorsOrigin(origin: string | null | undefined): boolean {

@@ -2,6 +2,12 @@
 
 Approved decisions worth preserving. Keep short. No secrets.
 
+## 2026-08-17 — Kituwa is Mason's OS; Matter is the intelligence
+
+- **Decision:** `kituwa.app` is Mason's personal interface to Matter, not a Party Perfect app. Providers are temporary hats. No fake activity. Domain already purchased; attaching it is a separate production step.
+- **Source:** Mason KITUWA V1 brief (2026-08-17).
+- **Evidence:** `AI-HANDOFF/EVIDENCE/KITUWA_V1_ARCHITECTURE.md`
+
 ## 2026-08-17 — Brain reconciliation + verifier access (P0)
 
 - **Decision:** Aug 13–17 work must be durable and independently verifiable (git commits + evidence + git bundles). Google Drive shared-knowledge sync is **not** present on this Mac; `brain-sync.mjs` is SYNC CODE READY but AUTOMATIC SYNC is NOT RUNNING until launchd recovery is certified and a real `BRAIN_SYNC_DEST` exists. Git remains source authority; POR remains business SoR; Drive/SSD sync is knowledge/evidence only. Codex obtains candidates via bundles when GitHub push is unavailable.

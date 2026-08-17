@@ -15,9 +15,21 @@ const LEGACY_COMMAND_HOSTS = new Set([
 /** Jobs host rewrite + legacy Command Center host redirects → partyperfect.app */
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const host = (request.headers.get("host")?.toLowerCase() ?? "").split(":")[0];
+  const isKituwaHost =
+    host === "kituwa.app" ||
+    host === "www.kituwa.app" ||
+    host.endsWith(".kituwa.app");
 
   // Strict API CORS. Do not redirect /api on legacy hosts (Twilio / POR webhooks).
   if (pathname.startsWith("/api/")) {
+    if (
+      isKituwaHost &&
+      !pathname.startsWith("/api/kituwa") &&
+      pathname !== "/api/health"
+    ) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
     const cors = corsHeadersForOrigin(request.headers.get("origin"));
     if (request.method === "OPTIONS") {
       return new NextResponse(null, { status: 204, headers: cors });
@@ -29,7 +41,27 @@ export function middleware(request: NextRequest) {
     return res;
   }
 
-  const host = (request.headers.get("host")?.toLowerCase() ?? "").split(":")[0];
+  if (isKituwaHost) {
+    const kituwaOk =
+      pathname === "/kituwa" ||
+      pathname.startsWith("/kituwa/") ||
+      pathname.startsWith("/api/kituwa") ||
+      pathname === "/api/health";
+    if (pathname === "/" || pathname === "") {
+      const url = request.nextUrl.clone();
+      url.pathname = "/kituwa";
+      return NextResponse.rewrite(url);
+    }
+    if (!kituwaOk && pathname.startsWith("/api/")) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+    if (!kituwaOk) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/kituwa";
+      return NextResponse.rewrite(url);
+    }
+    return NextResponse.next();
+  }
 
   if (LEGACY_COMMAND_HOSTS.has(host)) {
     const url = request.nextUrl.clone();

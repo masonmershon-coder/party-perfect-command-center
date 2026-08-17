@@ -30,14 +30,16 @@ import { fileURLToPath } from "node:url";
 import { checkIndependentVerification, logVerification, recordAssignment, getTask, normalizeCapability, effectiveTrust, meetsTrust, decidingComparator } from "./trust.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-// Overridable so tests run hermetically without touching real state.
-const DIR = process.env.MATTER_DIR || HERE;
-const F = (n) => path.join(DIR, n);
-const POLICY_FILE = path.join(process.env.MATTER_POLICY_DIR || DIR, "MATTER_POLICY.json");
-const REGISTRY = F("WORKER_REGISTRY.json");
-const ACKS = F("POLICY_ACKS.jsonl");
-const ROUTES = F("ROUTING_DECISIONS.jsonl");
-const OUTCOMES = F("WORKER_OUTCOMES.jsonl");
+// Overridable so tests / Kituwa Vercel /tmp copies can route without writing the repo.
+function matterDir() {
+  return process.env.MATTER_DIR || HERE;
+}
+const F = (n) => path.join(matterDir(), n);
+const policyFile = () => path.join(process.env.MATTER_POLICY_DIR || matterDir(), "MATTER_POLICY.json");
+const registryFile = () => F("WORKER_REGISTRY.json");
+const acksFile = () => F("POLICY_ACKS.jsonl");
+const routesFile = () => F("ROUTING_DECISIONS.jsonl");
+const outcomesFile = () => F("WORKER_OUTCOMES.jsonl");
 
 const now = () => new Date().toISOString();
 const readJson = (f, d) => { try { return existsSync(f) ? JSON.parse(readFileSync(f, "utf8")) : d; } catch { return d; } };
@@ -48,15 +50,15 @@ const readLines = (f) => (existsSync(f) ? readFileSync(f, "utf8").trim().split("
 // ---- policy ------------------------------------------------------------
 /** Version = semver + content hash, so an edited policy is a NEW version even at the same semver. */
 export function policy() {
-  const p = readJson(POLICY_FILE, null);
-  if (!p) throw new Error(`no policy at ${POLICY_FILE}`);
+  const p = readJson(policyFile(), null);
+  if (!p) throw new Error(`no policy at ${policyFile()}`);
   const hash = createHash("sha256").update(JSON.stringify(p)).digest("hex").slice(0, 12);
   return { ...p, version: `${p.semver}+${hash}` };
 }
 
 // ---- registry ----------------------------------------------------------
-const loadRegistry = () => readJson(REGISTRY, { workers: {}, updated_at: null });
-const saveRegistry = (r) => { r.updated_at = now(); writeJson(REGISTRY, r); };
+const loadRegistry = () => readJson(registryFile(), { workers: {}, updated_at: null });
+const saveRegistry = (r) => { r.updated_at = now(); writeJson(registryFile(), r); };
 
 /**
  * Capability record. Vendor-neutral on purpose: `provider`/`product`/`model` are free text and
@@ -104,7 +106,7 @@ export function register(input) {
   saveRegistry(reg);
   // A self-grant ATTEMPT is not an error, but it is never honoured and always recorded.
   if (input.permissions && Object.keys(input.permissions).length)
-    append(ROUTES, { kind: "PERMISSION_SELF_GRANT_ATTEMPT", worker_id: rec.worker_id,
+    append(routesFile(), { kind: "PERMISSION_SELF_GRANT_ATTEMPT", worker_id: rec.worker_id,
       attempted: Object.keys(input.permissions), outcome: "IGNORED - permissions require Matter authority" });
   return rec;
 }
@@ -117,14 +119,14 @@ export function register(input) {
 export function grantPermission(worker_id, permission, value, { authority } = {}) {
   const expected = process.env.MATTER_TRUST_AUTHORITY_TOKEN || null;
   if (!expected || authority !== expected) {
-    append(ROUTES, { kind: "PERMISSION_GRANT_DENIED", worker_id, permission, reason: expected ? "bad authority token" : "no authority token configured (fail closed)" });
+    append(routesFile(), { kind: "PERMISSION_GRANT_DENIED", worker_id, permission, reason: expected ? "bad authority token" : "no authority token configured (fail closed)" });
     throw new Error("PERMISSION GRANT DENIED: valid Matter trust authority required");
   }
   const reg = loadRegistry(); const w = reg.workers[worker_id];
   if (!w) throw new Error(`unknown worker ${worker_id}`);
   w.permissions = { ...(w.permissions || {}), [permission]: !!value };
   saveRegistry(reg);
-  append(ROUTES, { kind: "PERMISSION_GRANTED", worker_id, permission, value: !!value });
+  append(routesFile(), { kind: "PERMISSION_GRANTED", worker_id, permission, value: !!value });
   return w.permissions;
 }
 
@@ -151,7 +153,7 @@ export function heartbeat(worker_id, payload = {}) {
   w.updated_at = now();
   saveRegistry(reg);
   // A capability change is recorded but grants NO extra authority on its own (policy §3/§4).
-  if (changes.length) append(ROUTES, { kind: "CAPABILITY_CHANGE_DETECTED", worker_id, changes, note: "recorded; routing weight unchanged until evidence supports it" });
+  if (changes.length) append(routesFile(), { kind: "CAPABILITY_CHANGE_DETECTED", worker_id, changes, note: "recorded; routing weight unchanged until evidence supports it" });
   return { worker_id, changes };
 }
 
@@ -190,7 +192,7 @@ export function ack(worker_id, capability_state = null) {
   w.policy_version_ack = p.version;
   w.updated_at = now();
   saveRegistry(reg);
-  append(ACKS, {
+  append(acksFile(), {
     event: "POLICY_VERSION_RECEIVED", worker_id, policy_version: p.version,
     capability_state: capability_state || Object.keys(w.capabilities),
     acknowledged: true,
@@ -205,7 +207,7 @@ export function ack(worker_id, capability_state = null) {
  */
 export function scoreFor(worker_id, task_category = null) {
   const p = policy();
-  const rows = readLines(OUTCOMES).filter((r) => r.worker_id === worker_id && (!task_category || r.task_category === task_category));
+  const rows = readLines(outcomesFile()).filter((r) => r.worker_id === worker_id && (!task_category || r.task_category === task_category));
   const n = rows.length;
   if (n < (p.min_samples_for_score ?? 5)) return { score: null, samples: n, reason: `insufficient samples (${n} < ${p.min_samples_for_score})` };
   const good = rows.filter((r) => r.outcome === "verified_pass").length;
@@ -282,7 +284,7 @@ export function route(task) {
       selection_basis: "task declares no need for judgement/reasoning/generation — deterministic software must handle it; no model invoked",
       owner_approval_required: isProtected, considered: [],
     };
-    append(ROUTES, decision);
+    append(routesFile(), decision);
     return decision;
   }
 
@@ -382,7 +384,7 @@ export function route(task) {
     considered,
     comparator_chain: decided.comparator,
   };
-  append(ROUTES, decision);
+  append(routesFile(), decision);
   // Persist the assignment: this is the ONLY basis for "is this the assigned verifier" later.
   if (decision.task_id && decision.primary)
     try { recordAssignment(decision.task_id, { owner: decision.primary, verifier: decision.verifier, risk_class: task.risk_class || null, protected_action: isProtected }); } catch {}
@@ -446,7 +448,7 @@ export function report(r) {
   }
 
   // "reported_complete" is a worker's own claim and deliberately does NOT count as success.
-  append(OUTCOMES, {
+  append(outcomesFile(), {
     task_id: r.task_id, worker_id: r.worker_id, task_category: r.task_category || null,
     outcome: r.outcome, verified_by: r.verified_by || null,
     changed: r.changed || null, artifacts: r.artifacts || [], tests: r.tests || null,
@@ -463,9 +465,9 @@ export function snapshot() {
   const p = policy();
   const reg = loadRegistry();
   const maxAgeMs = (p.heartbeat_max_age_minutes ?? 60) * 60000;
-  const routes = readLines(ROUTES);
-  const acks = readLines(ACKS);
-  const outcomes = readLines(OUTCOMES);
+  const routes = readLines(routesFile());
+  const acks = readLines(acksFile());
+  const outcomes = readLines(outcomesFile());
   const watch = readLines(F("CAPABILITY_WATCH.jsonl"));
   const workers = Object.values(reg.workers)
     .sort((a, b) => (a.worker_id < b.worker_id ? -1 : 1))

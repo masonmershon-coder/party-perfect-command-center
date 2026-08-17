@@ -20,6 +20,7 @@
     "test:mike-intake": "npx tsx scripts/test-mike-intake.ts",
     "test:ai-cost": "npx tsx scripts/test-ai-cost.ts",
     "test:time": "npx tsx scripts/test-time.ts",
+    "test:kituwa": "npx tsx scripts/test-kituwa.mjs",
     "test:matter-registry": "node AI-HANDOFF/matter/test-matter-registry.mjs"
   },
   "engines": {

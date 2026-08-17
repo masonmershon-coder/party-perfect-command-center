@@ -27,6 +27,26 @@ const nextConfig: NextConfig = {
         source: "/time/:path*",
         headers: [{ key: "Permissions-Policy", value: TIME_PERMISSIONS_POLICY }],
       },
+      {
+        source: "/kituwa",
+        headers: [
+          {
+            key: "Permissions-Policy",
+            value:
+              "camera=(self), microphone=(self), geolocation=(), payment=(), usb=(), interest-cohort=()",
+          },
+        ],
+      },
+      {
+        source: "/kituwa/:path*",
+        headers: [
+          {
+            key: "Permissions-Policy",
+            value:
+              "camera=(self), microphone=(self), geolocation=(), payment=(), usb=(), interest-cohort=()",
+          },
+        ],
+      },
     ];
   },
 };

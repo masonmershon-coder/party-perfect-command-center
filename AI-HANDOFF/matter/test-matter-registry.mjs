@@ -129,11 +129,12 @@ t("10. builder != verifier for verification-required work", () => {
 // via a fresh module instance (the ?v= query defeats the ESM module cache).
 const SCRATCH2 = mkdtempSync(path.join(tmpdir(), "matter-solo-"));
 copyFileSync(path.join(HERE, "MATTER_POLICY.json"), path.join(SCRATCH2, "MATTER_POLICY.json"));
-process.env.MATTER_DIR = SCRATCH2;
 const M2 = await import("./matter-registry.mjs?solo=1");
-process.env.MATTER_DIR = SCRATCH; // restore for the remaining tests
 
 t("11. no independent verifier => task is BLOCKED, never auto-certified", () => {
+  const prev = process.env.MATTER_DIR;
+  process.env.MATTER_DIR = SCRATCH2;
+  try {
   // The ONLY worker in this fleet can build and verify — but it may not verify itself.
   M2.register({ worker_id: "solo-worker", detect: OK_PROBE, capabilities: { soloskill: measuredCap(0.9), verification: measuredCap(0.9) } });
   M2.grantPermission("solo-worker", "verification", true, { authority: AUTH });
@@ -144,6 +145,9 @@ t("11. no independent verifier => task is BLOCKED, never auto-certified", () => 
   assert.equal(d.verifier, null, "the sole worker must NOT be allowed to verify its own build");
   assert.equal(d.blocked, true, "with no independent verifier the task must be blocked");
   assert.match(d.verifier_note, /NO INDEPENDENT VERIFIER/);
+  } finally {
+    process.env.MATTER_DIR = prev;
+  }
 });
 
 t("12. protected action demands owner approval", () => {

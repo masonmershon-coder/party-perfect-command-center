@@ -1,24 +1,11 @@
 # CURRENT TASK
 
-**TASK ID:** PP-TIME-SHADOW-MODE-P0  
-**STATUS:** SHADOW_MODE_REMEDIATION_BLOCKED (Square Labor env)  
+**TASK ID:** KITUWA-V1  
+**STATUS:** READY_FOR_CODEX_REVIEW  
 **UPDATED:** 2026-08-17  
 
-## Done
+Kituwa V1 (Mason OS / Matter interface) on branch `agent/cursor/KITUWA-V1`. Not Party Perfect production. Domain `kituwa.app` purchased but **not attached**.
 
-- Preview reachable without Vercel SSO: `https://time-preview.partyperfect.app/time`
-- TS2367 factcheck fix; tsc clean
-- Auth matrix recognizes `requireTimeAdmin`; Time admin routes use Time session + area caps
-- PIN lockout durable (Redis / durable JSON)
-- Correction vs resync tests green
-- Shadow sync + parity scripts ready (Labor API)
+Parallel hold: PP-TIME Shadow Mode still WAITING_FOR_MASON (Square Preview env). That work is stashed on `agent/cursor/PP-TIME-001`.
 
-## Blocked
-
-`SQUARE_ACCESS_TOKEN` + `SQUARE_LOCATION_ID` not available in this environment → cannot prove live Square through **2026-08-17**.
-
-## Holds
-
-`0009` not applied · Square still punch authority · no employee production cutover
-
-Evidence: `AI-HANDOFF/EVIDENCE/PP-TIME-SHADOW_MODE_REMEDIATION_2026-08-17.md`
+Evidence: `AI-HANDOFF/EVIDENCE/KITUWA_V1_ARCHITECTURE.md` · `AI-HANDOFF/EVIDENCE/KITUWA_V1_CODEX_PACKAGE.md`

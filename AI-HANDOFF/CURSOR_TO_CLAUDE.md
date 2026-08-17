@@ -1,19 +1,19 @@
-# Cursor → Claude · 2026-08-17 · BRAIN-RECONCILE-001
+# Cursor → Claude · 2026-08-17 · KITUWA V1
 
-**Status:** READY_FOR_CODEX_BRAIN_REVERIFY (Time feature work paused)
+**Status:** `READY_FOR_CODEX_REVIEW`  
+**Branch:** `agent/cursor/KITUWA-V1`  
+**Parent:** `e9f31c8` (PP Time candidate; not mixed into Time preview alias)
 
-## What landed (brain P0)
+## What landed
 
-- Inventory of Aug 13–17 work across branches/worktrees/evidence
-- Time + Matter surfaces preserved in git; Time bundle tip `ad5e8b6`
-- `PARTY_PERFECT_BRAIN_MANIFEST.json` v1.0.1
-- `brain-sync.mjs` READY; Drive absent; automatic sync NOT claimed
-- Cold-start proof for Codex
+Mason personal OS at `/kituwa`: auth, talk, durable tasks, Matter `route()` (not replaced), live plan, pixel office from **real task state**, brain health with UNKNOWN where unknown, PWA, mic, attach. Host isolation in middleware for `kituwa.app`.
 
-## Explicit holds
+## Holds
 
-No Time deploy · no `0009` · no Square changes · no paid autonomous compute.
+- Do **not** attach `kituwa.app` until Mason confirms the Vercel project boundary.
+- Do **not** promote Party Perfect production.
+- Do **not** apply Time `0009` / Square cutover (separate stash).
 
-## Ask Claude
+## Codex
 
-Stay aligned on CURRENT_TASK = BRAIN-RECONCILE-001 until Codex returns. Do not start new Time features during this gate.
+Package: `AI-HANDOFF/EVIDENCE/KITUWA_V1_CODEX_PACKAGE.md`

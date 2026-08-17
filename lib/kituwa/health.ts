@@ -25,6 +25,12 @@ export function kituwaBrainHealth(state: KituwaState) {
   const fresh = workers.filter((w) => w.heartbeat_fresh && w.available);
   const busy = state.tasks.filter((t) => t.state === "RUNNING").length;
   const stale = workers.filter((w) => !w.heartbeat_fresh || !w.available);
+  const lastHeartbeat =
+    workers
+      .map((w) => w.last_heartbeat)
+      .filter((v): v is string => Boolean(v))
+      .sort()
+      .at(-1) || null;
 
   let matter: "ONLINE" | "DEGRADED" | "OFFLINE" | "UNKNOWN" = "UNKNOWN";
   if (!snap.ok) matter = "UNKNOWN";
@@ -60,6 +66,7 @@ export function kituwaBrainHealth(state: KituwaState) {
     costToday: "UNKNOWN",
     apiBudget: "UNKNOWN",
     lastBrainSync: sync.last_successful_sync || null,
+    lastHeartbeat,
     storage: kituwaStoreMode() === "ephemeral" ? "degraded" : "connected",
     localMac:
       localFresh == null ? "UNKNOWN" : localFresh ? "connected" : "offline",

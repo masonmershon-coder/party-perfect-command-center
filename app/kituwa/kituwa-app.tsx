@@ -15,6 +15,7 @@ type Health = {
   costToday: string;
   apiBudget: string;
   lastBrainSync: string | null;
+  lastHeartbeat: string | null;
   storage: string;
   localMac: string;
   policy: string;
@@ -311,6 +312,8 @@ export function KituwaApp() {
           <dd>{health?.apiBudget || "UNKNOWN"}</dd>
           <dt>Last brain sync</dt>
           <dd>{health?.lastBrainSync || "UNKNOWN"}</dd>
+          <dt>Last heartbeat</dt>
+          <dd>{health?.lastHeartbeat || "UNKNOWN"}</dd>
           <dt>Storage</dt>
           <dd>{health?.storage || "UNKNOWN"}</dd>
           <dt>Local Mac</dt>

@@ -1,4 +1,5 @@
 import { readDurableJson, writeDurableJson, durableStoreMode } from "@/lib/durable-json";
+import { isVercelRuntime } from "@/lib/data-dir";
 import { emptyKituwaState, type KituwaState } from "@/lib/kituwa/types";
 
 const KEY = "kituwa/state.json";
@@ -24,6 +25,11 @@ export async function saveKituwaState(state: KituwaState): Promise<KituwaState> 
   if (process.env.KITUWA_STORE === "memory") {
     memory.set(KEY, next);
     return next;
+  }
+  if (isVercelRuntime() && durableStoreMode() === "ephemeral") {
+    throw new Error(
+      "Kituwa durable storage is not configured. Set BLOB_READ_WRITE_TOKEN or Upstash Redis on the kituwa Vercel project.",
+    );
   }
   await writeDurableJson(KEY, next);
   return next;

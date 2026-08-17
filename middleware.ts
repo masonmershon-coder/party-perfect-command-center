@@ -16,10 +16,22 @@ const LEGACY_COMMAND_HOSTS = new Set([
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const host = (request.headers.get("host")?.toLowerCase() ?? "").split(":")[0];
+  const isKituwaProject =
+    process.env.KITUWA_SURFACE === "1" ||
+    process.env.VERCEL_PROJECT_NAME === "kituwa";
   const isKituwaHost =
+    isKituwaProject ||
     host === "kituwa.app" ||
     host === "www.kituwa.app" ||
     host.endsWith(".kituwa.app");
+
+  if (host === "www.kituwa.app") {
+    const url = request.nextUrl.clone();
+    url.protocol = "https:";
+    url.host = "kituwa.app";
+    url.port = "";
+    return NextResponse.redirect(url, 308);
+  }
 
   // Strict API CORS. Do not redirect /api on legacy hosts (Twilio / POR webhooks).
   if (pathname.startsWith("/api/")) {

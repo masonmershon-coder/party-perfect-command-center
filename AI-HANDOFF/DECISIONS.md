@@ -152,3 +152,99 @@ name counts as thinking. Regression tests R1/R2 lock this in.
 - `matter-registry.mjs` — **0 provider literals in routing logic**, asserted by test 9.
 
 **Tests:** 13/13 provider-neutrality + cost routing; 17/17 existing V1 suite (no regressions).
+
+---
+
+## 2026-08-17 — ARCHITECTURE: BRIDGE BEFORE REPLACEMENT (Matter policy 1.3.0)
+
+**Decision.** Party Perfect does not replace a proven legacy operating system merely to modernize
+the employee experience. The preferred migration architecture is:
+
+```
+LEGACY SYSTEM → GOVERNED BRIDGE → NEW PARTY PERFECT / MATTER INTERFACE
+→ CONTROLLED WRITES → READ-BACK VERIFICATION → GRADUAL AUTHORITY TRANSFER
+→ OPTIONAL LEGACY RETIREMENT
+```
+
+A reusable pattern, applied first to **Square / Party Perfect Time**, then to **Point of Rental**.
+
+**Authoritative location:** `AI-HANDOFF/matter/MATTER_POLICY.json`, extended in place —
+version **1.3.0+111d69836ac9**. No new disconnected rule file was created.
+
+### The POR clarification that changed
+
+The old posture read as *"POR is read-only to AI, permanently."* That was right while we were
+learning the system; it is now **too coarse**. The precise long-term rule:
+
+- POR remains the **authoritative live operational source** until Mason explicitly changes that.
+- POR is **not permanently read-only**. Matter may eventually write through **specifically tested,
+  independently verified and explicitly authorized capabilities**.
+- Authority is graduated **capability by capability**. Global POR write authority is never granted.
+- **Capability does not imply permission** — already enforced in code, and a P0 self-grant bypass
+  in that exact area was found and closed on 2026-08-17.
+
+| Read capabilities (appropriate now) | Candidate future writes (each individually authorized) | Separately gated high-risk |
+|---|---|---|
+| `por_customer_lookup`, `por_inventory_lookup`, `por_availability_lookup`, `por_price_lookup`, `por_quote_read` | `por_quote_create`, `por_quote_update`, `por_customer_create_update`, `por_reservation_update`, `por_contract_update`, `por_print_quote` | payments, refunds, deletions, pricing overrides, contract cancellation, financial adjustments |
+
+### Write safety standard (applies to any legacy system, not just POR)
+
+```
+REQUEST → STRUCTURED INTENT → PERMISSION CHECK → CURRENT READ → PROPOSED CHANGE
+→ WRITE → REOPEN / READ BACK FROM THE LEGACY SYSTEM → COMPARE EXPECTED VS ACTUAL
+→ VERIFIED SUCCESS OR CONFLICT/FAILURE → DURABLE AUDIT
+```
+
+**Never trust "save succeeded" alone.** Authoritative state must be read back and compared.
+Every write records: who requested, initiating system, Matter task id, worker/tool, legacy record
+id, before state, requested change, after state, verification result, timestamp, evidence ref.
+
+### Identity and legitimacy
+
+Automation must **never** be designed to conceal itself, impersonate an employee, bypass licensing
+or security controls, or evade detection. Access is legitimate and authorized. Our audit preserves
+the **actual initiating identity** (Mason, Shelly, Michelle, a named employee, Matter, or a specific
+worker) even when the legacy system records the action through a licensed service account.
+
+Integration order: supported API where reliable → governed database/service integration →
+controlled UI automation when necessary. **API purity is not a requirement** when safe UI
+automation is the practical way to perform an existing employee workflow.
+
+### Matter exposes business capabilities
+
+Other systems request `check availability`, `build quote`, `correct timecard`, `print contract` —
+not Square/POR internals. One controlled integration layer instead of many improvised ones.
+
+### Square / Party Perfect Time — the proving ground
+
+Employees keep punching in **Square**. `Square → PP Time` carries live punches, breaks and timecard
+data. `PP Time → Square` carries **only specifically authorized management corrections**, after the
+write bridge is verified and approved. Employee punches migrate later. Every Square write is read
+back and confirmed.
+
+### What this decision does NOT do
+
+**It authorizes no POR write.** Verified after the change: `por_authoritative_write` is still a
+protected action, `por_write` still requires verification, **no worker holds `por_write`**, and
+`por_write_status.authorized_today = false`. No live POR was touched, no test write performed,
+no production routing changed.
+
+### Components that already implement this pattern
+
+| Component | Role in the bridge |
+|---|---|
+| `matter/matter-registry.mjs` | capability/permission separation; graduated authority is expressible today |
+| `matter/trust.mjs` | capability trust levels (DECLARED→MEASURED→VERIFIED); a write capability can be required to be MEASURED |
+| `matter/shadow-router.mjs` | shadow-before-live: compute the write plan without executing it |
+| `matter/execution.mjs` | leases/DLQ so a half-finished write cannot vanish |
+| `/Users/mikeai/Matter/por-bridge` | existing READ-ONLY POR bridge, verified 7/7 against real CNTRs |
+
+### Gaps this decision exposes
+
+1. **No read-back-verify implementation exists.** `sentinel/sentinel.mjs` is the only place with a
+   read-back notion. The `WRITE → READ BACK → COMPARE` step is specified but unbuilt.
+2. **No structured-intent schema** for a proposed legacy write.
+3. **No capability-scoped write permissions** are defined yet (`por_quote_create` etc. exist only as
+   names in policy).
+4. **Provider neutrality holds:** no rule says Claude/Cursor/Claw operates POR. Matter selects
+   dynamically. This must stay true when the bridge is built.

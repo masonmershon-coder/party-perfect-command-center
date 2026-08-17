@@ -1,6 +1,6 @@
 {
   "policy_id": "MATTER_PROVIDER_NEUTRAL_ORCHESTRATION",
-  "semver": "1.2.0",
+  "semver": "1.3.0",
   "effective": "2026-08-17",
   "principle": "STABLE MATTER. STABLE BUSINESS AGENTS. REPLACEABLE INTELLIGENCE. DYNAMIC ROUTING. DURABLE MEMORY. VERIFIED WORK. OWNER CONTROL.",
   "policy_statement": "Party Perfect business agents represent responsibilities, not AI vendors. Matter dynamically assigns authorized workers, models and tools according to current capability, quality, reliability, availability, privacy and cost. Providers are replaceable. Capabilities do not grant authority. Deterministic software is preferred when intelligence is unnecessary. Matter controls paid compute escalation and may reassign any business role to a better authorized worker without changing the role's identity or history.",
@@ -28,7 +28,13 @@
     "owner_authority": "Autonomy does not remove owner authority. Approval gates remain for money, customer-facing sends, production/destructive changes, financial/payroll writes, POR authoritative writes, credential/security changes, and other high-risk irreversible actions.",
     "independent_verification_required": "A verified_pass outcome requires an independent, registered, available, policy-current verifier that holds explicit verification permission and MEASURED verification capability, is the verifier Matter assigned to that task, and the task carries evidence references. Failing any condition the outcome is REJECTED and audited - never silently downgraded.",
     "capability_trust_levels": "Capability trust is one of REVOKED/UNKNOWN/DECLARED/OBSERVED/MEASURED/VERIFIED. A self-declared capability is a CLAIM. Sensitive or permissioned work requires at least MEASURED. A new provider may be trialed on harmless work at DECLARED/OBSERVED, which grants no permissions and no permanent routing trust.",
-    "trustworthy_acknowledgement": "Policy acknowledgement requires a single-use nonce bound to the current content-addressed policy version, redeemed by the worker process Matter launched, recorded with launcher identity. A nonce cannot be replayed or reused across policy versions."
+    "trustworthy_acknowledgement": "Policy acknowledgement requires a single-use nonce bound to the current content-addressed policy version, redeemed by the worker process Matter launched, recorded with launcher identity. A nonce cannot be replayed or reused across policy versions.",
+    "bridge_before_replacement": "Party Perfect does not replace a proven legacy operating system merely to modernize the employee experience. The preferred migration architecture is: LEGACY SYSTEM -> GOVERNED BRIDGE -> NEW PARTY PERFECT/MATTER INTERFACE -> CONTROLLED WRITES -> READ-BACK VERIFICATION -> GRADUAL AUTHORITY TRANSFER -> OPTIONAL LEGACY RETIREMENT. This is a reusable pattern, currently applied to Square/Party Perfect Time and to Point of Rental.",
+    "por_authority_is_graduated": "POR remains the authoritative live operational source until Mason explicitly changes that designation. POR is NOT permanently read-only: Matter and authorized systems MAY eventually perform POR writes through specifically tested, independently verified and explicitly authorized capabilities. Write authority is graduated CAPABILITY BY CAPABILITY. Global POR write authority is never granted.",
+    "write_safety_standard": "For every consequential legacy write: REQUEST -> STRUCTURED INTENT -> PERMISSION CHECK -> CURRENT READ -> PROPOSED CHANGE -> WRITE -> REOPEN/READ BACK FROM THE LEGACY SYSTEM -> COMPARE EXPECTED VS ACTUAL -> VERIFIED SUCCESS OR CONFLICT/FAILURE -> DURABLE AUDIT. Never trust a save-succeeded response alone; authoritative state must be read back and compared.",
+    "initiating_identity_preserved": "Our audit must preserve the ACTUAL initiating identity (Mason, Shelly, Michelle, a named employee, Matter, or a specific worker/tool) even when the legacy system records the action through a licensed service or operator account. Automation must never be designed to conceal itself, impersonate an employee, bypass licensing or security controls, or evade detection. Access must be legitimate and authorized.",
+    "integration_order": "Prefer a supported API/integration where reliable, then a governed database/service integration where appropriate, then controlled UI automation when necessary. API purity is NOT a requirement when safe UI automation is the practical way to perform an existing employee workflow.",
+    "matter_exposes_business_capabilities": "Matter exposes BUSINESS CAPABILITIES (check availability, build quote, correct timecard, print contract), not legacy-system complexity. Other Party Perfect systems request the capability; Matter routes it through the governed integration. One controlled integration layer, not many improvised ones."
   },
   "protected_actions": [
     "money_spend",
@@ -116,5 +122,70 @@
   ],
   "min_samples_for_score": 5,
   "min_verifier_capability_trust": "MEASURED",
-  "min_capability_trust_for_sensitive_work": "MEASURED"
+  "min_capability_trust_for_sensitive_work": "MEASURED",
+  "bridge_architecture": {
+    "pattern": [
+      "LEGACY SYSTEM",
+      "GOVERNED BRIDGE",
+      "NEW PARTY PERFECT / MATTER INTERFACE",
+      "CONTROLLED WRITES",
+      "READ-BACK VERIFICATION",
+      "GRADUAL AUTHORITY TRANSFER",
+      "OPTIONAL LEGACY RETIREMENT"
+    ],
+    "write_audit_fields": [
+      "who_requested",
+      "initiating_system",
+      "matter_task_id",
+      "worker_or_tool",
+      "legacy_record_id",
+      "before_state",
+      "requested_change",
+      "after_state",
+      "verification_result",
+      "timestamp",
+      "evidence_ref"
+    ],
+    "applied_to": {
+      "square_party_perfect_time": {
+        "status": "first proving ground",
+        "inbound": "Square -> PP Time: live punches, breaks, timecard information",
+        "outbound": "PP Time -> Square: ONLY specifically authorized management corrections, after the write bridge is verified and approved",
+        "employee_experience": "employees keep punching in Square; Shelly/Mason/Michelle manage Time from PP Time; employee punches move later",
+        "every_write": "must be read back and confirmed"
+      },
+      "point_of_rental": {
+        "status": "pattern recorded; NO write capability authorized",
+        "read_capabilities_ok": [
+          "por_customer_lookup",
+          "por_inventory_lookup",
+          "por_availability_lookup",
+          "por_price_lookup",
+          "por_quote_read"
+        ],
+        "candidate_write_capabilities_future": [
+          "por_quote_create",
+          "por_quote_update",
+          "por_customer_create_update",
+          "por_reservation_update",
+          "por_contract_update",
+          "por_print_quote"
+        ],
+        "separately_gated_high_risk": [
+          "payments",
+          "refunds",
+          "deletions",
+          "pricing_overrides",
+          "contract_cancellation",
+          "financial_adjustments"
+        ],
+        "rule": "each capability is authorized individually only after its workflow is tested, independently verified and approved"
+      }
+    },
+    "target_employee_experience": "EMPLOYEE -> SIMPLE PARTY PERFECT INTERFACE -> MATTER -> GOVERNED CAPABILITIES -> LEGACY SYSTEM. The objective is not to teach every employee to operate POR."
+  },
+  "por_write_status": {
+    "authorized_today": false,
+    "note": "This decision records architecture only. It does NOT authorize any POR write. por_authoritative_write remains a protected action and no worker holds por_write."
+  }
 }

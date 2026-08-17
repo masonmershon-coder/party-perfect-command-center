@@ -1,21 +1,76 @@
 {
-  "health": "YELLOW",
-  "generated_at": "2026-08-13T19:07:54.984Z",
-  "last_verified_at": "2026-08-13T19:07:02.807Z",
+  "health": "RED",
+  "generated_at": "2026-08-17T14:24:11.812Z",
+  "last_verified_at": "2026-08-13T22:04:37.604Z",
   "counts": {
-    "open_p0": 0,
-    "open_p1": 16,
+    "open_p0": 6,
+    "open_p1": 41,
     "awaiting_verification": 0,
     "codex_verifying": 0,
-    "needs_fix": 4,
+    "needs_fix": 7,
     "blocked_total": 10,
-    "blocked_on_mason": 6,
-    "claude_tasks": 9,
-    "cursor_tasks": 22,
+    "blocked_on_mason": 5,
+    "claude_tasks": 16,
+    "cursor_tasks": 26,
     "certified_pass": 2,
-    "total_tasks": 36
+    "total_tasks": 48
   },
-  "open_p0": [],
+  "open_p0": [
+    {
+      "key": "CODEX-SWEEP-DAILY:false-green-codex-access-smoke-001",
+      "task_id": "CODEX-SWEEP-DAILY",
+      "severity": "P0",
+      "code": "false-green-codex-access-smoke-001",
+      "summary": "CODEX-ACCESS-SMOKE-001 is CERTIFIED_PASS but no verification exists in the ledger",
+      "evidence": "AI-HANDOFF/CODEX_AUDIT_LEDGER.jsonl",
+      "opened_at": "2026-08-17T11:30:05.057Z"
+    },
+    {
+      "key": "CODEX-SWEEP-WEEKLY:false-green-codex-access-smoke-001",
+      "task_id": "CODEX-SWEEP-WEEKLY",
+      "severity": "P0",
+      "code": "false-green-codex-access-smoke-001",
+      "summary": "CODEX-ACCESS-SMOKE-001 is CERTIFIED_PASS but no verification exists in the ledger",
+      "evidence": "AI-HANDOFF/CODEX_AUDIT_LEDGER.jsonl",
+      "opened_at": "2026-08-17T11:45:01.605Z"
+    },
+    {
+      "key": "CODEX-SWEEP-WEEKLY:secret-in-tracked-file-ai-handoff-governor-test-accounting-mjs",
+      "task_id": "CODEX-SWEEP-WEEKLY",
+      "severity": "P0",
+      "code": "secret-in-tracked-file-ai-handoff-governor-test-accounting-mjs",
+      "summary": "Possible secret committed in AI-HANDOFF/governor/test-accounting.mjs",
+      "evidence": "AI-HANDOFF/governor/test-accounting.mjs",
+      "opened_at": "2026-08-17T11:45:01.605Z"
+    },
+    {
+      "key": "CODEX-SWEEP-WEEKLY:secret-in-tracked-file-ai-handoff-sentinel-test-sentinel-mjs",
+      "task_id": "CODEX-SWEEP-WEEKLY",
+      "severity": "P0",
+      "code": "secret-in-tracked-file-ai-handoff-sentinel-test-sentinel-mjs",
+      "summary": "Possible secret committed in AI-HANDOFF/sentinel/test-sentinel.mjs",
+      "evidence": "AI-HANDOFF/sentinel/test-sentinel.mjs",
+      "opened_at": "2026-08-17T11:45:01.605Z"
+    },
+    {
+      "key": "CODEX-SWEEP-WEEKLY:secret-in-tracked-file-scripts-foundation-foundation-test-mjs",
+      "task_id": "CODEX-SWEEP-WEEKLY",
+      "severity": "P0",
+      "code": "secret-in-tracked-file-scripts-foundation-foundation-test-mjs",
+      "summary": "Possible secret committed in scripts/foundation/foundation.test.mjs",
+      "evidence": "scripts/foundation/foundation.test.mjs",
+      "opened_at": "2026-08-17T11:45:01.605Z"
+    },
+    {
+      "key": "CODEX-SWEEP-WEEKLY:secret-in-tracked-file-scripts-test-ai-cost-ts",
+      "task_id": "CODEX-SWEEP-WEEKLY",
+      "severity": "P0",
+      "code": "secret-in-tracked-file-scripts-test-ai-cost-ts",
+      "summary": "Possible secret committed in scripts/test-ai-cost.ts",
+      "evidence": "scripts/test-ai-cost.ts",
+      "opened_at": "2026-08-17T11:45:01.605Z"
+    }
+  ],
   "open_p1": [
     {
       "key": "CONTROL-PLANE-CURSOR-SMOKE-001:missing-evidence-artifact",
@@ -25,15 +80,6 @@
       "summary": "Cursor did not produce the required artifact",
       "evidence": "AI-HANDOFF/EVIDENCE/",
       "opened_at": "2026-08-12T21:37:52.249Z"
-    },
-    {
-      "key": "CODEX-SWEEP-DAILY:unmerged-branch",
-      "task_id": "CODEX-SWEEP-DAILY",
-      "severity": "P1",
-      "code": "unmerged-branch",
-      "summary": "15 commit(s) on 'claude/por-stat-classification' not in main — fixes are written but not deployed",
-      "evidence": "git rev-list main..claude/por-stat-classification",
-      "opened_at": "2026-08-13T11:30:00.599Z"
     },
     {
       "key": "SENTINEL-PHASE1-REVIEW-001:collector-action-boundary-collapse",
@@ -160,6 +206,240 @@
       "summary": "Collector-supplied signalIds are accepted as arbitrary strings, bypass text redaction, returned by APIs, and displayed in the owner drilldown, so secrets or PII can leak despite the counts-only claim.",
       "evidence": "lib/sentinel-inbox.ts:68",
       "opened_at": "2026-08-13T19:04:35.920Z"
+    },
+    {
+      "key": "TALK-TO-MIKE-INTAKE-001:lease-callback-not-fenced",
+      "task_id": "TALK-TO-MIKE-INTAKE-001",
+      "severity": "P1",
+      "code": "lease-callback-not-fenced",
+      "summary": "ACK/FAIL operations are not tied to a lease attempt: ACK retains lease_owner, so a delayed or subsequent FAIL can move a DELIVERED command back to QUEUED, while callbacks from an expired lease can mutate a newer lease owned by the same fixed worker identity.",
+      "evidence": "lib/mike-intake-pg.ts:175",
+      "opened_at": "2026-08-13T20:26:12.842Z"
+    },
+    {
+      "key": "EOD-SAFETY-CHECKPOINT-001:bridge-still-not-integrated",
+      "task_id": "EOD-SAFETY-CHECKPOINT-001",
+      "severity": "P1",
+      "code": "bridge-still-not-integrated",
+      "summary": "The existing iMessage bridge never imports or calls handleBridgeMessage(); the evidence contains only unapplied patch instructions, so an authorized iMessage cannot trigger the checkpoint.",
+      "evidence": "/Users/mikeai/Matter/imessage-bridge/imessage-bridge.mjs:70",
+      "opened_at": "2026-08-13T21:35:36.585Z"
+    },
+    {
+      "key": "EOD-SAFETY-CHECKPOINT-001:synchronize-not-performed",
+      "task_id": "EOD-SAFETY-CHECKPOINT-001",
+      "severity": "P1",
+      "code": "synchronize-not-performed",
+      "summary": "The SYNCHRONIZING phase merely reads Git status and records counts; it does not synchronize or durably save agent state.",
+      "evidence": "AI-HANDOFF/eod/eod.mjs:482",
+      "opened_at": "2026-08-13T21:35:36.585Z"
+    },
+    {
+      "key": "EOD-SAFETY-CHECKPOINT-001:backup-not-performed",
+      "task_id": "EOD-SAFETY-CHECKPOINT-001",
+      "severity": "P1",
+      "code": "backup-not-performed",
+      "summary": "The BACKING_UP phase only verifies a pre-existing destination and performs no backup operation, so the claimed BACK UP step is absent.",
+      "evidence": "AI-HANDOFF/eod/eod.mjs:490",
+      "opened_at": "2026-08-13T21:35:36.585Z"
+    },
+    {
+      "key": "MIKE-TASK-NOTIFY-001:acceptance-crash-can-resend",
+      "task_id": "MIKE-TASK-NOTIFY-001",
+      "severity": "P1",
+      "code": "acceptance-crash-can-resend",
+      "summary": "If the provider accepts but the process dies before send resolves or PROVIDER_ACCEPTED is appended, recovery sees only PENDING and sends the notification again.",
+      "evidence": "AI-HANDOFF/mike-notify/notify.mjs:438",
+      "opened_at": "2026-08-13T21:55:26.836Z"
+    },
+    {
+      "key": "MIKE-BRAIN-ROUTING-001:live-bridge-not-wired",
+      "task_id": "MIKE-BRAIN-ROUTING-001",
+      "severity": "P1",
+      "code": "live-bridge-not-wired",
+      "summary": "The live bridge still calls the canned v0 mikeReply stub; it never imports or invokes routeMessage.",
+      "evidence": "/Users/mikeai/Matter/imessage-bridge/imessage-bridge.mjs:51",
+      "opened_at": "2026-08-13T22:04:36.726Z"
+    },
+    {
+      "key": "MIKE-BRAIN-ROUTING-001:execution-chain-missing",
+      "task_id": "MIKE-BRAIN-ROUTING-001",
+      "severity": "P1",
+      "code": "execution-chain-missing",
+      "summary": "Routing only creates and binds a task; no implementation connects task creation to an accounting agent or invokes reportResult after verified work.",
+      "evidence": "AI-HANDOFF/mike-brain/route.mjs:106",
+      "opened_at": "2026-08-13T22:04:36.726Z"
+    },
+    {
+      "key": "MIKE-BRAIN-ROUTING-001:acceptance-still-failed",
+      "task_id": "MIKE-BRAIN-ROUTING-001",
+      "severity": "P1",
+      "code": "acceptance-still-failed",
+      "summary": "The supplied acceptance record remains FAILED and explicitly says an acknowledgement is insufficient; no live rerun proves an actual QuickBooks result reached Mason.",
+      "evidence": "AI-HANDOFF/EVIDENCE/MIKE-ACCEPTANCE-TEST-QUICKBOOKS-001.md:14",
+      "opened_at": "2026-08-13T22:04:36.726Z"
+    },
+    {
+      "key": "CODEX-SWEEP-DAILY:unrepaired-sec-health-pii-001",
+      "task_id": "CODEX-SWEEP-DAILY",
+      "severity": "P1",
+      "code": "unrepaired-sec-health-pii-001",
+      "summary": "SEC-HEALTH-PII-001 has been NEEDS_FIX for 4d with no repair",
+      "evidence": "AI-HANDOFF/MASTER_STATE.json",
+      "opened_at": "2026-08-17T11:30:05.054Z"
+    },
+    {
+      "key": "CODEX-SWEEP-DAILY:unrepaired-sec-gateway-wire-001",
+      "task_id": "CODEX-SWEEP-DAILY",
+      "severity": "P1",
+      "code": "unrepaired-sec-gateway-wire-001",
+      "summary": "SEC-GATEWAY-WIRE-001 has been NEEDS_FIX for 4d with no repair",
+      "evidence": "AI-HANDOFF/MASTER_STATE.json",
+      "opened_at": "2026-08-17T11:30:05.057Z"
+    },
+    {
+      "key": "CODEX-SWEEP-DAILY:unrepaired-sentinel-phase1-review-001",
+      "task_id": "CODEX-SWEEP-DAILY",
+      "severity": "P1",
+      "code": "unrepaired-sentinel-phase1-review-001",
+      "summary": "SENTINEL-PHASE1-REVIEW-001 has been NEEDS_FIX for 4d with no repair",
+      "evidence": "AI-HANDOFF/MASTER_STATE.json",
+      "opened_at": "2026-08-17T11:30:05.057Z"
+    },
+    {
+      "key": "CODEX-SWEEP-DAILY:unrepaired-sentinel-app-001",
+      "task_id": "CODEX-SWEEP-DAILY",
+      "severity": "P1",
+      "code": "unrepaired-sentinel-app-001",
+      "summary": "SENTINEL-APP-001 has been NEEDS_FIX for 4d with no repair",
+      "evidence": "AI-HANDOFF/MASTER_STATE.json",
+      "opened_at": "2026-08-17T11:30:05.057Z"
+    },
+    {
+      "key": "CODEX-SWEEP-DAILY:unrepaired-eod-safety-checkpoint-001",
+      "task_id": "CODEX-SWEEP-DAILY",
+      "severity": "P1",
+      "code": "unrepaired-eod-safety-checkpoint-001",
+      "summary": "EOD-SAFETY-CHECKPOINT-001 has been NEEDS_FIX for 4d with no repair",
+      "evidence": "AI-HANDOFF/MASTER_STATE.json",
+      "opened_at": "2026-08-17T11:30:05.057Z"
+    },
+    {
+      "key": "CODEX-SWEEP-DAILY:unrepaired-mike-task-notify-001",
+      "task_id": "CODEX-SWEEP-DAILY",
+      "severity": "P1",
+      "code": "unrepaired-mike-task-notify-001",
+      "summary": "MIKE-TASK-NOTIFY-001 has been NEEDS_FIX for 4d with no repair",
+      "evidence": "AI-HANDOFF/MASTER_STATE.json",
+      "opened_at": "2026-08-17T11:30:05.057Z"
+    },
+    {
+      "key": "CODEX-SWEEP-DAILY:unrepaired-mike-brain-routing-001",
+      "task_id": "CODEX-SWEEP-DAILY",
+      "severity": "P1",
+      "code": "unrepaired-mike-brain-routing-001",
+      "summary": "MIKE-BRAIN-ROUTING-001 has been NEEDS_FIX for 4d with no repair",
+      "evidence": "AI-HANDOFF/MASTER_STATE.json",
+      "opened_at": "2026-08-17T11:30:05.057Z"
+    },
+    {
+      "key": "CODEX-SWEEP-DAILY:unmerged-branch",
+      "task_id": "CODEX-SWEEP-DAILY",
+      "severity": "P1",
+      "code": "unmerged-branch",
+      "summary": "46 commit(s) on 'agent/cursor/PP-TIME-001' not in main — fixes are written but not deployed",
+      "evidence": "git rev-list main..agent/cursor/PP-TIME-001",
+      "opened_at": "2026-08-17T11:30:05.057Z"
+    },
+    {
+      "key": "CODEX-SWEEP-DAILY:codex-worker-silent",
+      "task_id": "CODEX-SWEEP-DAILY",
+      "severity": "P1",
+      "code": "codex-worker-silent",
+      "summary": "Codex has not heartbeat in 4d",
+      "evidence": "AI-HANDOFF/HEARTBEATS.json",
+      "opened_at": "2026-08-17T11:30:05.057Z"
+    },
+    {
+      "key": "CODEX-SWEEP-WEEKLY:unrepaired-sec-health-pii-001",
+      "task_id": "CODEX-SWEEP-WEEKLY",
+      "severity": "P1",
+      "code": "unrepaired-sec-health-pii-001",
+      "summary": "SEC-HEALTH-PII-001 has been NEEDS_FIX for 4d with no repair",
+      "evidence": "AI-HANDOFF/MASTER_STATE.json",
+      "opened_at": "2026-08-17T11:45:01.603Z"
+    },
+    {
+      "key": "CODEX-SWEEP-WEEKLY:unrepaired-sec-gateway-wire-001",
+      "task_id": "CODEX-SWEEP-WEEKLY",
+      "severity": "P1",
+      "code": "unrepaired-sec-gateway-wire-001",
+      "summary": "SEC-GATEWAY-WIRE-001 has been NEEDS_FIX for 4d with no repair",
+      "evidence": "AI-HANDOFF/MASTER_STATE.json",
+      "opened_at": "2026-08-17T11:45:01.605Z"
+    },
+    {
+      "key": "CODEX-SWEEP-WEEKLY:unrepaired-sentinel-phase1-review-001",
+      "task_id": "CODEX-SWEEP-WEEKLY",
+      "severity": "P1",
+      "code": "unrepaired-sentinel-phase1-review-001",
+      "summary": "SENTINEL-PHASE1-REVIEW-001 has been NEEDS_FIX for 4d with no repair",
+      "evidence": "AI-HANDOFF/MASTER_STATE.json",
+      "opened_at": "2026-08-17T11:45:01.605Z"
+    },
+    {
+      "key": "CODEX-SWEEP-WEEKLY:unrepaired-sentinel-app-001",
+      "task_id": "CODEX-SWEEP-WEEKLY",
+      "severity": "P1",
+      "code": "unrepaired-sentinel-app-001",
+      "summary": "SENTINEL-APP-001 has been NEEDS_FIX for 4d with no repair",
+      "evidence": "AI-HANDOFF/MASTER_STATE.json",
+      "opened_at": "2026-08-17T11:45:01.605Z"
+    },
+    {
+      "key": "CODEX-SWEEP-WEEKLY:unrepaired-eod-safety-checkpoint-001",
+      "task_id": "CODEX-SWEEP-WEEKLY",
+      "severity": "P1",
+      "code": "unrepaired-eod-safety-checkpoint-001",
+      "summary": "EOD-SAFETY-CHECKPOINT-001 has been NEEDS_FIX for 4d with no repair",
+      "evidence": "AI-HANDOFF/MASTER_STATE.json",
+      "opened_at": "2026-08-17T11:45:01.605Z"
+    },
+    {
+      "key": "CODEX-SWEEP-WEEKLY:unrepaired-mike-task-notify-001",
+      "task_id": "CODEX-SWEEP-WEEKLY",
+      "severity": "P1",
+      "code": "unrepaired-mike-task-notify-001",
+      "summary": "MIKE-TASK-NOTIFY-001 has been NEEDS_FIX for 4d with no repair",
+      "evidence": "AI-HANDOFF/MASTER_STATE.json",
+      "opened_at": "2026-08-17T11:45:01.605Z"
+    },
+    {
+      "key": "CODEX-SWEEP-WEEKLY:unrepaired-mike-brain-routing-001",
+      "task_id": "CODEX-SWEEP-WEEKLY",
+      "severity": "P1",
+      "code": "unrepaired-mike-brain-routing-001",
+      "summary": "MIKE-BRAIN-ROUTING-001 has been NEEDS_FIX for 4d with no repair",
+      "evidence": "AI-HANDOFF/MASTER_STATE.json",
+      "opened_at": "2026-08-17T11:45:01.605Z"
+    },
+    {
+      "key": "CODEX-SWEEP-WEEKLY:unmerged-branch",
+      "task_id": "CODEX-SWEEP-WEEKLY",
+      "severity": "P1",
+      "code": "unmerged-branch",
+      "summary": "46 commit(s) on 'agent/cursor/PP-TIME-001' not in main — fixes are written but not deployed",
+      "evidence": "git rev-list main..agent/cursor/PP-TIME-001",
+      "opened_at": "2026-08-17T11:45:01.605Z"
+    },
+    {
+      "key": "CODEX-SWEEP-WEEKLY:codex-worker-silent",
+      "task_id": "CODEX-SWEEP-WEEKLY",
+      "severity": "P1",
+      "code": "codex-worker-silent",
+      "summary": "Codex has not heartbeat in 4d",
+      "evidence": "AI-HANDOFF/HEARTBEATS.json",
+      "opened_at": "2026-08-17T11:45:01.605Z"
     }
   ],
   "awaiting_verification": [],
@@ -188,32 +468,27 @@
       "task_id": "PP-SEC-001",
       "objective": "Certify PP-SEC-001 API authorization lockdown on production partyperfect.app",
       "reason": "BLOCKED_COMPUTE_NOT_APPROVED: PP-SEC-001 has no compute approval"
-    },
-    {
-      "task_id": "GOLDEN-TXN-001",
-      "objective": "Golden Transaction: produce ONE complete real Command Center -> POR ticket via supervised POR Counter GUI (Branch B), reopen it natively in POR, replicate to SSD, native Crystal print to the assigned showroom printer, Codex verification. Mirrors shared control-plane P0 issue #1.",
-      "reason": "OWNER-ONLY: (1) no RDP client installed on this Mac - installing one needs Mason approval; (2) ENTERPRISE/POR authentication - Mason must sign in personally. Port 3389 and 9676 confirmed reachable. GUI runbook prepared at AI-HANDOFF/golden-transaction/GOLDEN_TRANSACTION_FIELD_LOG.md. No SQL write attempted; read-only bridge untouched; numbering tables untouched."
     }
   ],
   "worker_health": {
     "codex-cloud": {
       "available": true,
       "version": "codex-cli 0.147.0",
-      "checked_at": "2026-08-13T19:04:36.865Z"
+      "checked_at": "2026-08-13T22:04:37.604Z"
     }
   },
   "codex_heartbeat": {
-    "current_task": "GH-BRIDGE-001",
-    "state": "verifying",
+    "current_task": null,
+    "state": "idle",
     "blocked_reason": null,
-    "last_seen": "2026-08-13T19:07:02.225Z"
+    "last_seen": "2026-08-13T22:04:37.967Z"
   },
-  "codex_silent": false,
+  "codex_silent": true,
   "confidence": {
     "level": "low",
-    "certified_ratio": 0.33,
+    "certified_ratio": 0.22,
     "certified": 2,
-    "finished": 6
+    "finished": 9
   },
   "evidence": {
     "master_state": "AI-HANDOFF/MASTER_STATE.json",
@@ -221,8 +496,8 @@
     "findings": "AI-HANDOFF/CODEX_OPEN_FINDINGS.json"
   },
   "last_sweep": {
-    "kind": "daily",
-    "at": "2026-08-13T11:30:00.602Z",
-    "findings": 1
+    "kind": "weekly",
+    "at": "2026-08-17T11:45:01.605Z",
+    "findings": 15
   }
 }

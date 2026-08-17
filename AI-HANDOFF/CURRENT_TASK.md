@@ -1,12 +1,31 @@
 # CURRENT TASK
 
-**TASK ID:** OWNER-AI-COST-USAGE-001  
-**STATUS:** READY_FOR_VERIFICATION  
-**UPDATED:** 2026-08-13  
+**TASK ID:** PP-TIME-001  
+**STATUS:** CURSOR_WORKING → READY_FOR_CLAUDE_REVIEW (partial)  
+**UPDATED:** 2026-08-17  
 
-Owner-only AI Cost & Usage. Reuses `0005` `ai_core.ai_usage`. Additive `0008` HELD. Isolated branch `agent/cursor/OWNER-AI-COST-USAGE-001`. Do not deploy.
+## Landed this cycle
 
-Evidence: `AI-HANDOFF/EVIDENCE/OWNER-AI-COST-USAGE-001.md`  
-Bundle: `AI-HANDOFF/EVIDENCE/OWNER-AI-COST-USAGE-001_VERIFICATION_BUNDLE.md`  
-Ingest contract: `docs/AI_COST_INGEST_CONTRACT.md`  
-Tests: `npm run test:ai-cost` · `npm run test:api-auth` · `npx tsc --noEmit`
+### 1. Persistent trusted device + hidden admin menu
+- Returning employees skip login when `pp_time_device` is valid
+- Session slides on activity; IP is evidence-only
+- No employee Sign Out / Switch Account
+- Logo **press-and-hold 4s** → Admin/Support gate (diagnostics for employees; Switch/Sign-out for admins)
+
+### 2. Shadow Mode scaffolding
+- Default `shadowMode: true` — Square remains punch authority
+- Labor API sync client + hourly cron route + admin sync status banner
+- CSV import now preserves lunch break punches
+- PP corrections survive sync (SYNC_CONFLICT)
+
+**Shadow Mode NOT READY** until Square token has TIMECARDS_READ and first sync is HEALTHY.
+
+Evidence: `AI-HANDOFF/EVIDENCE/PP-TIME-TRUSTED_DEVICE_SHADOW_MODE_2026-08-17.md`
+
+### Still blocked / open
+- History through **today (2026-08-17)** not complete (last CSV ends 2026-08-14)
+- Prior-year exports still needed for full history
+- `0009` HELD — no production cutover
+- Employees remain on Square during Shadow Mode
+
+Tests: `npm run test:time` — all passed

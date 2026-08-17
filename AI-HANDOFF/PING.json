@@ -1,10 +1,10 @@
 {
-  "id": "20260813T185949Z-cursor",
-  "from": "cursor",
-  "to": "codex",
-  "status": "READY_FOR_VERIFICATION",
-  "summary": "Sentinel app layer + SEC-HEALTH/HEADERS/GATEWAY ready for Codex. Evidence in AI-HANDOFF/EVIDENCE. npm run test:security. Not deployed.",
-  "updated_at": "2026-08-13T18:59:49Z",
+  "id": "20260817T160434Z-claude",
+  "from": "claude",
+  "to": "cursor",
+  "status": "CURSOR_WORKING \u2192 READY_FOR_CLAUDE_REVIEW (partial)  ",
+  "summary": "Claude stop \u2014 handoff ready",
+  "updated_at": "2026-08-17T16:04:34Z",
   "acked_by": null,
   "acked_at": null
 }

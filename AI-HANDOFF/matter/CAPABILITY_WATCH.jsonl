@@ -1,0 +1,5 @@
+{"at":"2026-08-15T05:40:40.539Z","kind":"WATCH_OK","worker_id":"claude-code","observed_version":"2.1.226 (Claude Code)","registered_version":"2.1.226 (Claude Code)","applied":false}
+{"at":"2026-08-15T05:40:41.079Z","kind":"WATCH_OK","worker_id":"cursor-local","observed_version":"2026.08.11-e8db854","registered_version":"2026.08.11-e8db854","applied":false}
+{"at":"2026-08-15T05:40:41.215Z","kind":"WATCH_OK","worker_id":"codex-local","observed_version":"codex-cli 0.147.0","registered_version":"codex-cli 0.147.0","applied":false}
+{"at":"2026-08-15T05:40:41.237Z","kind":"WATCH_OK","worker_id":"grok-local","observed_version":"grok 0.2.82 (6d0b07d2de0f)","registered_version":"grok 0.2.82 (6d0b07d2de0f)","applied":false}
+{"at":"2026-08-15T05:40:41.239Z","kind":"WATCH_PROBE_FAILED","worker_id":"claw-local","reason":"ENOENT","registered_version":null,"applied":false}

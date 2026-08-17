@@ -568,3 +568,925 @@ NEEDS MASON
   POR-WRITE-UNBLOCK-001 — POR_WRITE = BLOCKED. Exhaustively re-verified 2026-08-13: (1) no vendor AP
   GOLDEN-TXN-001 — Golden Transaction: produce ONE complete real Command Center -> POR ticket
 =========================================================
+worker cursor: cursor-dispatch: nothing actionable
+worker codex: no tasks ready for codex
+
+================= PARTY PERFECT — TODAY =================
+CLAUDE    5 queued  [STALE]
+CURSOR    17 queued  [IDLE]
+CODEX     0 awaiting  [verifying]
+MIKE      idle  [OFFLINE]
+MADISON   idle  [OFFLINE]
+
+POR SYNC  NEVER — replication has not run
+DONE      2 certified
+
+BLOCKED
+  POR-STAT-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-STAT-VERIFY-001 has no compute appro
+  POR-KITS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-KITS-VERIFY-001 has no compute appro
+  CERT-HARNESS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: CERT-HARNESS-VERIFY-001 has no compute a
+  CC-AUTH-P0-001 — Cursor runtime failed: 
+  CONTROL-PLANE-CURSOR-SMOKE-001 — BLOCKED_COMPUTE_NOT_APPROVED: CONTROL-PLANE-CURSOR-SMOKE-001 has no co
+  PP-SEC-001 — BLOCKED_COMPUTE_NOT_APPROVED: PP-SEC-001 has no compute approval
+
+NEEDS MASON
+  POR-REPL-ENTERPRISE-001 — Deploy Replicate-PorToShare.ps1 to ENTERPRISE and schedule it every 15 min
+  POR-WRITE-UNBLOCK-001 — POR_WRITE = BLOCKED. Exhaustively re-verified 2026-08-13: (1) no vendor AP
+  GOLDEN-TXN-001 — Golden Transaction: produce ONE complete real Command Center -> POR ticket
+  POR-ROUTINE-CENSUS-001 — Run Export-PorSchemaCensus.ps1 on ENTERPRISE (read-only). The critical art
+=========================================================
+worker cursor: cursor-dispatch: nothing actionable
+worker codex: no tasks ready for codex
+
+================= PARTY PERFECT — TODAY =================
+CLAUDE    5 queued  [STALE]
+CURSOR    working TALK-TO-MIKE-INTAKE-001  [IDLE]
+CODEX     0 awaiting  [verifying]
+MIKE      idle  [OFFLINE]
+MADISON   idle  [OFFLINE]
+
+POR SYNC  NEVER — replication has not run
+DONE      2 certified
+
+BLOCKED
+  POR-STAT-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-STAT-VERIFY-001 has no compute appro
+  POR-KITS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-KITS-VERIFY-001 has no compute appro
+  CERT-HARNESS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: CERT-HARNESS-VERIFY-001 has no compute a
+  CC-AUTH-P0-001 — Cursor runtime failed: 
+  CONTROL-PLANE-CURSOR-SMOKE-001 — BLOCKED_COMPUTE_NOT_APPROVED: CONTROL-PLANE-CURSOR-SMOKE-001 has no co
+  PP-SEC-001 — BLOCKED_COMPUTE_NOT_APPROVED: PP-SEC-001 has no compute approval
+
+NEEDS MASON
+  POR-REPL-ENTERPRISE-001 — Deploy Replicate-PorToShare.ps1 to ENTERPRISE and schedule it every 15 min
+  POR-WRITE-UNBLOCK-001 — POR_WRITE = BLOCKED. Exhaustively re-verified 2026-08-13: (1) no vendor AP
+  GOLDEN-TXN-001 — Golden Transaction: produce ONE complete real Command Center -> POR ticket
+  POR-ROUTINE-CENSUS-001 — Run Export-PorSchemaCensus.ps1 on ENTERPRISE (read-only). The critical art
+=========================================================
+worker cursor: cursor-dispatch: nothing actionable
+worker codex: VERIFY TALK-TO-MIKE-INTAKE-001 [codex-cloud] · TALK-TO-MIKE-INTAKE-001 -> NEEDS_FIX · dispatch done: 1 task(s), 1 not certified · health YELLOW
+
+================= PARTY PERFECT — TODAY =================
+CLAUDE    working GOLDEN-TXN-001  [STALE]
+CURSOR    18 queued  [IDLE]
+CODEX     0 awaiting  [idle]
+MIKE      idle  [OFFLINE]
+MADISON   idle  [OFFLINE]
+
+POR SYNC  NEVER — replication has not run
+DONE      2 certified
+
+BLOCKED
+  POR-STAT-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-STAT-VERIFY-001 has no compute appro
+  POR-KITS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-KITS-VERIFY-001 has no compute appro
+  CERT-HARNESS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: CERT-HARNESS-VERIFY-001 has no compute a
+  CC-AUTH-P0-001 — Cursor runtime failed: 
+  CONTROL-PLANE-CURSOR-SMOKE-001 — BLOCKED_COMPUTE_NOT_APPROVED: CONTROL-PLANE-CURSOR-SMOKE-001 has no co
+  PP-SEC-001 — BLOCKED_COMPUTE_NOT_APPROVED: PP-SEC-001 has no compute approval
+
+NEEDS MASON
+  POR-REPL-ENTERPRISE-001 — Deploy Replicate-PorToShare.ps1 to ENTERPRISE and schedule it every 15 min
+  POR-WRITE-UNBLOCK-001 — POR_WRITE = BLOCKED. Exhaustively re-verified 2026-08-13: (1) no vendor AP
+  GOLDEN-TXN-001 — Golden Transaction: produce ONE complete real Command Center -> POR ticket
+  POR-ROUTINE-CENSUS-001 — Run Export-PorSchemaCensus.ps1 on ENTERPRISE (read-only). The critical art
+=========================================================
+worker cursor: cursor-dispatch: nothing actionable
+worker codex: no tasks ready for codex
+
+================= PARTY PERFECT — TODAY =================
+CLAUDE    working GOLDEN-TXN-001  [STALE]
+CURSOR    working TALK-TO-MIKE-INTAKE-001  [IDLE]
+CODEX     0 awaiting  [idle]
+MIKE      idle  [OFFLINE]
+MADISON   idle  [OFFLINE]
+
+POR SYNC  NEVER — replication has not run
+DONE      2 certified
+
+BLOCKED
+  POR-STAT-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-STAT-VERIFY-001 has no compute appro
+  POR-KITS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-KITS-VERIFY-001 has no compute appro
+  CERT-HARNESS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: CERT-HARNESS-VERIFY-001 has no compute a
+  CC-AUTH-P0-001 — Cursor runtime failed: 
+  CONTROL-PLANE-CURSOR-SMOKE-001 — BLOCKED_COMPUTE_NOT_APPROVED: CONTROL-PLANE-CURSOR-SMOKE-001 has no co
+  PP-SEC-001 — BLOCKED_COMPUTE_NOT_APPROVED: PP-SEC-001 has no compute approval
+
+NEEDS MASON
+  POR-REPL-ENTERPRISE-001 — Deploy Replicate-PorToShare.ps1 to ENTERPRISE and schedule it every 15 min
+  POR-WRITE-UNBLOCK-001 — POR_WRITE = BLOCKED. Exhaustively re-verified 2026-08-13: (1) no vendor AP
+  GOLDEN-TXN-001 — Golden Transaction: produce ONE complete real Command Center -> POR ticket
+  POR-ROUTINE-CENSUS-001 — Run Export-PorSchemaCensus.ps1 on ENTERPRISE (read-only). The critical art
+=========================================================
+worker cursor: cursor-dispatch: nothing actionable
+worker codex: no tasks ready for codex
+
+================= PARTY PERFECT — TODAY =================
+CLAUDE    working GOLDEN-TXN-001  [STALE]
+CURSOR    17 queued  [IDLE]
+CODEX     verifying TALK-TO-MIKE-INTAKE-001  [verifying]
+MIKE      idle  [OFFLINE]
+MADISON   idle  [OFFLINE]
+
+POR SYNC  NEVER — replication has not run
+DONE      2 certified
+
+BLOCKED
+  POR-STAT-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-STAT-VERIFY-001 has no compute appro
+  POR-KITS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-KITS-VERIFY-001 has no compute appro
+  CERT-HARNESS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: CERT-HARNESS-VERIFY-001 has no compute a
+  CC-AUTH-P0-001 — Cursor runtime failed: 
+  CONTROL-PLANE-CURSOR-SMOKE-001 — BLOCKED_COMPUTE_NOT_APPROVED: CONTROL-PLANE-CURSOR-SMOKE-001 has no co
+  PP-SEC-001 — BLOCKED_COMPUTE_NOT_APPROVED: PP-SEC-001 has no compute approval
+
+NEEDS MASON
+  POR-REPL-ENTERPRISE-001 — Deploy Replicate-PorToShare.ps1 to ENTERPRISE and schedule it every 15 min
+  POR-WRITE-UNBLOCK-001 — POR_WRITE = BLOCKED. Exhaustively re-verified 2026-08-13: (1) no vendor AP
+  GOLDEN-TXN-001 — Golden Transaction: produce ONE complete real Command Center -> POR ticket
+  POR-ROUTINE-CENSUS-001 — Run Export-PorSchemaCensus.ps1 on ENTERPRISE (read-only). The critical art
+=========================================================
+worker cursor: cursor-dispatch: nothing actionable
+worker codex: no tasks ready for codex
+
+================= PARTY PERFECT — TODAY =================
+CLAUDE    working GOLDEN-TXN-001  [STALE]
+CURSOR    18 queued  [IDLE]
+CODEX     0 awaiting  [idle]
+MIKE      idle  [OFFLINE]
+MADISON   idle  [OFFLINE]
+
+POR SYNC  NEVER — replication has not run
+DONE      2 certified
+
+BLOCKED
+  POR-STAT-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-STAT-VERIFY-001 has no compute appro
+  POR-KITS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-KITS-VERIFY-001 has no compute appro
+  CERT-HARNESS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: CERT-HARNESS-VERIFY-001 has no compute a
+  CC-AUTH-P0-001 — Cursor runtime failed: 
+  CONTROL-PLANE-CURSOR-SMOKE-001 — BLOCKED_COMPUTE_NOT_APPROVED: CONTROL-PLANE-CURSOR-SMOKE-001 has no co
+  PP-SEC-001 — BLOCKED_COMPUTE_NOT_APPROVED: PP-SEC-001 has no compute approval
+
+NEEDS MASON
+  POR-REPL-ENTERPRISE-001 — Deploy Replicate-PorToShare.ps1 to ENTERPRISE and schedule it every 15 min
+  POR-WRITE-UNBLOCK-001 — POR_WRITE = BLOCKED. Exhaustively re-verified 2026-08-13: (1) no vendor AP
+  GOLDEN-TXN-001 — Golden Transaction: produce ONE complete real Command Center -> POR ticket
+  POR-ROUTINE-CENSUS-001 — Run Export-PorSchemaCensus.ps1 on ENTERPRISE (read-only). The critical art
+=========================================================
+worker cursor: cursor-dispatch: nothing actionable
+worker codex: no tasks ready for codex
+
+================= PARTY PERFECT — TODAY =================
+CLAUDE    working GOLDEN-TXN-001  [STALE]
+CURSOR    working TALK-TO-MIKE-INTAKE-001  [WORKING]
+CODEX     0 awaiting  [idle]
+MIKE      idle  [OFFLINE]
+MADISON   idle  [OFFLINE]
+
+POR SYNC  NEVER — replication has not run
+DONE      2 certified
+
+BLOCKED
+  POR-STAT-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-STAT-VERIFY-001 has no compute appro
+  POR-KITS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-KITS-VERIFY-001 has no compute appro
+  CERT-HARNESS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: CERT-HARNESS-VERIFY-001 has no compute a
+  CC-AUTH-P0-001 — Cursor runtime failed: 
+  CONTROL-PLANE-CURSOR-SMOKE-001 — BLOCKED_COMPUTE_NOT_APPROVED: CONTROL-PLANE-CURSOR-SMOKE-001 has no co
+  PP-SEC-001 — BLOCKED_COMPUTE_NOT_APPROVED: PP-SEC-001 has no compute approval
+
+NEEDS MASON
+  POR-REPL-ENTERPRISE-001 — Deploy Replicate-PorToShare.ps1 to ENTERPRISE and schedule it every 15 min
+  POR-WRITE-UNBLOCK-001 — POR_WRITE = BLOCKED. Exhaustively re-verified 2026-08-13: (1) no vendor AP
+  GOLDEN-TXN-001 — Golden Transaction: produce ONE complete real Command Center -> POR ticket
+  POR-ROUTINE-CENSUS-001 — Run Export-PorSchemaCensus.ps1 on ENTERPRISE (read-only). The critical art
+=========================================================
+worker cursor: cursor-dispatch: nothing actionable
+worker codex: no tasks ready for codex
+
+================= PARTY PERFECT — TODAY =================
+CLAUDE    working GOLDEN-TXN-001  [STALE]
+CURSOR    17 queued  [WORKING]
+CODEX     0 awaiting  [verifying]
+MIKE      idle  [OFFLINE]
+MADISON   idle  [OFFLINE]
+
+POR SYNC  NEVER — replication has not run
+DONE      2 certified
+
+BLOCKED
+  POR-STAT-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-STAT-VERIFY-001 has no compute appro
+  POR-KITS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-KITS-VERIFY-001 has no compute appro
+  CERT-HARNESS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: CERT-HARNESS-VERIFY-001 has no compute a
+  CC-AUTH-P0-001 — Cursor runtime failed: 
+  CONTROL-PLANE-CURSOR-SMOKE-001 — BLOCKED_COMPUTE_NOT_APPROVED: CONTROL-PLANE-CURSOR-SMOKE-001 has no co
+  PP-SEC-001 — BLOCKED_COMPUTE_NOT_APPROVED: PP-SEC-001 has no compute approval
+
+NEEDS MASON
+  POR-REPL-ENTERPRISE-001 — Deploy Replicate-PorToShare.ps1 to ENTERPRISE and schedule it every 15 min
+  POR-WRITE-UNBLOCK-001 — POR_WRITE = BLOCKED. Exhaustively re-verified 2026-08-13: (1) no vendor AP
+  GOLDEN-TXN-001 — Golden Transaction: produce ONE complete real Command Center -> POR ticket
+  POR-ROUTINE-CENSUS-001 — Run Export-PorSchemaCensus.ps1 on ENTERPRISE (read-only). The critical art
+=========================================================
+worker cursor: cursor-dispatch: nothing actionable
+worker codex: no tasks ready for codex
+
+================= PARTY PERFECT — TODAY =================
+CLAUDE    working GOLDEN-TXN-001  [STALE]
+CURSOR    17 queued  [WORKING]
+CODEX     0 awaiting  [verifying]
+MIKE      idle  [OFFLINE]
+MADISON   idle  [OFFLINE]
+
+POR SYNC  NEVER — replication has not run
+DONE      2 certified
+
+BLOCKED
+  POR-STAT-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-STAT-VERIFY-001 has no compute appro
+  POR-KITS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-KITS-VERIFY-001 has no compute appro
+  CERT-HARNESS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: CERT-HARNESS-VERIFY-001 has no compute a
+  CC-AUTH-P0-001 — Cursor runtime failed: 
+  CONTROL-PLANE-CURSOR-SMOKE-001 — BLOCKED_COMPUTE_NOT_APPROVED: CONTROL-PLANE-CURSOR-SMOKE-001 has no co
+  PP-SEC-001 — BLOCKED_COMPUTE_NOT_APPROVED: PP-SEC-001 has no compute approval
+
+NEEDS MASON
+  POR-REPL-ENTERPRISE-001 — Deploy Replicate-PorToShare.ps1 to ENTERPRISE and schedule it every 15 min
+  POR-WRITE-UNBLOCK-001 — POR_WRITE = BLOCKED. Exhaustively re-verified 2026-08-13: (1) no vendor AP
+  GOLDEN-TXN-001 — Golden Transaction: produce ONE complete real Command Center -> POR ticket
+  POR-ROUTINE-CENSUS-001 — Run Export-PorSchemaCensus.ps1 on ENTERPRISE (read-only). The critical art
+=========================================================
+worker cursor: cursor-dispatch: nothing actionable
+worker codex: no tasks ready for codex
+
+================= PARTY PERFECT — TODAY =================
+CLAUDE    working GOLDEN-TXN-001  [STALE]
+CURSOR    17 queued  [WORKING]
+CODEX     0 awaiting  [verifying]
+MIKE      idle  [OFFLINE]
+MADISON   idle  [OFFLINE]
+
+POR SYNC  NEVER — replication has not run
+DONE      2 certified
+
+BLOCKED
+  POR-STAT-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-STAT-VERIFY-001 has no compute appro
+  POR-KITS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-KITS-VERIFY-001 has no compute appro
+  CERT-HARNESS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: CERT-HARNESS-VERIFY-001 has no compute a
+  CC-AUTH-P0-001 — Cursor runtime failed: 
+  CONTROL-PLANE-CURSOR-SMOKE-001 — BLOCKED_COMPUTE_NOT_APPROVED: CONTROL-PLANE-CURSOR-SMOKE-001 has no co
+  PP-SEC-001 — BLOCKED_COMPUTE_NOT_APPROVED: PP-SEC-001 has no compute approval
+
+NEEDS MASON
+  POR-REPL-ENTERPRISE-001 — Deploy Replicate-PorToShare.ps1 to ENTERPRISE and schedule it every 15 min
+  POR-WRITE-UNBLOCK-001 — POR_WRITE = BLOCKED. Exhaustively re-verified 2026-08-13: (1) no vendor AP
+  GOLDEN-TXN-001 — Golden Transaction: produce ONE complete real Command Center -> POR ticket
+  POR-ROUTINE-CENSUS-001 — Run Export-PorSchemaCensus.ps1 on ENTERPRISE (read-only). The critical art
+=========================================================
+worker cursor: cursor-dispatch: nothing actionable
+worker codex: no tasks ready for codex
+
+================= PARTY PERFECT — TODAY =================
+CLAUDE    working GOLDEN-TXN-001  [STALE]
+CURSOR    17 queued  [WORKING]
+CODEX     verifying EOD-SAFETY-CHECKPOINT-001  [verifying]
+MIKE      idle  [OFFLINE]
+MADISON   idle  [OFFLINE]
+
+POR SYNC  NEVER — replication has not run
+DONE      2 certified
+
+BLOCKED
+  POR-STAT-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-STAT-VERIFY-001 has no compute appro
+  POR-KITS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-KITS-VERIFY-001 has no compute appro
+  CERT-HARNESS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: CERT-HARNESS-VERIFY-001 has no compute a
+  CC-AUTH-P0-001 — Cursor runtime failed: 
+  CONTROL-PLANE-CURSOR-SMOKE-001 — BLOCKED_COMPUTE_NOT_APPROVED: CONTROL-PLANE-CURSOR-SMOKE-001 has no co
+  PP-SEC-001 — BLOCKED_COMPUTE_NOT_APPROVED: PP-SEC-001 has no compute approval
+
+NEEDS MASON
+  POR-REPL-ENTERPRISE-001 — Deploy Replicate-PorToShare.ps1 to ENTERPRISE and schedule it every 15 min
+  POR-WRITE-UNBLOCK-001 — POR_WRITE = BLOCKED. Exhaustively re-verified 2026-08-13: (1) no vendor AP
+  GOLDEN-TXN-001 — Golden Transaction: produce ONE complete real Command Center -> POR ticket
+  POR-ROUTINE-CENSUS-001 — Run Export-PorSchemaCensus.ps1 on ENTERPRISE (read-only). The critical art
+=========================================================
+worker cursor: cursor-dispatch: nothing actionable
+worker codex: no tasks ready for codex
+
+================= PARTY PERFECT — TODAY =================
+CLAUDE    working GOLDEN-TXN-001  [STALE]
+CURSOR    17 queued  [WORKING]
+CODEX     0 awaiting  [idle]
+MIKE      idle  [OFFLINE]
+MADISON   idle  [OFFLINE]
+
+POR SYNC  NEVER — replication has not run
+DONE      2 certified
+
+BLOCKED
+  POR-STAT-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-STAT-VERIFY-001 has no compute appro
+  POR-KITS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-KITS-VERIFY-001 has no compute appro
+  CERT-HARNESS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: CERT-HARNESS-VERIFY-001 has no compute a
+  CC-AUTH-P0-001 — Cursor runtime failed: 
+  CONTROL-PLANE-CURSOR-SMOKE-001 — BLOCKED_COMPUTE_NOT_APPROVED: CONTROL-PLANE-CURSOR-SMOKE-001 has no co
+  PP-SEC-001 — BLOCKED_COMPUTE_NOT_APPROVED: PP-SEC-001 has no compute approval
+
+NEEDS MASON
+  POR-REPL-ENTERPRISE-001 — Deploy Replicate-PorToShare.ps1 to ENTERPRISE and schedule it every 15 min
+  POR-WRITE-UNBLOCK-001 — POR_WRITE = BLOCKED. Exhaustively re-verified 2026-08-13: (1) no vendor AP
+  GOLDEN-TXN-001 — Golden Transaction: produce ONE complete real Command Center -> POR ticket
+  POR-ROUTINE-CENSUS-001 — Run Export-PorSchemaCensus.ps1 on ENTERPRISE (read-only). The critical art
+=========================================================
+worker cursor: cursor-dispatch: nothing actionable
+worker codex: no tasks ready for codex
+
+================= PARTY PERFECT — TODAY =================
+CLAUDE    working GOLDEN-TXN-001  [STALE]
+CURSOR    17 queued  [WORKING]
+CODEX     1 awaiting  [idle]
+MIKE      idle  [OFFLINE]
+MADISON   idle  [OFFLINE]
+
+POR SYNC  NEVER — replication has not run
+DONE      2 certified
+
+BLOCKED
+  POR-STAT-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-STAT-VERIFY-001 has no compute appro
+  POR-KITS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-KITS-VERIFY-001 has no compute appro
+  CERT-HARNESS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: CERT-HARNESS-VERIFY-001 has no compute a
+  CC-AUTH-P0-001 — Cursor runtime failed: 
+  CONTROL-PLANE-CURSOR-SMOKE-001 — BLOCKED_COMPUTE_NOT_APPROVED: CONTROL-PLANE-CURSOR-SMOKE-001 has no co
+  PP-SEC-001 — BLOCKED_COMPUTE_NOT_APPROVED: PP-SEC-001 has no compute approval
+
+NEEDS MASON
+  POR-REPL-ENTERPRISE-001 — Deploy Replicate-PorToShare.ps1 to ENTERPRISE and schedule it every 15 min
+  POR-WRITE-UNBLOCK-001 — POR_WRITE = BLOCKED. Exhaustively re-verified 2026-08-13: (1) no vendor AP
+  GOLDEN-TXN-001 — Golden Transaction: produce ONE complete real Command Center -> POR ticket
+  POR-ROUTINE-CENSUS-001 — Run Export-PorSchemaCensus.ps1 on ENTERPRISE (read-only). The critical art
+=========================================================
+worker cursor: cursor-dispatch: nothing actionable
+worker codex: no tasks ready for codex
+
+================= PARTY PERFECT — TODAY =================
+CLAUDE    working GOLDEN-TXN-001  [STALE]
+CURSOR    17 queued  [WORKING]
+CODEX     verifying EOD-SAFETY-CHECKPOINT-001  [verifying]
+MIKE      idle  [OFFLINE]
+MADISON   idle  [OFFLINE]
+
+POR SYNC  NEVER — replication has not run
+DONE      2 certified
+
+BLOCKED
+  POR-STAT-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-STAT-VERIFY-001 has no compute appro
+  POR-KITS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-KITS-VERIFY-001 has no compute appro
+  CERT-HARNESS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: CERT-HARNESS-VERIFY-001 has no compute a
+  CC-AUTH-P0-001 — Cursor runtime failed: 
+  CONTROL-PLANE-CURSOR-SMOKE-001 — BLOCKED_COMPUTE_NOT_APPROVED: CONTROL-PLANE-CURSOR-SMOKE-001 has no co
+  PP-SEC-001 — BLOCKED_COMPUTE_NOT_APPROVED: PP-SEC-001 has no compute approval
+
+NEEDS MASON
+  POR-REPL-ENTERPRISE-001 — Deploy Replicate-PorToShare.ps1 to ENTERPRISE and schedule it every 15 min
+  POR-WRITE-UNBLOCK-001 — POR_WRITE = BLOCKED. Exhaustively re-verified 2026-08-13: (1) no vendor AP
+  GOLDEN-TXN-001 — Golden Transaction: produce ONE complete real Command Center -> POR ticket
+  POR-ROUTINE-CENSUS-001 — Run Export-PorSchemaCensus.ps1 on ENTERPRISE (read-only). The critical art
+=========================================================
+worker cursor: cursor-dispatch: nothing actionable
+worker codex: no tasks ready for codex
+
+================= PARTY PERFECT — TODAY =================
+CLAUDE    working GOLDEN-TXN-001  [STALE]
+CURSOR    17 queued  [WORKING]
+CODEX     0 awaiting  [idle]
+MIKE      idle  [OFFLINE]
+MADISON   idle  [OFFLINE]
+
+POR SYNC  NEVER — replication has not run
+DONE      2 certified
+
+BLOCKED
+  POR-STAT-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-STAT-VERIFY-001 has no compute appro
+  POR-KITS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-KITS-VERIFY-001 has no compute appro
+  CERT-HARNESS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: CERT-HARNESS-VERIFY-001 has no compute a
+  CC-AUTH-P0-001 — Cursor runtime failed: 
+  CONTROL-PLANE-CURSOR-SMOKE-001 — BLOCKED_COMPUTE_NOT_APPROVED: CONTROL-PLANE-CURSOR-SMOKE-001 has no co
+  PP-SEC-001 — BLOCKED_COMPUTE_NOT_APPROVED: PP-SEC-001 has no compute approval
+
+NEEDS MASON
+  POR-REPL-ENTERPRISE-001 — Deploy Replicate-PorToShare.ps1 to ENTERPRISE and schedule it every 15 min
+  POR-WRITE-UNBLOCK-001 — POR_WRITE = BLOCKED. Exhaustively re-verified 2026-08-13: (1) no vendor AP
+  GOLDEN-TXN-001 — Golden Transaction: produce ONE complete real Command Center -> POR ticket
+  POR-ROUTINE-CENSUS-001 — Run Export-PorSchemaCensus.ps1 on ENTERPRISE (read-only). The critical art
+=========================================================
+worker cursor: cursor-dispatch: nothing actionable
+worker codex: no tasks ready for codex
+
+================= PARTY PERFECT — TODAY =================
+CLAUDE    working GOLDEN-TXN-001  [STALE]
+CURSOR    17 queued  [WORKING]
+CODEX     0 awaiting  [idle]
+MIKE      idle  [OFFLINE]
+MADISON   idle  [OFFLINE]
+
+POR SYNC  NEVER — replication has not run
+DONE      2 certified
+
+BLOCKED
+  POR-STAT-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-STAT-VERIFY-001 has no compute appro
+  POR-KITS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-KITS-VERIFY-001 has no compute appro
+  CERT-HARNESS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: CERT-HARNESS-VERIFY-001 has no compute a
+  CC-AUTH-P0-001 — Cursor runtime failed: 
+  CONTROL-PLANE-CURSOR-SMOKE-001 — BLOCKED_COMPUTE_NOT_APPROVED: CONTROL-PLANE-CURSOR-SMOKE-001 has no co
+  PP-SEC-001 — BLOCKED_COMPUTE_NOT_APPROVED: PP-SEC-001 has no compute approval
+
+NEEDS MASON
+  POR-REPL-ENTERPRISE-001 — Deploy Replicate-PorToShare.ps1 to ENTERPRISE and schedule it every 15 min
+  POR-WRITE-UNBLOCK-001 — POR_WRITE = BLOCKED. Exhaustively re-verified 2026-08-13: (1) no vendor AP
+  GOLDEN-TXN-001 — Golden Transaction: produce ONE complete real Command Center -> POR ticket
+  POR-ROUTINE-CENSUS-001 — Run Export-PorSchemaCensus.ps1 on ENTERPRISE (read-only). The critical art
+=========================================================
+worker cursor: cursor-dispatch: nothing actionable
+worker codex: no tasks ready for codex
+
+================= PARTY PERFECT — TODAY =================
+CLAUDE    working GOLDEN-TXN-001  [STALE]
+CURSOR    17 queued  [WORKING]
+CODEX     verifying MIKE-TASK-NOTIFY-001  [verifying]
+MIKE      idle  [OFFLINE]
+MADISON   idle  [OFFLINE]
+
+POR SYNC  NEVER — replication has not run
+DONE      2 certified
+
+BLOCKED
+  POR-STAT-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-STAT-VERIFY-001 has no compute appro
+  POR-KITS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-KITS-VERIFY-001 has no compute appro
+  CERT-HARNESS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: CERT-HARNESS-VERIFY-001 has no compute a
+  CC-AUTH-P0-001 — Cursor runtime failed: 
+  CONTROL-PLANE-CURSOR-SMOKE-001 — BLOCKED_COMPUTE_NOT_APPROVED: CONTROL-PLANE-CURSOR-SMOKE-001 has no co
+  PP-SEC-001 — BLOCKED_COMPUTE_NOT_APPROVED: PP-SEC-001 has no compute approval
+
+NEEDS MASON
+  POR-REPL-ENTERPRISE-001 — Deploy Replicate-PorToShare.ps1 to ENTERPRISE and schedule it every 15 min
+  POR-WRITE-UNBLOCK-001 — POR_WRITE = BLOCKED. Exhaustively re-verified 2026-08-13: (1) no vendor AP
+  GOLDEN-TXN-001 — Golden Transaction: produce ONE complete real Command Center -> POR ticket
+  POR-ROUTINE-CENSUS-001 — Run Export-PorSchemaCensus.ps1 on ENTERPRISE (read-only). The critical art
+=========================================================
+worker cursor: cursor-dispatch: nothing actionable
+worker codex: no tasks ready for codex
+
+================= PARTY PERFECT — TODAY =================
+CLAUDE    working GOLDEN-TXN-001  [STALE]
+CURSOR    17 queued  [WORKING]
+CODEX     0 awaiting  [idle]
+MIKE      idle  [OFFLINE]
+MADISON   idle  [OFFLINE]
+
+POR SYNC  NEVER — replication has not run
+DONE      2 certified
+
+BLOCKED
+  POR-STAT-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-STAT-VERIFY-001 has no compute appro
+  POR-KITS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-KITS-VERIFY-001 has no compute appro
+  CERT-HARNESS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: CERT-HARNESS-VERIFY-001 has no compute a
+  CC-AUTH-P0-001 — Cursor runtime failed: 
+  CONTROL-PLANE-CURSOR-SMOKE-001 — BLOCKED_COMPUTE_NOT_APPROVED: CONTROL-PLANE-CURSOR-SMOKE-001 has no co
+  PP-SEC-001 — BLOCKED_COMPUTE_NOT_APPROVED: PP-SEC-001 has no compute approval
+
+NEEDS MASON
+  POR-REPL-ENTERPRISE-001 — Deploy Replicate-PorToShare.ps1 to ENTERPRISE and schedule it every 15 min
+  POR-WRITE-UNBLOCK-001 — POR_WRITE = BLOCKED. Exhaustively re-verified 2026-08-13: (1) no vendor AP
+  GOLDEN-TXN-001 — Golden Transaction: produce ONE complete real Command Center -> POR ticket
+  POR-ROUTINE-CENSUS-001 — Run Export-PorSchemaCensus.ps1 on ENTERPRISE (read-only). The critical art
+=========================================================
+worker cursor: cursor-dispatch: nothing actionable
+worker codex: no tasks ready for codex
+
+================= PARTY PERFECT — TODAY =================
+CLAUDE    working GOLDEN-TXN-001  [STALE]
+CURSOR    17 queued  [WORKING]
+CODEX     0 awaiting  [idle]
+MIKE      idle  [OFFLINE]
+MADISON   idle  [OFFLINE]
+
+POR SYNC  NEVER — replication has not run
+DONE      2 certified
+
+BLOCKED
+  POR-STAT-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-STAT-VERIFY-001 has no compute appro
+  POR-KITS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-KITS-VERIFY-001 has no compute appro
+  CERT-HARNESS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: CERT-HARNESS-VERIFY-001 has no compute a
+  CC-AUTH-P0-001 — Cursor runtime failed: 
+  CONTROL-PLANE-CURSOR-SMOKE-001 — BLOCKED_COMPUTE_NOT_APPROVED: CONTROL-PLANE-CURSOR-SMOKE-001 has no co
+  PP-SEC-001 — BLOCKED_COMPUTE_NOT_APPROVED: PP-SEC-001 has no compute approval
+
+NEEDS MASON
+  POR-REPL-ENTERPRISE-001 — Deploy Replicate-PorToShare.ps1 to ENTERPRISE and schedule it every 15 min
+  POR-WRITE-UNBLOCK-001 — POR_WRITE = BLOCKED. Exhaustively re-verified 2026-08-13: (1) no vendor AP
+  GOLDEN-TXN-001 — Golden Transaction: produce ONE complete real Command Center -> POR ticket
+  POR-ROUTINE-CENSUS-001 — Run Export-PorSchemaCensus.ps1 on ENTERPRISE (read-only). The critical art
+=========================================================
+worker cursor: cursor-dispatch: nothing actionable
+worker codex: no tasks ready for codex
+
+================= PARTY PERFECT — TODAY =================
+CLAUDE    working GOLDEN-TXN-001  [STALE]
+CURSOR    17 queued  [WORKING]
+CODEX     verifying MIKE-TASK-NOTIFY-001  [idle]
+MIKE      idle  [OFFLINE]
+MADISON   idle  [OFFLINE]
+
+POR SYNC  NEVER — replication has not run
+DONE      2 certified
+
+BLOCKED
+  POR-STAT-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-STAT-VERIFY-001 has no compute appro
+  POR-KITS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-KITS-VERIFY-001 has no compute appro
+  CERT-HARNESS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: CERT-HARNESS-VERIFY-001 has no compute a
+  CC-AUTH-P0-001 — Cursor runtime failed: 
+  CONTROL-PLANE-CURSOR-SMOKE-001 — BLOCKED_COMPUTE_NOT_APPROVED: CONTROL-PLANE-CURSOR-SMOKE-001 has no co
+  PP-SEC-001 — BLOCKED_COMPUTE_NOT_APPROVED: PP-SEC-001 has no compute approval
+
+NEEDS MASON
+  POR-REPL-ENTERPRISE-001 — Deploy Replicate-PorToShare.ps1 to ENTERPRISE and schedule it every 15 min
+  POR-WRITE-UNBLOCK-001 — POR_WRITE = BLOCKED. Exhaustively re-verified 2026-08-13: (1) no vendor AP
+  GOLDEN-TXN-001 — Golden Transaction: produce ONE complete real Command Center -> POR ticket
+  POR-ROUTINE-CENSUS-001 — Run Export-PorSchemaCensus.ps1 on ENTERPRISE (read-only). The critical art
+=========================================================
+worker cursor: cursor-dispatch: nothing actionable
+worker codex: no tasks ready for codex
+
+================= PARTY PERFECT — TODAY =================
+CLAUDE    working GOLDEN-TXN-001  [STALE]
+CURSOR    17 queued  [WORKING]
+CODEX     0 awaiting  [idle]
+MIKE      idle  [OFFLINE]
+MADISON   idle  [OFFLINE]
+
+POR SYNC  NEVER — replication has not run
+DONE      2 certified
+
+BLOCKED
+  POR-STAT-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-STAT-VERIFY-001 has no compute appro
+  POR-KITS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-KITS-VERIFY-001 has no compute appro
+  CERT-HARNESS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: CERT-HARNESS-VERIFY-001 has no compute a
+  CC-AUTH-P0-001 — Cursor runtime failed: 
+  CONTROL-PLANE-CURSOR-SMOKE-001 — BLOCKED_COMPUTE_NOT_APPROVED: CONTROL-PLANE-CURSOR-SMOKE-001 has no co
+  PP-SEC-001 — BLOCKED_COMPUTE_NOT_APPROVED: PP-SEC-001 has no compute approval
+
+NEEDS MASON
+  POR-REPL-ENTERPRISE-001 — Deploy Replicate-PorToShare.ps1 to ENTERPRISE and schedule it every 15 min
+  POR-WRITE-UNBLOCK-001 — POR_WRITE = BLOCKED. Exhaustively re-verified 2026-08-13: (1) no vendor AP
+  GOLDEN-TXN-001 — Golden Transaction: produce ONE complete real Command Center -> POR ticket
+  POR-ROUTINE-CENSUS-001 — Run Export-PorSchemaCensus.ps1 on ENTERPRISE (read-only). The critical art
+=========================================================
+worker cursor: cursor-dispatch: nothing actionable
+worker codex: no tasks ready for codex
+
+================= PARTY PERFECT — TODAY =================
+CLAUDE    working GOLDEN-TXN-001  [STALE]
+CURSOR    17 queued  [WORKING]
+CODEX     0 awaiting  [idle]
+MIKE      idle  [OFFLINE]
+MADISON   idle  [OFFLINE]
+
+POR SYNC  NEVER — replication has not run
+DONE      2 certified
+
+BLOCKED
+  POR-STAT-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-STAT-VERIFY-001 has no compute appro
+  POR-KITS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-KITS-VERIFY-001 has no compute appro
+  CERT-HARNESS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: CERT-HARNESS-VERIFY-001 has no compute a
+  CC-AUTH-P0-001 — Cursor runtime failed: 
+  CONTROL-PLANE-CURSOR-SMOKE-001 — BLOCKED_COMPUTE_NOT_APPROVED: CONTROL-PLANE-CURSOR-SMOKE-001 has no co
+  PP-SEC-001 — BLOCKED_COMPUTE_NOT_APPROVED: PP-SEC-001 has no compute approval
+
+NEEDS MASON
+  POR-REPL-ENTERPRISE-001 — Deploy Replicate-PorToShare.ps1 to ENTERPRISE and schedule it every 15 min
+  POR-WRITE-UNBLOCK-001 — POR_WRITE = BLOCKED. Exhaustively re-verified 2026-08-13: (1) no vendor AP
+  GOLDEN-TXN-001 — Golden Transaction: produce ONE complete real Command Center -> POR ticket
+  POR-ROUTINE-CENSUS-001 — Run Export-PorSchemaCensus.ps1 on ENTERPRISE (read-only). The critical art
+=========================================================
+worker cursor: cursor-dispatch: nothing actionable
+worker codex: no tasks ready for codex
+
+================= PARTY PERFECT — TODAY =================
+CLAUDE    working GOLDEN-TXN-001  [STALE]
+CURSOR    17 queued  [WORKING]
+CODEX     0 awaiting  [idle]
+MIKE      idle  [OFFLINE]
+MADISON   idle  [OFFLINE]
+
+POR SYNC  NEVER — replication has not run
+DONE      2 certified
+
+BLOCKED
+  POR-STAT-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-STAT-VERIFY-001 has no compute appro
+  POR-KITS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-KITS-VERIFY-001 has no compute appro
+  CERT-HARNESS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: CERT-HARNESS-VERIFY-001 has no compute a
+  CC-AUTH-P0-001 — Cursor runtime failed: 
+  CONTROL-PLANE-CURSOR-SMOKE-001 — BLOCKED_COMPUTE_NOT_APPROVED: CONTROL-PLANE-CURSOR-SMOKE-001 has no co
+  PP-SEC-001 — BLOCKED_COMPUTE_NOT_APPROVED: PP-SEC-001 has no compute approval
+
+NEEDS MASON
+  POR-REPL-ENTERPRISE-001 — Deploy Replicate-PorToShare.ps1 to ENTERPRISE and schedule it every 15 min
+  POR-WRITE-UNBLOCK-001 — POR_WRITE = BLOCKED. Exhaustively re-verified 2026-08-13: (1) no vendor AP
+  GOLDEN-TXN-001 — Golden Transaction: produce ONE complete real Command Center -> POR ticket
+  POR-ROUTINE-CENSUS-001 — Run Export-PorSchemaCensus.ps1 on ENTERPRISE (read-only). The critical art
+=========================================================
+worker cursor: cursor-dispatch: nothing actionable
+worker codex: no tasks ready for codex
+
+================= PARTY PERFECT — TODAY =================
+CLAUDE    working GOLDEN-TXN-001  [STALE]
+CURSOR    17 queued  [WORKING]
+CODEX     0 awaiting  [idle]
+MIKE      idle  [OFFLINE]
+MADISON   idle  [OFFLINE]
+
+POR SYNC  NEVER — replication has not run
+DONE      2 certified
+
+BLOCKED
+  POR-STAT-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-STAT-VERIFY-001 has no compute appro
+  POR-KITS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-KITS-VERIFY-001 has no compute appro
+  CERT-HARNESS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: CERT-HARNESS-VERIFY-001 has no compute a
+  CC-AUTH-P0-001 — Cursor runtime failed: 
+  CONTROL-PLANE-CURSOR-SMOKE-001 — BLOCKED_COMPUTE_NOT_APPROVED: CONTROL-PLANE-CURSOR-SMOKE-001 has no co
+  PP-SEC-001 — BLOCKED_COMPUTE_NOT_APPROVED: PP-SEC-001 has no compute approval
+
+NEEDS MASON
+  POR-REPL-ENTERPRISE-001 — Deploy Replicate-PorToShare.ps1 to ENTERPRISE and schedule it every 15 min
+  POR-WRITE-UNBLOCK-001 — POR_WRITE = BLOCKED. Exhaustively re-verified 2026-08-13: (1) no vendor AP
+  GOLDEN-TXN-001 — Golden Transaction: produce ONE complete real Command Center -> POR ticket
+  POR-ROUTINE-CENSUS-001 — Run Export-PorSchemaCensus.ps1 on ENTERPRISE (read-only). The critical art
+=========================================================
+worker cursor: cursor-dispatch: nothing actionable
+worker codex: no tasks ready for codex
+
+================= PARTY PERFECT — TODAY =================
+CLAUDE    working GOLDEN-TXN-001  [STALE]
+CURSOR    17 queued  [STALE]
+CODEX     verifying MIKE-BRAIN-ROUTING-001  [idle]
+MIKE      idle  [OFFLINE]
+MADISON   idle  [OFFLINE]
+
+POR SYNC  NEVER — replication has not run
+DONE      2 certified
+
+BLOCKED
+  POR-STAT-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-STAT-VERIFY-001 has no compute appro
+  POR-KITS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-KITS-VERIFY-001 has no compute appro
+  CERT-HARNESS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: CERT-HARNESS-VERIFY-001 has no compute a
+  CC-AUTH-P0-001 — Cursor runtime failed: 
+  CONTROL-PLANE-CURSOR-SMOKE-001 — BLOCKED_COMPUTE_NOT_APPROVED: CONTROL-PLANE-CURSOR-SMOKE-001 has no co
+  PP-SEC-001 — BLOCKED_COMPUTE_NOT_APPROVED: PP-SEC-001 has no compute approval
+
+NEEDS MASON
+  POR-REPL-ENTERPRISE-001 — Deploy Replicate-PorToShare.ps1 to ENTERPRISE and schedule it every 15 min
+  POR-WRITE-UNBLOCK-001 — POR_WRITE = BLOCKED. Exhaustively re-verified 2026-08-13: (1) no vendor AP
+  GOLDEN-TXN-001 — Golden Transaction: produce ONE complete real Command Center -> POR ticket
+  POR-ROUTINE-CENSUS-001 — Run Export-PorSchemaCensus.ps1 on ENTERPRISE (read-only). The critical art
+=========================================================
+worker cursor: cursor-dispatch: nothing actionable
+worker codex: no tasks ready for codex
+
+================= PARTY PERFECT — TODAY =================
+CLAUDE    working GOLDEN-TXN-001  [STALE]
+CURSOR    17 queued  [STALE]
+CODEX     0 awaiting  [idle]
+MIKE      idle  [OFFLINE]
+MADISON   idle  [OFFLINE]
+
+POR SYNC  NEVER — replication has not run
+DONE      2 certified
+
+BLOCKED
+  POR-STAT-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-STAT-VERIFY-001 has no compute appro
+  POR-KITS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-KITS-VERIFY-001 has no compute appro
+  CERT-HARNESS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: CERT-HARNESS-VERIFY-001 has no compute a
+  CC-AUTH-P0-001 — Cursor runtime failed: 
+  CONTROL-PLANE-CURSOR-SMOKE-001 — BLOCKED_COMPUTE_NOT_APPROVED: CONTROL-PLANE-CURSOR-SMOKE-001 has no co
+  PP-SEC-001 — BLOCKED_COMPUTE_NOT_APPROVED: PP-SEC-001 has no compute approval
+
+NEEDS MASON
+  POR-REPL-ENTERPRISE-001 — Deploy Replicate-PorToShare.ps1 to ENTERPRISE and schedule it every 15 min
+  POR-WRITE-UNBLOCK-001 — POR_WRITE = BLOCKED. Exhaustively re-verified 2026-08-13: (1) no vendor AP
+  GOLDEN-TXN-001 — Golden Transaction: produce ONE complete real Command Center -> POR ticket
+  POR-ROUTINE-CENSUS-001 — Run Export-PorSchemaCensus.ps1 on ENTERPRISE (read-only). The critical art
+=========================================================
+worker cursor: cursor-dispatch: nothing actionable
+worker codex: no tasks ready for codex
+
+================= PARTY PERFECT — TODAY =================
+CLAUDE    working GOLDEN-TXN-001  [STALE]
+CURSOR    17 queued  [STALE]
+CODEX     0 awaiting  [idle]
+MIKE      idle  [OFFLINE]
+MADISON   idle  [OFFLINE]
+
+POR SYNC  NEVER — replication has not run
+DONE      2 certified
+
+BLOCKED
+  POR-STAT-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-STAT-VERIFY-001 has no compute appro
+  POR-KITS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-KITS-VERIFY-001 has no compute appro
+  CERT-HARNESS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: CERT-HARNESS-VERIFY-001 has no compute a
+  CC-AUTH-P0-001 — Cursor runtime failed: 
+  CONTROL-PLANE-CURSOR-SMOKE-001 — BLOCKED_COMPUTE_NOT_APPROVED: CONTROL-PLANE-CURSOR-SMOKE-001 has no co
+  PP-SEC-001 — BLOCKED_COMPUTE_NOT_APPROVED: PP-SEC-001 has no compute approval
+
+NEEDS MASON
+  POR-REPL-ENTERPRISE-001 — Deploy Replicate-PorToShare.ps1 to ENTERPRISE and schedule it every 15 min
+  POR-WRITE-UNBLOCK-001 — POR_WRITE = BLOCKED. Exhaustively re-verified 2026-08-13: (1) no vendor AP
+  GOLDEN-TXN-001 — Golden Transaction: produce ONE complete real Command Center -> POR ticket
+  POR-ROUTINE-CENSUS-001 — Run Export-PorSchemaCensus.ps1 on ENTERPRISE (read-only). The critical art
+=========================================================
+worker cursor: cursor-dispatch: nothing actionable
+worker codex: no tasks ready for codex
+
+================= PARTY PERFECT — TODAY =================
+CLAUDE    working GOLDEN-TXN-001  [STALE]
+CURSOR    17 queued  [STALE]
+CODEX     0 awaiting  [idle]
+MIKE      idle  [OFFLINE]
+MADISON   idle  [OFFLINE]
+
+POR SYNC  NEVER — replication has not run
+DONE      2 certified
+
+BLOCKED
+  POR-STAT-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-STAT-VERIFY-001 has no compute appro
+  POR-KITS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-KITS-VERIFY-001 has no compute appro
+  CERT-HARNESS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: CERT-HARNESS-VERIFY-001 has no compute a
+  CC-AUTH-P0-001 — Cursor runtime failed: 
+  CONTROL-PLANE-CURSOR-SMOKE-001 — BLOCKED_COMPUTE_NOT_APPROVED: CONTROL-PLANE-CURSOR-SMOKE-001 has no co
+  PP-SEC-001 — BLOCKED_COMPUTE_NOT_APPROVED: PP-SEC-001 has no compute approval
+
+NEEDS MASON
+  POR-REPL-ENTERPRISE-001 — Deploy Replicate-PorToShare.ps1 to ENTERPRISE and schedule it every 15 min
+  POR-WRITE-UNBLOCK-001 — POR_WRITE = BLOCKED. Exhaustively re-verified 2026-08-13: (1) no vendor AP
+  GOLDEN-TXN-001 — Golden Transaction: produce ONE complete real Command Center -> POR ticket
+  POR-ROUTINE-CENSUS-001 — Run Export-PorSchemaCensus.ps1 on ENTERPRISE (read-only). The critical art
+=========================================================
+worker cursor: cursor-dispatch: nothing actionable
+worker codex: no tasks ready for codex
+
+================= PARTY PERFECT — TODAY =================
+CLAUDE    working GOLDEN-TXN-001  [STALE]
+CURSOR    17 queued  [STALE]
+CODEX     0 awaiting  [idle]
+MIKE      idle  [OFFLINE]
+MADISON   idle  [OFFLINE]
+
+POR SYNC  NEVER — replication has not run
+DONE      2 certified
+
+BLOCKED
+  POR-STAT-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-STAT-VERIFY-001 has no compute appro
+  POR-KITS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-KITS-VERIFY-001 has no compute appro
+  CERT-HARNESS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: CERT-HARNESS-VERIFY-001 has no compute a
+  CC-AUTH-P0-001 — Cursor runtime failed: 
+  CONTROL-PLANE-CURSOR-SMOKE-001 — BLOCKED_COMPUTE_NOT_APPROVED: CONTROL-PLANE-CURSOR-SMOKE-001 has no co
+  PP-SEC-001 — BLOCKED_COMPUTE_NOT_APPROVED: PP-SEC-001 has no compute approval
+
+NEEDS MASON
+  POR-REPL-ENTERPRISE-001 — Deploy Replicate-PorToShare.ps1 to ENTERPRISE and schedule it every 15 min
+  POR-WRITE-UNBLOCK-001 — POR_WRITE = BLOCKED. Exhaustively re-verified 2026-08-13: (1) no vendor AP
+  GOLDEN-TXN-001 — Golden Transaction: produce ONE complete real Command Center -> POR ticket
+  POR-ROUTINE-CENSUS-001 — Run Export-PorSchemaCensus.ps1 on ENTERPRISE (read-only). The critical art
+=========================================================
+worker cursor: cursor-dispatch: nothing actionable
+worker codex: no tasks ready for codex
+
+================= PARTY PERFECT — TODAY =================
+CLAUDE    working GOLDEN-TXN-001  [STALE]
+CURSOR    18 queued  [WORKING]
+CODEX     0 awaiting  [STALE]
+MIKE      idle  [OFFLINE]
+MADISON   idle  [OFFLINE]
+
+POR SYNC  NEVER — replication has not run
+DONE      2 certified
+
+BLOCKED
+  POR-STAT-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-STAT-VERIFY-001 has no compute appro
+  POR-KITS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-KITS-VERIFY-001 has no compute appro
+  CERT-HARNESS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: CERT-HARNESS-VERIFY-001 has no compute a
+  CC-AUTH-P0-001 — Cursor runtime failed: 
+  CONTROL-PLANE-CURSOR-SMOKE-001 — BLOCKED_COMPUTE_NOT_APPROVED: CONTROL-PLANE-CURSOR-SMOKE-001 has no co
+  PP-SEC-001 — BLOCKED_COMPUTE_NOT_APPROVED: PP-SEC-001 has no compute approval
+
+NEEDS MASON
+  POR-REPL-ENTERPRISE-001 — Deploy Replicate-PorToShare.ps1 to ENTERPRISE and schedule it every 15 min
+  POR-WRITE-UNBLOCK-001 — POR_WRITE = BLOCKED. Exhaustively re-verified 2026-08-13: (1) no vendor AP
+  GOLDEN-TXN-001 — Golden Transaction: produce ONE complete real Command Center -> POR ticket
+  POR-ROUTINE-CENSUS-001 — Run Export-PorSchemaCensus.ps1 on ENTERPRISE (read-only). The critical art
+=========================================================
+worker cursor: cursor-dispatch: nothing actionable
+worker codex: no tasks ready for codex
+
+================= PARTY PERFECT — TODAY =================
+CLAUDE    working GOLDEN-TXN-001  [STALE]
+CURSOR    18 queued  [STALE]
+CODEX     0 awaiting  [STALE]
+MIKE      idle  [OFFLINE]
+MADISON   idle  [OFFLINE]
+
+POR SYNC  NEVER — replication has not run
+DONE      2 certified
+
+BLOCKED
+  POR-STAT-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-STAT-VERIFY-001 has no compute appro
+  POR-KITS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-KITS-VERIFY-001 has no compute appro
+  CERT-HARNESS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: CERT-HARNESS-VERIFY-001 has no compute a
+  CC-AUTH-P0-001 — Cursor runtime failed: 
+  CONTROL-PLANE-CURSOR-SMOKE-001 — BLOCKED_COMPUTE_NOT_APPROVED: CONTROL-PLANE-CURSOR-SMOKE-001 has no co
+  PP-SEC-001 — BLOCKED_COMPUTE_NOT_APPROVED: PP-SEC-001 has no compute approval
+
+NEEDS MASON
+  POR-REPL-ENTERPRISE-001 — Deploy Replicate-PorToShare.ps1 to ENTERPRISE and schedule it every 15 min
+  POR-WRITE-UNBLOCK-001 — POR_WRITE = BLOCKED. Exhaustively re-verified 2026-08-13: (1) no vendor AP
+  GOLDEN-TXN-001 — Golden Transaction: produce ONE complete real Command Center -> POR ticket
+  POR-ROUTINE-CENSUS-001 — Run Export-PorSchemaCensus.ps1 on ENTERPRISE (read-only). The critical art
+  MIKE-BRIDGE-WIRE-001 — Wire live iMessage bridge (Matter repo) -> existing AI-HANDOFF/mike-brain 
+=========================================================
+worker cursor: cursor-dispatch: nothing actionable
+worker codex: no tasks ready for codex
+
+================= PARTY PERFECT — TODAY =================
+CLAUDE    working GOLDEN-TXN-001  [STALE]
+CURSOR    19 queued  [WORKING]
+CODEX     0 awaiting  [STALE]
+MIKE      idle  [OFFLINE]
+MADISON   idle  [OFFLINE]
+
+POR SYNC  NEVER — replication has not run
+DONE      2 certified
+
+BLOCKED
+  POR-STAT-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-STAT-VERIFY-001 has no compute appro
+  POR-KITS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-KITS-VERIFY-001 has no compute appro
+  CERT-HARNESS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: CERT-HARNESS-VERIFY-001 has no compute a
+  CC-AUTH-P0-001 — Cursor runtime failed: 
+  CONTROL-PLANE-CURSOR-SMOKE-001 — BLOCKED_COMPUTE_NOT_APPROVED: CONTROL-PLANE-CURSOR-SMOKE-001 has no co
+  PP-SEC-001 — BLOCKED_COMPUTE_NOT_APPROVED: PP-SEC-001 has no compute approval
+
+NEEDS MASON
+  POR-REPL-ENTERPRISE-001 — Deploy Replicate-PorToShare.ps1 to ENTERPRISE and schedule it every 15 min
+  POR-WRITE-UNBLOCK-001 — POR_WRITE = BLOCKED. Exhaustively re-verified 2026-08-13: (1) no vendor AP
+  GOLDEN-TXN-001 — Golden Transaction: produce ONE complete real Command Center -> POR ticket
+  POR-ROUTINE-CENSUS-001 — Run Export-PorSchemaCensus.ps1 on ENTERPRISE (read-only). The critical art
+  MIKE-BRIDGE-WIRE-001 — Wire live iMessage bridge (Matter repo) -> existing AI-HANDOFF/mike-brain 
+=========================================================
+worker cursor: cursor-dispatch: nothing actionable
+worker codex: no tasks ready for codex
+
+================= PARTY PERFECT — TODAY =================
+CLAUDE    working GOLDEN-TXN-001  [STALE]
+CURSOR    19 queued  [STALE]
+CODEX     0 awaiting  [STALE]
+MIKE      idle  [OFFLINE]
+MADISON   idle  [OFFLINE]
+
+POR SYNC  NEVER — replication has not run
+DONE      2 certified
+
+BLOCKED
+  POR-STAT-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-STAT-VERIFY-001 has no compute appro
+  POR-KITS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-KITS-VERIFY-001 has no compute appro
+  CERT-HARNESS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: CERT-HARNESS-VERIFY-001 has no compute a
+  CC-AUTH-P0-001 — Cursor runtime failed: 
+  CONTROL-PLANE-CURSOR-SMOKE-001 — BLOCKED_COMPUTE_NOT_APPROVED: CONTROL-PLANE-CURSOR-SMOKE-001 has no co
+  PP-SEC-001 — BLOCKED_COMPUTE_NOT_APPROVED: PP-SEC-001 has no compute approval
+
+NEEDS MASON
+  POR-REPL-ENTERPRISE-001 — Deploy Replicate-PorToShare.ps1 to ENTERPRISE and schedule it every 15 min
+  POR-WRITE-UNBLOCK-001 — POR_WRITE = BLOCKED. Exhaustively re-verified 2026-08-13: (1) no vendor AP
+  GOLDEN-TXN-001 — Golden Transaction: produce ONE complete real Command Center -> POR ticket
+  POR-ROUTINE-CENSUS-001 — Run Export-PorSchemaCensus.ps1 on ENTERPRISE (read-only). The critical art
+  MIKE-BRIDGE-WIRE-001 — Wire live iMessage bridge (Matter repo) -> existing AI-HANDOFF/mike-brain 
+=========================================================
+worker cursor: cursor-dispatch: nothing actionable
+worker codex: no tasks ready for codex
+
+================= PARTY PERFECT — TODAY =================
+CLAUDE    working GOLDEN-TXN-001  [STALE]
+CURSOR    20 queued  [WORKING]
+CODEX     0 awaiting  [STALE]
+MIKE      idle  [OFFLINE]
+MADISON   idle  [OFFLINE]
+
+POR SYNC  NEVER — replication has not run
+DONE      2 certified
+
+BLOCKED
+  POR-STAT-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-STAT-VERIFY-001 has no compute appro
+  POR-KITS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: POR-KITS-VERIFY-001 has no compute appro
+  CERT-HARNESS-VERIFY-001 — BLOCKED_COMPUTE_NOT_APPROVED: CERT-HARNESS-VERIFY-001 has no compute a
+  CC-AUTH-P0-001 — Cursor runtime failed: 
+  CONTROL-PLANE-CURSOR-SMOKE-001 — BLOCKED_COMPUTE_NOT_APPROVED: CONTROL-PLANE-CURSOR-SMOKE-001 has no co
+  PP-SEC-001 — BLOCKED_COMPUTE_NOT_APPROVED: PP-SEC-001 has no compute approval
+
+NEEDS MASON
+  POR-REPL-ENTERPRISE-001 — Deploy Replicate-PorToShare.ps1 to ENTERPRISE and schedule it every 15 min
+  POR-WRITE-UNBLOCK-001 — POR_WRITE = BLOCKED. Exhaustively re-verified 2026-08-13: (1) no vendor AP
+  GOLDEN-TXN-001 — Golden Transaction: produce ONE complete real Command Center -> POR ticket
+  POR-ROUTINE-CENSUS-001 — Run Export-PorSchemaCensus.ps1 on ENTERPRISE (read-only). The critical art
+  MIKE-BRIDGE-WIRE-001 — Wire live iMessage bridge (Matter repo) -> existing AI-HANDOFF/mike-brain 
+=========================================================

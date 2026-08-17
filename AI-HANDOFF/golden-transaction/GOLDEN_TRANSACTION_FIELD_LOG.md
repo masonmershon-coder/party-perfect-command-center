@@ -135,12 +135,37 @@ Use **real catalog items at real POR rates**. Invent nothing.
 
 ---
 
+## The 15 observation points
+
+Mason's enumerated list, mapped to where each is captured. Every one must end up in the
+**directly observed** bucket or be declared **unresolved** — never quietly inferred.
+
+| # | Observe | Captured in |
+|---|---|---|
+| 1 | how a new Quote is initiated | run log, step 4 |
+| 2 | how POR allocates the transaction number | A·1 `CNTR` — note *when* it is allocated (on open? on save?) |
+| 3 | every customer and event field required | section A + which fields POR **refuses to save without** |
+| 4 | date/time and rental-period behaviour | A·6 `DAY`, A·11–13 |
+| 5 | item lookup and SKU selection | section C — record the search behaviour, not just the result |
+| 6 | quantity and availability handling | C·3 — does POR warn, block, or allow overbooking? |
+| 7 | rate source and automatic pricing | C·4 — which of `PRIC`/`BaseRate`/`DailyAmount` POR fills, and from where |
+| 8 | kit/component expansion **before and after save** | C·2 — record both states separately; this is the known parity risk |
+| 9 | delivery vs customer-pickup fields | A·14–18 |
+| 10 | tax, damage waiver, discounts, fees, rounding | section D + C·5 |
+| 11 | notes and salesperson fields | section B + A·9 |
+| 12 | save and reopen behaviour | steps 5–6 |
+| 13 | native print workflow, report selected, printer offered | steps 8–9 |
+| 14 | resulting status and any related records | A·3 `STAT`, plus `TransactionsRelated` / `TransactionEdit` |
+| 15 | warnings, confirmations, side effects | **run log — record every dialog verbatim**, including ones dismissed |
+
 ## Run sequence — with the stop point marked
 
 | Step | Action | Gate |
 |---|---|---|
-| 0 | Reach ENTERPRISE | **BLOCKED — owner only.** No RDP client on this Mac; installing one needs Mason's approval. Port 3389 is open. |
+| 0 | Install the RDP client | **Mason's macOS admin password.** Package downloaded and signature-verified — see `RDP_SETUP.md`. |
 | 1 | Authenticate to ENTERPRISE / POR | **STOP. Mason signs in personally.** Claude never requests, displays, records, or stores the credential. |
+| 1b | Open POR Counter, observe starting state | **nothing entered** |
+| 1c | Present the exact scenario to Mason | **STOP. Mason approves the exact test scenario while watching, before the save that creates the quote.** |
 | 2 | Open Command Center, capture the source request | screenshot |
 | 3 | Create the synthetic customer in POR Counter | record created-vs-matched |
 | 4 | Enter the quote — sections A, B, C above | fill every `[OBSERVE]` **as it happens**, not from memory |
@@ -152,6 +177,33 @@ Use **real catalog items at real POR rates**. Invent nothing.
 | 10 | Hand to Codex for independent verification | Claude must not certify its own run |
 
 ---
+
+## Post-run deliverable — four separate buckets
+
+The finished document must keep these apart. Collapsing them is how an inference becomes a
+"fact" three weeks later.
+
+### 1 · Directly observed in native POR
+Only what was seen on screen during the supervised run. Each entry cites the step it came from.
+**Nothing enters this bucket from the SSD export.**
+
+### 2 · Inferred from the SSD export
+Statistical evidence from the 36,006-row / 14,667-quote dump — e.g. `DAY = 4` on 85.9% of
+quotes. Strong evidence of *what usually happens*, and **not** proof of what POR *does*.
+Where an observation in bucket 1 contradicts one of these, **bucket 1 wins** and the
+contradiction is recorded, not smoothed over.
+
+### 3 · Unresolved
+Anything a single supervised run could not settle: behaviour that did not come up, dialogs not
+triggered, paths not exercised. An honest gap here is worth more than a confident guess.
+`[OBSERVE]` fields still empty at the end land here **by default** — they do not get filled
+in from memory.
+
+### 4 · Requirements for the controlled write gateway
+What a future POR write path must reproduce, derived only from buckets 1 and 2 with the source
+of each stated. Includes the four things that must be proven before any autonomous UI write is
+even proposed: duplicate prevention, timeout behaviour, field validation, and recovery from a
+**partially completed** transaction.
 
 ## Safety rules in force
 

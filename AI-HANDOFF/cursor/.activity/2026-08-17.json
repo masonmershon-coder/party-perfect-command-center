@@ -1,0 +1,31 @@
+{
+  "started_at": "2026-08-17T14:24:04.479Z",
+  "files": [
+    "lib/time/auth.ts",
+    "lib/time/http.ts",
+    "app/api/time/punch/route.ts",
+    "app/api/time/session/route.ts",
+    "app/time/time-logo-support.tsx",
+    "app/time/time-app.tsx",
+    "app/time/time.css",
+    "lib/time/types.ts",
+    "lib/time/store.ts",
+    "lib/time/shadow-sync.ts",
+    "lib/time/square-labor.ts",
+    "lib/time/square-import.ts",
+    "app/api/time/admin/sync/route.ts",
+    "app/api/cron/time-square-sync/route.ts",
+    "lib/api-auth-matrix.mjs",
+    "lib/api-auth.ts",
+    "app/time/time-admin.tsx",
+    "scripts/test-time.ts",
+    ".env.example",
+    "AI-HANDOFF/CURRENT_TASK.md",
+    "AI-HANDOFF/CURSOR_TO_CLAUDE.md",
+    "AI-HANDOFF/DECISIONS.md",
+    "scripts/time-square-migrate-pack.mjs",
+    "lib/time/factcheck.ts",
+    "app/api/time/admin/factcheck/route.ts"
+  ],
+  "registered_task": "CURSOR-ACTIVITY-20260817"
+}

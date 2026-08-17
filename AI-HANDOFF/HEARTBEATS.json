@@ -6,16 +6,16 @@
     "last_seen": "2026-08-12T21:03:40.217Z"
   },
   "codex": {
-    "current_task": "GH-BRIDGE-001",
-    "state": "verifying",
+    "current_task": null,
+    "state": "idle",
     "blocked_reason": null,
-    "last_seen": "2026-08-13T19:07:02.225Z"
+    "last_seen": "2026-08-13T22:04:37.967Z"
   },
   "cursor": {
-    "current_task": "SENTINEL-APP-001",
-    "state": "IDLE",
-    "blocked_reason": "READY_FOR_VERIFICATION to Codex",
-    "last_seen": "2026-08-13T18:59:49.349Z"
+    "current_task": "CURSOR-ACTIVITY-20260817",
+    "state": "WORKING",
+    "blocked_reason": null,
+    "last_seen": "2026-08-17T14:24:12.705Z"
   },
   "dispatcher": {
     "current_task": null,

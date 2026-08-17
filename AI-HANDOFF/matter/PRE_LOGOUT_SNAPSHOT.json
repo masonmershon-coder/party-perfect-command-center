@@ -1,0 +1,73 @@
+{
+  "snapshot_at": "2026-08-17T16:06:23Z",
+  "purpose": "pre-logout baseline for launchd recovery test",
+  "processes": {
+    "imessage_bridge": "40933",
+    "intake_worker": "42490",
+    "openclaw_gateway": "13439",
+    "matter_gateway_dev": "28403",
+    "next_dev": "77334"
+  },
+  "worker_registry": {
+    "claude-code": {
+      "version": "2.1.226 (Claude Code)",
+      "available": true,
+      "last_probe": "2026-08-17T16:06:24.337Z",
+      "policy_ack": "1.0.0+027e1c37c161"
+    },
+    "cursor-local": {
+      "version": "2026.08.11-e8db854",
+      "available": true,
+      "last_probe": "2026-08-17T16:06:24.745Z",
+      "policy_ack": "1.0.0+027e1c37c161"
+    },
+    "codex-local": {
+      "version": "codex-cli 0.147.0",
+      "available": true,
+      "last_probe": "2026-08-17T16:06:24.827Z",
+      "policy_ack": "1.0.0+027e1c37c161"
+    },
+    "grok-local": {
+      "version": "grok 0.2.82 (6d0b07d2de0f)",
+      "available": true,
+      "last_probe": "2026-08-17T16:06:24.860Z",
+      "policy_ack": "1.0.0+027e1c37c161"
+    },
+    "claw-local": {
+      "version": null,
+      "available": false,
+      "last_probe": "2026-08-17T16:06:24.861Z",
+      "policy_ack": "1.0.0+027e1c37c161"
+    }
+  },
+  "counts": {
+    "policy_acks": 8,
+    "routing_decisions": 8,
+    "worker_outcomes": 2,
+    "lease_log": 0,
+    "dead_letter": 0,
+    "incidents": 0
+  },
+  "leases": {
+    "tasks": {}
+  },
+  "master_state_tasks": 48,
+  "legacy_heartbeats": {
+    "claude": "2026-08-12T21:03:40.217Z",
+    "codex": "2026-08-13T22:04:37.967Z",
+    "cursor": "2026-08-17T14:24:12.705Z",
+    "dispatcher": "2026-08-12T21:59:57.107Z"
+  },
+  "launchd_runs": {
+    "com.partyperfect.matter": "runs = 57",
+    "com.partyperfect.github-bridge": "runs = 1",
+    "com.partyperfect.meeting-watcher": "runs = 3",
+    "app.matter.intake": "runs = 1",
+    "com.partyperfect.codex.daily": "runs = 5",
+    "com.partyperfect.codex.weekly": "runs = 1",
+    "ai.openclaw.gateway": "runs = 4",
+    "com.partyperfect.prevent-sleep": "runs = 1"
+  },
+  "watchdog_armed": false,
+  "uptime_days": 82
+}

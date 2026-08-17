@@ -2,6 +2,18 @@
 
 Approved decisions worth preserving. Keep short. No secrets.
 
+## 2026-08-17 — Time trusted-device persistence + Shadow Mode
+
+- **Decision:** Ordinary employees use long-lived trusted-device sessions (not IP). No visible Sign Out/Switch Account. Logo press-and-hold (4s) opens support gate; only Time admins get Switch Account / Sign Out This Device. Shadow Mode: employees keep punching in Square; PP Time syncs Square→PP read-only for Shelly/Michelle/Mason until cutover. Prefer Square Labor Timecards API (hourly cron); no LLM in sync; no Square write-back.
+- **Source:** Mason FINAL UX + Shadow Mode directives (2026-08-17).
+- **Evidence:** `AI-HANDOFF/EVIDENCE/PP-TIME-TRUSTED_DEVICE_SHADOW_MODE_2026-08-17.md`.
+
+## 2026-08-15 — Matter provider-neutral orchestration (FOUNDATIONAL)
+
+- **Decision:** Matter owns jobs. AI providers are replaceable workers. Business agents (Mike, Madison, …) stay stable; underlying models/providers do not. Routing is by capability + health + evidence, never by hard-coded provider name. Policy is versioned (`MATTER_POLICY.json`); workers must ack before sensitive work. Availability is probed; scores stay null until enough real outcomes. Builder ≠ verifier for high-risk classes. Know≠apply for provider updates. Owner approval gates unchanged for money, customer sends, production/destructive, payroll, POR writes, credentials.
+- **Source:** Mason MATTER — PROVIDER-NEUTRAL AUTONOMOUS ORCHESTRATION V1 (2026-08-15).
+- **Evidence:** `AI-HANDOFF/EVIDENCE/MATTER_ORCHESTRATION_V1_AUDIT.md`, `AI-HANDOFF/matter/matter-registry.mjs`.
+
 ## 2026-08-11 — Shared handoff location
 
 - **Decision:** Use repo-root `AI-HANDOFF/` in `grok-dashboard` as Claude ↔ Cursor coordination.
@@ -48,3 +60,48 @@ Approved decisions worth preserving. Keep short. No secrets.
 - **Decision:** Run `scripts/ai-handoff-relay.sh` for near-real-time notify + Claude auto-wake; gate with `AUTO_RELAY.enabled`; hard caps (90s debounce, 3 wakes/hour, `READY_FOR_CLAUDE*` only). Cursor wake = Notification Center + optional Cursor Automation.
 - **Why:** Agents cannot share one chat process; filesystem + capped wake is the workable bridge.
 - **Source:** Mason request to automate Claude↔Cursor keep-up.
+
+## 2026-08-14 — Party Perfect Time V1 defaults (Mason plan)
+
+- **Decision:** Time lives at `https://partyperfect.app/time` (PWA scope `/time`). Employee session cookie `pp_time_session` is separate from Command Center. PP Showroom (`8401 E 41st St, Tulsa OK 74145`) is seeded **inactive/unverified**; no punches until Mason verifies lat/long and approves migration `0009`. Square import is time-only (ignore wages). Mike status API is read-only. No Paychex send in V1.
+- **Source:** Mason-approved Party Perfect Time V1 plan (PP-TIME-001).
+
+## 2026-08-14 — Shelly-first timekeeping workflow (Mason)
+
+- **Decision:** Employees never edit official timecards. All Fix My Time / absence / future time-off requests go to **Shelly's review queue** first. Shelly reviews, clarifies, remarks, approves/denies, and applies authorized corrections. Michelle has owner override + final payroll; do not flood Michelle with routine cleanup. Flow: EMPLOYEE → SHELLY CLEANUP → MICHELLE FINAL PAYROLL → PAYCHEX. Absence reports use simple employee reasons (Sick / Vacation / Personal / Other); paid-leave classification is administrative. PTO/vacation UI is eligibility-driven only — never show $0, “not eligible,” or advertise the benefit. In-app notifications + request conversation threads are official; SMS may still happen ops-side. Mike monitors queues **read-only** (Friday Shelly reminder; Monday payroll readiness).
+- **Source:** Mason workflow update on PP-TIME-001 (2026-08-14).
+
+## 2026-08-14 — Punch verification is evidence-first (Mason)
+
+- **Decision:** Do **not** hard-block punches on geofence. Employees work at job sites and may lunch away from the office. Every punch captures server timestamp, optional GPS (never IP-as-location), trusted-proxy IP / office-egress match (`TIME_OFFICE_EGRESS_IPS`), and first-party trusted-device cookie (`pp_time_device`). Risk fields are **review signals only** (not guilt). Employees never see raw IP / risk scores. Default evidence retention: 365 days (`PUNCH_EVIDENCE_RETENTION_DAYS`).
+- **Source:** Mason punch verification / time-theft signal update (2026-08-14).
+
+## 2026-08-15 — Location only at punch moment (Mason)
+
+- **Decision:** No continuous / background / 24/7 employee location tracking. Location is required **only** when the employee taps Clock In, Start Lunch, End Lunch, or Clock Out. Capture lat/long, GPS accuracy, GPS timestamp, server punch timestamp, trusted device ID, public IP, and office-network match on that punch — then stop. Never invent coordinates if permission is denied/unavailable; block the punch and show restore instructions. Geofence remains evidence, not a hard gate. Onboarding must state: location is used only at punch actions to verify time; Party Perfect does not track employees throughout the day. Mason + Michelle review punch-level GPS/IP/device/anomaly; Shelly does not need security-investigation telemetry.
+- **Source:** Mason FINAL LOCATION RULE (PP-TIME-001, 2026-08-15).
+
+## 2026-08-15 — Late Night tracking (Mason)
+
+- **Decision:** Qualifying work in 7:00 PM–6:00 AM America/Chicago creates one Late Night occurrence per shift (no double-count across midnight). Late-night hours remain inside normal Regular/OT totals — not a separate hours bucket. Track lateNightCount, occurrence dates/shift ids, and lateNightFeeAmount. Fee is admin/owner-configurable; production dollar amount stays unresolved until Mason supplies it.
+- **Source:** Mason FINAL PRE-LIVE PATCH (PP-TIME-001, 2026-08-15).
+
+## 2026-08-15 — Final Time role matrix (Mason)
+
+- **Decision:** Shelly = TIME_ADMIN (ops cleanup, employees, PIN/device, payroll readiness; no security telemetry). Mason = TIME_ADMIN + SECURITY_ADMIN (Shelly capabilities + security review/acknowledge; no Paychex/finalize). Michelle = OWNER (complete Time Admin + Security + Payroll finalize/overrides). Owner is a strict superset.
+- **Source:** Mason FINAL PRE-LIVE PATCH (PP-TIME-001, 2026-08-15).
+
+## 2026-08-14 — Time role separation: Shelly ops / Mason security / Michelle owner
+
+- **Decision:** **Shelly** = timekeeping cleanup only (missed punches, Fix My Time, absences, time-off, clarifications, payroll-readiness cleanup). No default access to raw anti-theft telemetry (IP, risk scores, device-security history, impossible travel, fraud flags). **Mason** = primary security/time-theft oversight (new devices, multi-device, unusual IP/GPS, impossible travel, auth abuse); full punch evidence; HIGH alerts routed to Mason. **Michelle** = owner — complete ops + security + payroll. Severity LOW/MEDIUM/HIGH; LOW = evidence only; MEDIUM → Mason; HIGH → Mason + Michelle visibility. Never auto-accuse theft. Mike: ops flags for Shelly Friday; security flags separate for Mason/Michelle.
+- **Source:** Mason final role separation + go-live prep (PP-TIME-001, 2026-08-14).
+
+## 2026-08-14 — Shelly employee + PIN administration
+
+- **Decision:** Shelly administers everyday Time employees: add employee (First/Last/Dept/PIN/leave eligibility; auto UUID; no employee# required for login), set/reset 4-digit PIN (hashed only — forgot PIN = set NEW PIN), revoke trusted devices / restart onboarding, deactivate (block clock-in + invalidate sessions + revoke devices; **preserve** punches/corrections/audit/payroll history). Setup statuses: NOT SET UP · INVITED · DEVICE REGISTERED · ACTIVE · INACTIVE. Shelly cannot grant Owner/security caps, access anti-theft dashboard, erase audit history, or manage Michelle/Mason protected accounts. Mason/Michelle retain security oversight; Michelle remains OWNER.
+- **Source:** Mason Shelly employee + PIN management update (PP-TIME-001, 2026-08-14).
+
+## 2026-08-14 — Party Perfect Time is self-contained
+
+- **Decision:** `/time` is the standalone, role-aware application. Employee sees the small My Time / requests experience. Shelly signs into the same app and receives Review, Employees, Time Off, and Payroll tools. Mason receives Time Admin plus Security. Michelle receives complete owner/payroll/security access. Command Center remains an optional mirror/deep link over the **same `/api/time/*` backend**; Shelly never needs Command Center for normal Time administration. No duplicate Time data or workflows.
+- **Source:** Mason architecture correction (PP-TIME-001, 2026-08-14).

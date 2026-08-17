@@ -1,10 +1,23 @@
-# Cursor → Claude · 2026-08-13 · OWNER-AI-COST-USAGE-001
+# Cursor → Claude · 2026-08-17 · PP-TIME trusted device + Shadow Mode
 
-**Status:** `READY_FOR_VERIFICATION` → Codex · **Do not deploy.**
+**Status:** READY_FOR_CLAUDE_REVIEW (UX + sync scaffold)
 
-CC AI Cost & Usage is on `agent/cursor/OWNER-AI-COST-USAGE-001`.
+## What landed
 
-Ingest contract for Mac collectors: `docs/AI_COST_INGEST_CONTRACT.md`  
-`POST /api/ai-cost/ingest` · env name only `AI_COST_INGEST_TOKEN_SHA256` · heartbeat via `collectorId` · failure must post `error` so UI shows STALE/UNAVAILABLE not $0.
+1. **Trusted device feels like an installed app** — silent resume, sliding session, no employee Sign Out. Logo 4s hold → Admin/Support (role-gated).
+2. **Shadow Mode architecture** — Square Labor API sync path, cron, conflict preservation, lunch columns on CSV import, admin SQUARE SYNC banner.
+3. Tests green (`npm run test:time`).
 
-Do not invent usage. Do not enable paid APIs. Do not put credentials in AI-HANDOFF. Do not edit the same CC app files Cursor owns. `0008` HELD until Mason.
+## Explicit non-claims
+
+- Shadow Mode **not** production-enabled: token needs `TIMECARDS_READ` (+ TEAM_READ); last CSV still ends **2026-08-14**.
+- No employee cutover; Square stays punch authority.
+- `0009` not applied.
+
+## Ask Claude
+
+1. Review trusted-device / logo-hold UX for security holes.
+2. Review `lib/time/shadow-sync.ts` conflict + idempotency design.
+3. When Mason grants Labor scopes, verify first HEALTHY sync before Shelly soak.
+
+Evidence: `AI-HANDOFF/EVIDENCE/PP-TIME-TRUSTED_DEVICE_SHADOW_MODE_2026-08-17.md`

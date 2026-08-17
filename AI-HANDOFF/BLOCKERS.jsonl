@@ -23,3 +23,5 @@
 {"at":"2026-08-13T19:02:28.220Z","task_id":"SEC-HEADERS-001","by":"codex","reason":"Required curl output for both production hosts and functional smoke-test results do not exist; the evidence explicitly states the implementation is not deployed.","escalate":"agent"}
 {"at":"2026-08-13T19:05:45.911Z","task_id":"GH-BRIDGE-001","by":"codex","reason":"The only supplied evidence explicitly records incomplete gateway and Sentinel verification, while sandbox restrictions prevent independently executing those required mutation-based suites.","escalate":"agent"}
 {"at":"2026-08-13T19:07:02.803Z","task_id":"GH-BRIDGE-001","by":"codex","reason":"BLOCKED_RETRY_LIMIT: 2 attempts exceeds max_retries 1","escalate":"agent"}
+{"at":"2026-08-13T21:19:42.847Z","task_id":"TALK-TO-MIKE-INTAKE-001","by":"codex","reason":"BLOCKED_RETRY_LIMIT: 2 attempts exceeds max_retries 1","escalate":"agent"}
+{"at":"2026-08-14T20:40:15.393Z","task_id":"MIKE-BRIDGE-WIRE-001","by":"claude","reason":"Approve merging claude/mike-live-answer-001 + arming the Mike live bridge, then run the real-device smoke test (you + Josh text the delivery-count question).","escalate":"mason","kind":"owner_approval"}

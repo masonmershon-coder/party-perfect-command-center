@@ -1,6 +1,6 @@
 {
   "policy_id": "MATTER_PROVIDER_NEUTRAL_ORCHESTRATION",
-  "semver": "1.1.0",
+  "semver": "1.2.0",
   "effective": "2026-08-17",
   "principle": "STABLE MATTER. STABLE BUSINESS AGENTS. REPLACEABLE INTELLIGENCE. DYNAMIC ROUTING. DURABLE MEMORY. VERIFIED WORK. OWNER CONTROL.",
   "policy_statement": "Party Perfect business agents represent responsibilities, not AI vendors. Matter dynamically assigns authorized workers, models and tools according to current capability, quality, reliability, availability, privacy and cost. Providers are replaceable. Capabilities do not grant authority. Deterministic software is preferred when intelligence is unnecessary. Matter controls paid compute escalation and may reassign any business role to a better authorized worker without changing the role's identity or history.",
@@ -25,7 +25,10 @@
     "stale_policy_gate": "A worker whose acknowledged policy version is not current must not receive sensitive or newly-classified tasks until it syncs.",
     "durable_tasks": "Workers are temporary; task history is permanent. Work is handed off through durable Matter tasks, never chat transcripts.",
     "availability_is_probed": "A worker is available only when a real probe succeeds and its heartbeat is fresh. Availability is never asserted or hard-coded.",
-    "owner_authority": "Autonomy does not remove owner authority. Approval gates remain for money, customer-facing sends, production/destructive changes, financial/payroll writes, POR authoritative writes, credential/security changes, and other high-risk irreversible actions."
+    "owner_authority": "Autonomy does not remove owner authority. Approval gates remain for money, customer-facing sends, production/destructive changes, financial/payroll writes, POR authoritative writes, credential/security changes, and other high-risk irreversible actions.",
+    "independent_verification_required": "A verified_pass outcome requires an independent, registered, available, policy-current verifier that holds explicit verification permission and MEASURED verification capability, is the verifier Matter assigned to that task, and the task carries evidence references. Failing any condition the outcome is REJECTED and audited - never silently downgraded.",
+    "capability_trust_levels": "Capability trust is one of REVOKED/UNKNOWN/DECLARED/OBSERVED/MEASURED/VERIFIED. A self-declared capability is a CLAIM. Sensitive or permissioned work requires at least MEASURED. A new provider may be trialed on harmless work at DECLARED/OBSERVED, which grants no permissions and no permanent routing trust.",
+    "trustworthy_acknowledgement": "Policy acknowledgement requires a single-use nonce bound to the current content-addressed policy version, redeemed by the worker process Matter launched, recorded with launcher identity. A nonce cannot be replayed or reused across policy versions."
   },
   "protected_actions": [
     "money_spend",
@@ -39,20 +42,66 @@
     "database_migration"
   ],
   "cost_classes": {
-    "deterministic": { "rung": 1, "relative_cost": 0, "note": "plain software; no model call" },
-    "local": { "rung": 2, "relative_cost": 0, "note": "local model / zero marginal cost" },
-    "subscription": { "rung": 3, "relative_cost": 1, "note": "flat-rate seat; no per-call charge" },
-    "low_cost_api": { "rung": 3, "relative_cost": 2 },
-    "standard_api": { "rung": 4, "relative_cost": 5 },
-    "frontier": { "rung": 5, "relative_cost": 20 },
-    "UNKNOWN": { "rung": 4, "relative_cost": null, "note": "unknown cost is treated as standard and never as cheap" }
+    "deterministic": {
+      "rung": 1,
+      "relative_cost": 0,
+      "note": "plain software; no model call"
+    },
+    "local": {
+      "rung": 2,
+      "relative_cost": 0,
+      "note": "local model / zero marginal cost"
+    },
+    "subscription": {
+      "rung": 3,
+      "relative_cost": 1,
+      "note": "flat-rate seat; no per-call charge"
+    },
+    "low_cost_api": {
+      "rung": 3,
+      "relative_cost": 2
+    },
+    "standard_api": {
+      "rung": 4,
+      "relative_cost": 5
+    },
+    "frontier": {
+      "rung": 5,
+      "relative_cost": 20
+    },
+    "UNKNOWN": {
+      "rung": 4,
+      "relative_cost": null,
+      "note": "unknown cost is treated as standard and never as cheap"
+    }
   },
-  "budget_dimensions": ["daily_total", "monthly_total", "provider_total", "model_total", "business_agent_total", "task_workflow_total"],
+  "budget_dimensions": [
+    "daily_total",
+    "monthly_total",
+    "provider_total",
+    "model_total",
+    "business_agent_total",
+    "task_workflow_total"
+  ],
   "worker_contract_fields": [
-    "worker_id", "provider", "model", "version", "capabilities", "capability_provenance",
-    "permissions", "availability", "health", "cost_class", "estimated_cost", "latency_class",
-    "local_or_remote", "data_boundaries", "policy_version_ack", "last_heartbeat",
-    "quality_history", "verification_history"
+    "worker_id",
+    "provider",
+    "model",
+    "version",
+    "capabilities",
+    "capability_provenance",
+    "permissions",
+    "availability",
+    "health",
+    "cost_class",
+    "estimated_cost",
+    "latency_class",
+    "local_or_remote",
+    "data_boundaries",
+    "policy_version_ack",
+    "last_heartbeat",
+    "quality_history",
+    "verification_history"
   ],
   "heartbeat_max_age_minutes": 60,
   "verification_required_for": [
@@ -65,5 +114,7 @@
     "destructive",
     "permission_change"
   ],
-  "min_samples_for_score": 5
+  "min_samples_for_score": 5,
+  "min_verifier_capability_trust": "MEASURED",
+  "min_capability_trust_for_sensitive_work": "MEASURED"
 }

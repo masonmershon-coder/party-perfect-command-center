@@ -27,6 +27,7 @@ import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { checkIndependentVerification, logVerification, recordAssignment, normalizeCapability, effectiveTrust, meetsTrust, decidingComparator } from "./trust.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 // Overridable so tests run hermetically without touching real state.
@@ -261,9 +262,15 @@ export function route(task) {
   const considered = [];
   for (const w of Object.values(reg.workers)) {
     const reasons = [];
+    // Sensitive/permissioned work demands MEASURED capability trust. A self-DECLARED capability
+    // is a claim and must not qualify a worker for it (Codex finding #2).
+    const sensitive = (task.required_permissions || []).length > 0 || isProtected || needsVerification;
+    const minTrust = task.min_capability_trust || (sensitive ? (p.min_capability_trust_for_sensitive_work || "MEASURED") : "DECLARED");
     for (const [cap, need] of Object.entries(required)) {
       const have = w.capabilities?.[cap];
-      const level = have && typeof have === "object" ? have.level : have;
+      const level = have && typeof have === "object" ? (have.level ?? have.claimed_level) : have;
+      if (have !== undefined && !meetsTrust(have, minTrust))
+        reasons.push(`'${cap}' trust ${effectiveTrust(have)} < required ${minTrust}`);
       if (have === undefined) reasons.push(`missing capability '${cap}'`);
       else if (typeof need === "number" && !(Number(level) >= need)) reasons.push(`'${cap}' level ${level} < required ${need}`);
       else if (need === true && (level === false || level == null)) reasons.push(`'${cap}' not supported`);
@@ -303,9 +310,12 @@ export function route(task) {
   const primary = eligible[0] || null;
   // Say plainly WHY this worker won. With no proven scores the choice is a probe-latency
   // tie-break, not a judgement about quality — recording that keeps the audit honest.
+  // Codex finding #4: the audit line must name the comparator that ACTUALLY separated the
+  // winner from the runner-up, not a guess. decidingComparator() replays the real comparison.
+  const runnerUp = eligible[1] || null;
+  const decided = primary ? decidingComparator(primary, runnerUp) : { comparator: "none", detail: "no eligible worker" };
   const selection_basis = !primary ? "no eligible worker"
-    : primary.score !== null ? `highest measured score (${primary.score} over ${primary.samples} samples)`
-    : `no proven scores yet — tie-broken by probe latency then worker_id (${eligible.length} eligible)`;
+    : `${decided.comparator}: ${decided.detail} (${eligible.length} eligible)`;
   let verifier = null, verifierNote = null;
   if (needsVerification) {
     // builder != verifier, and the verifier must itself declare a verification capability.
@@ -343,8 +353,12 @@ export function route(task) {
     blocked: !primary || (needsVerification && !verifier),
     owner_approval_required: isProtected,
     considered,
+    comparator_chain: decided.comparator,
   };
   append(ROUTES, decision);
+  // Persist the assignment: this is the ONLY basis for "is this the assigned verifier" later.
+  if (decision.task_id && decision.primary)
+    try { recordAssignment(decision.task_id, { owner: decision.primary, verifier: decision.verifier, risk_class: task.risk_class || null, protected_action: isProtected }); } catch {}
   return decision;
 }
 
@@ -354,6 +368,30 @@ export function report(r) {
   if (!r?.worker_id || !r?.task_id) throw new Error("report requires worker_id and task_id");
   const VALID = ["verified_pass", "reported_complete", "failed", "rework", "rolled_back", "human_correction", "blocked"];
   if (!VALID.includes(r.outcome)) throw new Error(`outcome must be one of ${VALID.join("|")}`);
+
+  // V1.2 TRUST REPAIR (Codex finding #1). A `verified_pass` is a claim about INDEPENDENT
+  // verification, so it must survive the full gate. Codex previously submitted five
+  // self-verified passes with no verifier and earned score=1. Rejection is explicit — the
+  // outcome is NOT silently downgraded to reported_complete, because a silent downgrade would
+  // hide a worker attempting to certify itself.
+  if (r.outcome === "verified_pass") {
+    const gate = checkIndependentVerification({
+      worker_id: r.worker_id, task_id: r.task_id, verified_by: r.verified_by,
+      registry: loadRegistry(), policy: policy(),
+      minVerifierTrust: policy().min_verifier_capability_trust || "MEASURED",
+    });
+    logVerification({
+      event: gate.ok ? "VERIFICATION_ACCEPTED" : "VERIFICATION_REJECTED",
+      task_id: r.task_id, worker_id: r.worker_id, verified_by: r.verified_by || null,
+      code: gate.code || null, reason: gate.reason || null,
+    });
+    if (!gate.ok) {
+      const err = new Error(`VERIFICATION REJECTED [${gate.code}]: ${gate.reason}`);
+      err.code = gate.code;
+      throw err;
+    }
+  }
+
   // "reported_complete" is a worker's own claim and deliberately does NOT count as success.
   append(OUTCOMES, {
     task_id: r.task_id, worker_id: r.worker_id, task_category: r.task_category || null,

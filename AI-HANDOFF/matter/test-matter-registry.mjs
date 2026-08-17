@@ -23,6 +23,10 @@ const t = (name, fn) => {
 
 // Probes that really run. `true` always succeeds, `false` always fails — real processes,
 // so availability is genuinely measured rather than stubbed.
+// V1.2: sensitive / verification-required work now requires MEASURED capability trust.
+// A bare number is a DECLARED claim, so these fixtures were upgraded to measured records.
+const measuredCap = (level) => ({ level, trusted_level: "MEASURED", provenance: "benchmark",
+  measurement_method: "party-perfect harness", measured_at: new Date().toISOString() });
 const OK_PROBE = ["true"];
 const BAD_PROBE = ["false"];
 
@@ -106,8 +110,8 @@ t("9. missing permission blocks selection", () => {
 });
 
 t("10. builder != verifier for verification-required work", () => {
-  mkWorker("builder-a", { coding: 0.9 });
-  mkWorker("checker-b", { coding: 0.3, verification: 0.9 });
+  mkWorker("builder-a", { coding: measuredCap(0.9) });
+  mkWorker("checker-b", { coding: measuredCap(0.3), verification: measuredCap(0.9) }, { permissions: { verification: true } });
   M.probe(); M.heartbeat("builder-a", {}); M.heartbeat("checker-b", {});
   M.ack("builder-a"); M.ack("checker-b");
   const d = M.route({ task_id: "T5", required_capabilities: { coding: 0.9 }, risk_class: "production_deployment" });
@@ -126,7 +130,7 @@ process.env.MATTER_DIR = SCRATCH; // restore for the remaining tests
 
 t("11. no independent verifier => task is BLOCKED, never auto-certified", () => {
   // The ONLY worker in this fleet can build and verify — but it may not verify itself.
-  M2.register({ worker_id: "solo-worker", detect: OK_PROBE, capabilities: { coding: 0.9, verification: 0.9 } });
+  M2.register({ worker_id: "solo-worker", detect: OK_PROBE, capabilities: { coding: measuredCap(0.9), verification: measuredCap(0.9) }, permissions: { verification: true } });
   M2.probe("solo-worker"); M2.heartbeat("solo-worker", {}); M2.ack("solo-worker");
   const d = M2.route({ task_id: "T6", required_capabilities: { coding: 0.9 }, risk_class: "por_write" });
   assert.equal(d.primary, "solo-worker");
@@ -152,9 +156,13 @@ t("14. NO FAKE PRECISION: score stays null below the sample floor", () => {
   const s0 = M.scoreFor("alpha");
   assert.equal(s0.score, null);
   assert.match(s0.reason, /insufficient samples/);
-  for (let i = 0; i < 5; i++) M.report({ task_id: `S${i}`, worker_id: "alpha", outcome: "verified_pass" });
+  // V1.2 SECURITY CHANGE: this line previously submitted 5 verified_pass outcomes with NO
+  // verifier — the exact self-certification exploit Codex demonstrated. It is now rejected.
+  // The sample floor is therefore exercised with honest self-reported completions instead.
+  for (let i = 0; i < 5; i++) M.report({ task_id: `S${i}`, worker_id: "alpha", outcome: "reported_complete" });
   const s1 = M.scoreFor("alpha");
   assert.equal(typeof s1.score, "number", "score appears only once real samples exist");
+  assert.equal(s1.score, 0, "self-reported completions must not produce a POSITIVE score");
   assert.equal(s1.samples, 5);
 });
 

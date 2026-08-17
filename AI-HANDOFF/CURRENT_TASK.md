@@ -1,11 +1,13 @@
 # CURRENT TASK
 
-**TASK ID:** KITUWA-V1  
-**STATUS:** READY_FOR_CODEX_REVIEW  
+**TASK ID:** KITUWA-LIVE-ALPHA  
+**STATUS:** READY_FOR_MASON_LIVE_ALPHA  
 **UPDATED:** 2026-08-17  
 
-Kituwa V1 (Mason OS / Matter interface) on branch `agent/cursor/KITUWA-V1`. Not Party Perfect production. Domain `kituwa.app` purchased but **not attached**.
+Kituwa is live at **https://kituwa.app** on isolated Vercel project **`kituwa`**.
 
-Parallel hold: PP-TIME Shadow Mode still WAITING_FOR_MASON (Square Preview env). That work is stashed on `agent/cursor/PP-TIME-001`.
+Deployed SHA **`a01293f`** (narrow deploy fixes atop approved **`c826d8b`**).
 
-Evidence: `AI-HANDOFF/EVIDENCE/KITUWA_V1_ARCHITECTURE.md` · `AI-HANDOFF/EVIDENCE/KITUWA_V1_CODEX_PACKAGE.md`
+Mason: retrieve **`KITUWA_OWNER_PIN`** from Vercel UI (kituwa project → Environment Variables). Do not paste into chat.
+
+Party Perfect production untouched. No Matter autonomy enabled.

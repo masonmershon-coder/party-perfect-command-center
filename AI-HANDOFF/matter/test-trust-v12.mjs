@@ -10,6 +10,10 @@ import { fileURLToPath } from "node:url";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const SCRATCH = mkdtempSync(path.join(tmpdir(), "v12-"));
 process.env.MATTER_DIR = SCRATCH;
+// V1.2.2: permissions are no longer accepted at registration (P0 self-grant fix). Tests must
+// grant them through Matter's owner-controlled authority path, exactly as Matter itself does.
+const AUTH = "test-authority-token";
+process.env.MATTER_TRUST_AUTHORITY_TOKEN = AUTH;
 copyFileSync(path.join(HERE, "MATTER_POLICY.json"), path.join(SCRATCH, "MATTER_POLICY.json"));
 const M = await import("./matter-registry.mjs");
 const T = await import("./trust.mjs");
@@ -25,14 +29,14 @@ const measured = (level) => ({ level, trusted_level: "MEASURED", provenance: "be
 
 /** A fully trustworthy verifier: registered, available, fresh, acked, permitted, MEASURED. */
 const goodVerifier = (id = "verifier-good") => {
-  M.register({ worker_id: id, detect: OK, capabilities: { verification: measured(0.9) },
-    permissions: { verification: true }, cost_class: "local" });
+  M.register({ worker_id: id, detect: OK, capabilities: { verification: measured(0.9) }, cost_class: "local" });
+  M.grantPermission(id, "verification", true, { authority: AUTH });   // authority path, not self-grant
   M.probe(id); M.heartbeat(id, {}); M.ack(id);
   return id;
 };
 const worker = (id, caps = { coding: measured(0.9) }, opts = {}) => {
-  M.register({ worker_id: id, detect: opts.detect || OK, capabilities: caps,
-    permissions: opts.permissions || {}, cost_class: opts.cost_class || "local" });
+  M.register({ worker_id: id, detect: opts.detect || OK, capabilities: caps, cost_class: opts.cost_class || "local" });
+  for (const [k, v] of Object.entries(opts.permissions || {})) M.grantPermission(id, k, v, { authority: AUTH });
   M.probe(id); if (opts.noHeartbeat !== true) M.heartbeat(id, {}); if (opts.noAck !== true) M.ack(id);
   return id;
 };
@@ -74,7 +78,8 @@ t("4. verifier unregistered → REJECTED", () => {
 t("5. verifier unavailable → REJECTED", () => {
   const w = worker("w5");
   const v = "verifier-offline";
-  M.register({ worker_id: v, detect: BAD, capabilities: { verification: measured(0.9) }, permissions: { verification: true } });
+  M.register({ worker_id: v, detect: BAD, capabilities: { verification: measured(0.9) } });
+  M.grantPermission(v, "verification", true, { authority: AUTH });
   M.probe(v); M.heartbeat(v, {}); M.ack(v);
   setupTask("K5", w, v);
   expectReject(() => M.report({ task_id: "K5", worker_id: w, outcome: "verified_pass", verified_by: v }), "VERIFIER_UNAVAILABLE");
@@ -83,7 +88,8 @@ t("5. verifier unavailable → REJECTED", () => {
 t("6. verifier heartbeat stale → REJECTED", () => {
   const w = worker("w6");
   const v = "verifier-stale";
-  M.register({ worker_id: v, detect: OK, capabilities: { verification: measured(0.9) }, permissions: { verification: true } });
+  M.register({ worker_id: v, detect: OK, capabilities: { verification: measured(0.9) } });
+  M.grantPermission(v, "verification", true, { authority: AUTH });
   M.probe(v); M.ack(v);  // deliberately never heartbeats
   setupTask("K6", w, v);
   expectReject(() => M.report({ task_id: "K6", worker_id: w, outcome: "verified_pass", verified_by: v }), "VERIFIER_HEARTBEAT_STALE");

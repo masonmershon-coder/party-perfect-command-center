@@ -75,10 +75,25 @@ export function meetsTrust(cap, minLevel) {
 // ---------------------------------------------------------------- task assignments
 const loadTasks = () => readJson(TASKS, { tasks: {} });
 /** Record who Matter assigned — the ONLY basis for "is this the assigned verifier". */
-export function recordAssignment(task_id, { owner, verifier, risk_class = null, protected_action = false }) {
+export function recordAssignment(task_id, { owner, verifier, risk_class = null, protected_action = false, authority = null }) {
   const t = loadTasks();
-  t.tasks[task_id] = { ...(t.tasks[task_id] || {}), task_id, owner, verifier, risk_class, protected_action,
-    evidence_refs: t.tasks[task_id]?.evidence_refs || [], assigned_at: now() };
+  const prev = t.tasks[task_id];
+  // P0 FIX (trust audit 2026-08-17): an existing assignment is IMMUTABLE without Matter's
+  // authority token. Previously any caller could re-record an assignment and seize ownership
+  // and the verifier slot for itself. Reassignment now requires authority AND keeps history.
+  if (prev && (prev.owner !== owner || prev.verifier !== verifier)) {
+    const expected = process.env.MATTER_TRUST_AUTHORITY_TOKEN || null;
+    if (!expected || authority !== expected) {
+      append(VERIF_LOG, { event: "REASSIGNMENT_DENIED", task_id,
+        from: { owner: prev.owner, verifier: prev.verifier }, to: { owner, verifier },
+        reason: expected ? "invalid authority token" : "no authority token configured (fail closed)" });
+      return prev; // assignment unchanged
+    }
+    prev.history = [...(prev.history || []), { owner: prev.owner, verifier: prev.verifier, replaced_at: now() }];
+    append(VERIF_LOG, { event: "REASSIGNMENT_AUTHORIZED", task_id, from: { owner: prev.owner, verifier: prev.verifier }, to: { owner, verifier } });
+  }
+  t.tasks[task_id] = { ...(prev || {}), task_id, owner, verifier, risk_class, protected_action,
+    evidence_refs: prev?.evidence_refs || [], history: prev?.history || [], assigned_at: prev?.assigned_at || now(), updated_at: now() };
   writeJson(TASKS, t);
   return t.tasks[task_id];
 }

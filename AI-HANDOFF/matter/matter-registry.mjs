@@ -27,7 +27,7 @@ import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { checkIndependentVerification, logVerification, recordAssignment, normalizeCapability, effectiveTrust, meetsTrust, decidingComparator } from "./trust.mjs";
+import { checkIndependentVerification, logVerification, recordAssignment, getTask, normalizeCapability, effectiveTrust, meetsTrust, decidingComparator } from "./trust.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 // Overridable so tests run hermetically without touching real state.
@@ -75,7 +75,11 @@ export function register(input) {
     version: input.version ?? prev.version ?? null,
     detect: input.detect ?? prev.detect ?? null,           // real availability probe (argv array or string)
     capabilities: input.capabilities ?? prev.capabilities ?? {},
-    permissions: input.permissions ?? prev.permissions ?? {},
+    // P0 FIX (trust-boundary audit 2026-08-17): permissions are NEVER accepted from the
+    // registering party. A worker that registers itself with {por_write:true} previously kept
+    // that permission and was SELECTED for a POR write. Permissions now come only from the
+    // owner-controlled authority path (grantPermission), so a capability can never imply one.
+    permissions: prev.permissions ?? {},
     // --- standard worker contract (policy: worker_contract_fields) ---
     // UNKNOWN is a real, recorded value. Never fabricate cost/latency/quality precision.
     cost_class: input.cost_class ?? prev.cost_class ?? "UNKNOWN",
@@ -98,7 +102,30 @@ export function register(input) {
   };
   reg.workers[rec.worker_id] = rec;
   saveRegistry(reg);
+  // A self-grant ATTEMPT is not an error, but it is never honoured and always recorded.
+  if (input.permissions && Object.keys(input.permissions).length)
+    append(ROUTES, { kind: "PERMISSION_SELF_GRANT_ATTEMPT", worker_id: rec.worker_id,
+      attempted: Object.keys(input.permissions), outcome: "IGNORED - permissions require Matter authority" });
   return rec;
+}
+
+/**
+ * The ONLY way a permission is granted. Requires Matter's trust-authority token, which is held
+ * by the owner-controlled control plane and is deliberately NOT inherited by worker processes.
+ * Fails closed: absent/incorrect token => no grant, and the attempt is audited.
+ */
+export function grantPermission(worker_id, permission, value, { authority } = {}) {
+  const expected = process.env.MATTER_TRUST_AUTHORITY_TOKEN || null;
+  if (!expected || authority !== expected) {
+    append(ROUTES, { kind: "PERMISSION_GRANT_DENIED", worker_id, permission, reason: expected ? "bad authority token" : "no authority token configured (fail closed)" });
+    throw new Error("PERMISSION GRANT DENIED: valid Matter trust authority required");
+  }
+  const reg = loadRegistry(); const w = reg.workers[worker_id];
+  if (!w) throw new Error(`unknown worker ${worker_id}`);
+  w.permissions = { ...(w.permissions || {}), [permission]: !!value };
+  saveRegistry(reg);
+  append(ROUTES, { kind: "PERMISSION_GRANTED", worker_id, permission, value: !!value });
+  return w.permissions;
 }
 
 /** Capability heartbeat: I am here, this is my version, these capabilities changed. */
@@ -388,6 +415,32 @@ export function report(r) {
     if (!gate.ok) {
       const err = new Error(`VERIFICATION REJECTED [${gate.code}]: ${gate.reason}`);
       err.code = gate.code;
+      throw err;
+    }
+  }
+
+  // P0 FIX (trust audit 2026-08-17): an outcome must come from an AUTHORIZED reporter.
+  // Previously any caller could submit five `failed` outcomes naming another worker and drive
+  // that worker's reputation to -1. A worker may report only its OWN outcome; a verdict about
+  // someone else's work may come only from that task's assigned verifier.
+  {
+    const task = getTask(r.task_id);
+    const reporter = r.reported_by || r.worker_id;
+    const selfReport = reporter === r.worker_id;
+    const isAssignedVerifier = task && task.verifier === reporter;
+    if (!selfReport && !isAssignedVerifier) {
+      logVerification({ event: "OUTCOME_REJECTED", task_id: r.task_id, worker_id: r.worker_id,
+        reported_by: reporter, code: "UNAUTHORIZED_REPORTER",
+        reason: "outcome must be self-reported or submitted by the task's assigned verifier" });
+      const err = new Error(`OUTCOME REJECTED [UNAUTHORIZED_REPORTER]: ${reporter} may not report outcomes for ${r.worker_id}`);
+      err.code = "UNAUTHORIZED_REPORTER";
+      throw err;
+    }
+    if (task && task.owner && task.owner !== r.worker_id) {
+      logVerification({ event: "OUTCOME_REJECTED", task_id: r.task_id, worker_id: r.worker_id,
+        code: "NOT_TASK_EXECUTOR", reason: `task ${r.task_id} executor is ${task.owner}` });
+      const err = new Error(`OUTCOME REJECTED [NOT_TASK_EXECUTOR]: ${r.worker_id} is not the recorded executor`);
+      err.code = "NOT_TASK_EXECUTOR";
       throw err;
     }
   }

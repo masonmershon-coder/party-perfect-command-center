@@ -11,6 +11,8 @@ import { MarketingSection } from "@/app/components/dashboard/marketing-section";
 import { HiringSection } from "@/app/components/dashboard/hiring-section";
 import { ReportsSection } from "@/app/components/dashboard/reports-section";
 import { AiCostSection } from "@/app/components/dashboard/ai-cost-section";
+import { MatterControlSection } from "@/app/components/dashboard/matter-control-section";
+import { TimePayrollSection } from "@/app/components/dashboard/time-payroll-section";
 import { SecuritySection } from "@/app/components/dashboard/security-section";
 import { InventorySection } from "@/app/components/dashboard/inventory-section";
 import { CommandCenterHeader } from "@/app/components/dashboard/page-header";
@@ -785,6 +787,7 @@ export default function PartyPerfectDashboard() {
             onSelectAgent={openAgentChat}
             onNavigateSecurity={() => setActiveSection("security")}
             onNavigateAiCost={() => setActiveSection("ai_cost")}
+            onNavigateTimekeeping={() => setActiveSection("timekeeping")}
           />
         ) : null;
       case "agents":
@@ -963,6 +966,10 @@ export default function PartyPerfectDashboard() {
         return ownerUnlocked ? <SecuritySection /> : null;
       case "ai_cost":
         return ownerUnlocked ? <AiCostSection /> : null;
+      case "timekeeping":
+        return ownerUnlocked ? <TimePayrollSection /> : null;
+      case "matter_control":
+        return ownerUnlocked ? <MatterControlSection /> : null;
       case "hiring":
         return (
           <HiringSection

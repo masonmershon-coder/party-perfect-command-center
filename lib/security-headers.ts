@@ -71,6 +71,10 @@ export const SECURITY_HEADER_ENTRIES: Array<{ key: string; value: string }> = [
   },
 ];
 
+/** /time punches need GPS. Do not loosen Command Center geolocation=(). */
+export const TIME_PERMISSIONS_POLICY =
+  "camera=(), microphone=(), geolocation=(self), payment=(), usb=(), interest-cohort=()";
+
 export const API_CORS_ALLOW_ORIGINS = [
   "https://partyperfect.app",
   "https://www.partyperfect.app",

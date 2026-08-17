@@ -1,0 +1,1040 @@
+.jobs-root * {
+  box-sizing: border-box;
+}
+
+.time-shell {
+  min-height: 100dvh;
+  max-width: 28rem;
+  margin: 0 auto;
+  padding: calc(1.25rem + env(safe-area-inset-top)) 1.25rem calc(1.5rem + env(safe-area-inset-bottom));
+}
+
+.time-logo {
+  width: 4.5rem;
+  height: auto;
+  display: block;
+  margin: 0 auto 0.75rem;
+  animation: jobs-float 5s ease-in-out infinite;
+  pointer-events: none;
+  user-select: none;
+}
+
+.time-logo-hold {
+  position: relative;
+  display: block;
+  margin: 0 auto 0.75rem;
+  padding: 0;
+  border: none;
+  background: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: none;
+}
+
+.time-logo-hold .time-logo {
+  margin: 0;
+}
+
+.time-logo-hold-ring {
+  position: absolute;
+  inset: -0.35rem;
+  border-radius: 999px;
+  border: 3px solid transparent;
+  border-top-color: var(--jobs-ink, #1a1a1a);
+  opacity: 0.45;
+  transform: rotate(calc(var(--hold, 0) * 3.6deg));
+  pointer-events: none;
+}
+
+.time-support-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: rgba(20, 16, 12, 0.45);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.time-support-card {
+  width: min(28rem, 100%);
+  background: #fff;
+  border-radius: 1rem 1rem 0.5rem 0.5rem;
+  padding: 1.25rem;
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.18);
+}
+
+.time-support-card h2 {
+  margin: 0 0 0.35rem;
+  font-size: 1.15rem;
+}
+
+.time-support-list {
+  list-style: none;
+  margin: 1rem 0;
+  padding: 0;
+}
+
+.time-support-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.45rem 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  font-size: 0.92rem;
+}
+
+.time-support-actions {
+  display: grid;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.time-title {
+  font-family: var(--jobs-font-display);
+  font-size: clamp(1.8rem, 7vw, 2.35rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  text-align: center;
+  color: var(--jobs-ink);
+  margin: 0;
+}
+
+.time-sub {
+  text-align: center;
+  color: var(--jobs-muted);
+  margin: 0.35rem 0 1.5rem;
+  font-size: 1rem;
+}
+
+.time-clock {
+  font-family: var(--jobs-font-display);
+  font-size: clamp(2.4rem, 10vw, 3.4rem);
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  text-align: center;
+  margin: 0.25rem 0;
+}
+
+.time-status {
+  text-align: center;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  font-size: 0.82rem;
+  color: var(--jobs-teal-deep);
+  margin-bottom: 1rem;
+}
+
+.time-hours {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin: 0 0 1.5rem;
+}
+
+.time-hours div {
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(0, 191, 165, 0.18);
+  border-radius: 1rem;
+  padding: 0.85rem 0.75rem;
+  text-align: center;
+}
+
+.time-hours dt {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--jobs-muted);
+}
+
+.time-hours dd {
+  margin: 0.2rem 0 0;
+  font-family: var(--jobs-font-display);
+  font-size: 1.35rem;
+  font-weight: 800;
+}
+
+.time-btn {
+  display: block;
+  width: 100%;
+  border: 0;
+  border-radius: 1.15rem;
+  padding: 1.15rem 1rem;
+  font-family: var(--jobs-font-display);
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  min-height: 3.75rem;
+}
+
+.time-btn-primary {
+  background: linear-gradient(180deg, #00d4bb 0%, #00bfa5 55%, #009e88 100%);
+  color: #06332d;
+  box-shadow: 0 10px 24px rgba(0, 158, 136, 0.28);
+}
+
+.time-btn-secondary {
+  background: #fff;
+  color: var(--jobs-ink);
+  border: 2px solid rgba(0, 191, 165, 0.45);
+  margin-top: 0.75rem;
+}
+
+.time-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.time-field {
+  display: block;
+  width: 100%;
+  margin: 0 0 0.85rem;
+  padding: 1rem 0.95rem;
+  border-radius: 0.95rem;
+  border: 1px solid rgba(20, 48, 58, 0.12);
+  background: #fff;
+  font-size: 1.05rem;
+  font-family: var(--jobs-font-body);
+}
+
+.time-field-label {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0.35rem 0 0.95rem;
+  color: var(--jobs-muted);
+  font: 800 0.84rem/1.3 var(--jobs-font-body);
+}
+
+.time-field-label .time-field {
+  margin: 0;
+}
+
+.time-mode-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  margin-top: 1rem;
+  color: var(--jobs-muted);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.time-mode-toggle input {
+  width: 1.15rem;
+  height: 1.15rem;
+  accent-color: #00bfa5;
+}
+
+.time-error {
+  background: #fff1f0;
+  color: #9b1c1c;
+  border-radius: 0.9rem;
+  padding: 0.8rem 0.9rem;
+  margin-bottom: 1rem;
+  font-weight: 700;
+}
+
+.time-nav {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.4rem;
+  margin-top: 1.4rem;
+}
+
+.time-nav button {
+  border: 0;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 0.85rem;
+  padding: 0.7rem 0.2rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: var(--jobs-muted);
+}
+
+.time-nav button.on {
+  color: var(--jobs-teal-deep);
+  background: var(--jobs-teal-soft);
+}
+
+.time-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 28, 34, 0.55);
+  display: flex;
+  align-items: flex-end;
+  z-index: 40;
+  animation: jobs-pop 0.35s ease;
+}
+
+.time-sheet {
+  width: 100%;
+  background: #fff;
+  border-radius: 1.4rem 1.4rem 0 0;
+  padding: 1.4rem 1.3rem calc(1.4rem + env(safe-area-inset-bottom));
+}
+
+.time-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.time-list li {
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 0.95rem;
+  padding: 0.85rem 0.95rem;
+  margin-bottom: 0.65rem;
+}
+
+.time-muted {
+  color: var(--jobs-muted);
+  font-size: 0.92rem;
+}
+
+/* —— Clock home: warm motion, not cold chrome —— */
+
+.time-shell-home {
+  position: relative;
+}
+
+.time-shell-home::before {
+  content: "";
+  position: absolute;
+  inset: -1rem -1.25rem auto;
+  height: 14rem;
+  background:
+    radial-gradient(ellipse 80% 70% at 50% 0%, rgba(0, 191, 165, 0.22), transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.time-shell-home > * {
+  position: relative;
+  z-index: 1;
+}
+
+.time-home-enter {
+  animation: time-rise 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes time-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.time-status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem;
+  padding: 0.45rem 0.95rem;
+  border-radius: 999px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  font-size: 0.72rem;
+  background: var(--jobs-teal-soft);
+  color: var(--jobs-teal-deep);
+  animation: time-status-pop 0.4s cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+.time-status-pill.on-lunch {
+  background: rgba(245, 158, 11, 0.16);
+  color: #9a6700;
+}
+
+.time-status-pill.off {
+  background: rgba(20, 48, 58, 0.06);
+  color: var(--jobs-muted);
+}
+
+@keyframes time-status-pop {
+  from {
+    transform: scale(0.88);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.time-progress {
+  margin: 0 0 1.35rem;
+  padding: 0.85rem 0.95rem;
+  border-radius: 1.05rem;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(0, 191, 165, 0.16);
+}
+
+.time-progress-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-bottom: 0.55rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--jobs-muted);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.time-progress-label strong {
+  font-family: var(--jobs-font-display);
+  font-size: 0.95rem;
+  letter-spacing: -0.02em;
+  text-transform: none;
+  color: var(--jobs-ink);
+}
+
+.time-progress-track {
+  height: 0.55rem;
+  border-radius: 999px;
+  background: rgba(0, 191, 165, 0.12);
+  overflow: hidden;
+}
+
+.time-progress-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #00d4bb, #00bfa5 55%, #009e88);
+  transform-origin: left center;
+  transition: width 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  box-shadow: 0 0 12px rgba(0, 191, 165, 0.35);
+}
+
+.time-btn-primary {
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.15s ease, box-shadow 0.2s ease;
+}
+
+.time-btn-primary:not(:disabled):active {
+  transform: scale(0.98);
+}
+
+.time-btn-primary.time-btn-pulse {
+  animation: time-btn-ok 0.55s cubic-bezier(0.34, 1.3, 0.64, 1);
+}
+
+@keyframes time-btn-ok {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.03);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.time-btn-primary.time-btn-out {
+  background: linear-gradient(180deg, #1a4550 0%, #14303a 100%);
+  color: #e8fffa;
+  box-shadow: 0 10px 24px rgba(20, 48, 58, 0.28);
+}
+
+.time-thanks {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background:
+    radial-gradient(ellipse 70% 50% at 50% 40%, rgba(0, 191, 165, 0.28), transparent 65%),
+    rgba(8, 28, 34, 0.55);
+  animation: time-thanks-in 0.35s ease;
+}
+
+@keyframes time-thanks-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.time-thanks-card {
+  width: min(100%, 22rem);
+  background: #fff;
+  border-radius: 1.5rem;
+  padding: 1.75rem 1.4rem 1.35rem;
+  text-align: center;
+  box-shadow: 0 24px 48px rgba(8, 28, 34, 0.22);
+  animation: time-thanks-pop 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes time-thanks-pop {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.time-thanks-eyebrow {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--jobs-teal-deep);
+  margin: 0 0 0.65rem;
+}
+
+.time-thanks-msg {
+  font-family: var(--jobs-font-display);
+  font-size: clamp(1.2rem, 5vw, 1.45rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.35;
+  color: var(--jobs-ink);
+  margin: 0 0 1.25rem;
+}
+
+.time-receipt {
+  text-align: center;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--jobs-teal-deep);
+  margin: 0.65rem 0 0;
+  animation: time-rise 0.4s ease both;
+}
+
+/* —— First-open mobile install onboarding —— */
+
+.time-install {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding:
+    calc(1rem + env(safe-area-inset-top))
+    1rem
+    calc(1rem + env(safe-area-inset-bottom));
+  overflow-y: auto;
+  background:
+    radial-gradient(circle at 50% -5%, rgba(0, 212, 187, 0.32), transparent 38%),
+    linear-gradient(165deg, #f4fffc 0%, #e6faf5 55%, #dff7f2 100%);
+}
+
+.time-install-card {
+  width: min(100%, 27rem);
+  min-height: min(42rem, calc(100dvh - 2rem));
+  display: flex;
+  flex-direction: column;
+  padding: 1.25rem 1.25rem 1rem;
+  border: 1px solid rgba(0, 158, 136, 0.16);
+  border-radius: 1.75rem;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 24px 60px rgba(20, 48, 58, 0.16);
+}
+
+.time-install-logo {
+  width: min(13.5rem, 64%);
+  height: auto;
+  display: block;
+  margin: 0 auto 1rem;
+}
+
+.time-install-progress {
+  width: 100%;
+  height: 0.42rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(0, 191, 165, 0.12);
+}
+
+.time-install-progress > div {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #00d4bb, #00bfa5);
+  transition: width 0.3s ease;
+}
+
+.time-install-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+  animation: time-install-step 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes time-install-step {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.time-install-content h1 {
+  max-width: 21rem;
+  margin: 0 auto 0.65rem;
+  font-family: var(--jobs-font-display);
+  font-size: clamp(1.75rem, 8vw, 2.35rem);
+  line-height: 1.08;
+  letter-spacing: -0.045em;
+  color: var(--jobs-ink);
+}
+
+.time-install-content > p:not(.time-install-kicker) {
+  max-width: 20rem;
+  margin: 0 auto 1.5rem;
+  color: var(--jobs-muted);
+  font-size: 1.05rem;
+  line-height: 1.45;
+}
+
+.time-install-kicker {
+  margin: 1rem 0 0.65rem;
+  color: var(--jobs-teal-deep);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+}
+
+.time-install-icon {
+  width: 6rem;
+  height: 6rem;
+  display: block;
+  margin: 0 auto;
+  padding: 1rem;
+  color: var(--jobs-teal-deep);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 3.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  border-radius: 1.5rem;
+  background: var(--jobs-teal-soft);
+  animation: time-install-breathe 1.9s ease-in-out infinite;
+}
+
+@keyframes time-install-breathe {
+  0%,
+  100% {
+    transform: translateY(0);
+    box-shadow: 0 8px 22px rgba(0, 158, 136, 0.1);
+  }
+  50% {
+    transform: translateY(-5px);
+    box-shadow: 0 14px 28px rgba(0, 158, 136, 0.2);
+  }
+}
+
+.time-install-menu-row {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  width: 100%;
+  margin: 0 auto 1.5rem;
+  padding: 0.9rem 1rem;
+  border: 2px solid rgba(0, 191, 165, 0.42);
+  border-radius: 1rem;
+  background: #fff;
+  color: var(--jobs-ink);
+  text-align: left;
+  box-shadow: 0 10px 24px rgba(20, 48, 58, 0.08);
+}
+
+.time-install-menu-row .time-install-icon {
+  width: 2.6rem;
+  height: 2.6rem;
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 0.48rem;
+  border-radius: 0.75rem;
+  animation: none;
+}
+
+.time-install-menu-row strong {
+  font-size: 1.05rem;
+}
+
+.time-install-app-icon {
+  width: 7.5rem;
+  height: 7.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.32rem;
+  margin: 0 auto;
+  padding: 1rem 0.7rem;
+  overflow: hidden;
+  border-radius: 1.65rem;
+  background: linear-gradient(145deg, #f8fffd, #ddf8f2);
+  border: 1px solid rgba(0, 158, 136, 0.2);
+  box-shadow: 0 14px 30px rgba(0, 158, 136, 0.2);
+}
+
+.time-install-app-icon img {
+  width: 100%;
+  height: auto;
+}
+
+.time-install-app-icon span {
+  color: var(--jobs-teal-deep);
+  font-family: var(--jobs-font-display);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+}
+
+.time-install-main {
+  margin-top: auto;
+  min-height: 4.2rem;
+  font-size: 1.08rem;
+}
+
+.time-install-back {
+  align-self: center;
+  margin-top: 0.75rem;
+  padding: 0.5rem 1rem;
+  border: 0;
+  background: transparent;
+  color: var(--jobs-muted);
+  font: 700 0.9rem var(--jobs-font-body);
+}
+
+@media (max-height: 700px) {
+  .time-install-card {
+    min-height: calc(100dvh - 1rem);
+    padding-top: 0.85rem;
+  }
+
+  .time-install-logo {
+    width: 10rem;
+    margin-bottom: 0.55rem;
+  }
+
+  .time-install-icon {
+    width: 4.9rem;
+    height: 4.9rem;
+  }
+
+  .time-install-app-icon {
+    width: 6rem;
+    height: 6rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .time-install-content,
+  .time-install-icon {
+    animation: none;
+  }
+}
+
+/* —— Role-aware Time administration (same PWA, same backend) —— */
+
+.time-shell-admin {
+  max-width: 72rem;
+}
+
+.time-nav-admin {
+  display: flex;
+  position: sticky;
+  bottom: calc(0.5rem + env(safe-area-inset-bottom));
+  z-index: 25;
+  overflow-x: auto;
+  padding: 0.35rem;
+  border: 1px solid rgba(0, 191, 165, 0.2);
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 10px 28px rgba(20, 48, 58, 0.14);
+}
+
+.time-nav-admin button {
+  flex: 1 0 5.25rem;
+}
+
+.time-admin {
+  padding-bottom: 5.5rem;
+}
+
+.time-admin h2 {
+  margin: 0;
+  color: var(--jobs-ink);
+  font-family: var(--jobs-font-display);
+  font-size: 1.05rem;
+}
+
+.time-admin-grid {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.time-admin-stack {
+  display: grid;
+  gap: 0.7rem;
+  margin-top: 1rem;
+}
+
+.time-admin-card {
+  padding: 1rem;
+  border: 1px solid rgba(20, 48, 58, 0.12);
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.88);
+  color: var(--jobs-ink);
+}
+
+.time-admin-card p {
+  margin: 0.35rem 0;
+}
+
+.time-admin-card-button {
+  width: 100%;
+  text-align: left;
+  font: inherit;
+}
+
+.time-admin-card-button span {
+  display: block;
+  margin-top: 0.25rem;
+  color: var(--jobs-muted);
+  font-size: 0.82rem;
+}
+
+.time-admin-toolbar,
+.time-admin-actions,
+.time-admin-inline,
+.time-admin-self-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-top: 0.8rem;
+}
+
+.time-admin-toolbar input {
+  flex: 1 1 12rem;
+}
+
+.time-admin-toolbar button,
+.time-admin-toolbar a,
+.time-admin-actions button,
+.time-admin-inline button,
+.time-admin-self-links button,
+.time-admin-form button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.5rem;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid rgba(0, 158, 136, 0.4);
+  border-radius: 0.7rem;
+  background: #fff;
+  color: var(--jobs-teal-deep);
+  font: 800 0.82rem var(--jobs-font-body);
+  text-decoration: none;
+}
+
+.time-admin-actions button.danger {
+  border-color: rgba(185, 28, 28, 0.35);
+  color: #9b1c1c;
+}
+
+.time-admin-toolbar input,
+.time-admin-inline input,
+.time-admin-form input,
+.time-admin-form select,
+.time-admin-form textarea {
+  min-height: 2.7rem;
+  padding: 0.65rem 0.7rem;
+  border: 1px solid rgba(20, 48, 58, 0.16);
+  border-radius: 0.7rem;
+  background: #fff;
+  color: var(--jobs-ink);
+  font: 0.95rem var(--jobs-font-body);
+}
+
+.time-admin-form {
+  display: grid;
+  gap: 0.7rem;
+  margin-top: 1rem;
+}
+
+.time-admin-form label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--jobs-muted);
+  font-weight: 700;
+}
+
+.time-admin-form label input {
+  min-height: auto;
+}
+
+.time-admin-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.time-admin-status {
+  flex: 0 0 auto;
+  padding: 0.3rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(245, 158, 11, 0.13);
+  color: #8a5a00;
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+}
+
+.time-admin-status.active {
+  background: var(--jobs-teal-soft);
+  color: var(--jobs-teal-deep);
+}
+
+.time-admin-status.inactive {
+  background: rgba(20, 48, 58, 0.08);
+  color: var(--jobs-muted);
+}
+
+.time-admin-notice {
+  margin-bottom: 0.8rem;
+  padding: 0.75rem 0.85rem;
+  border-radius: 0.8rem;
+  background: var(--jobs-teal-soft);
+  color: var(--jobs-teal-deep);
+  font-weight: 700;
+}
+
+.time-admin-detail {
+  display: grid;
+  gap: 0.55rem;
+  margin: 0.8rem 0;
+}
+
+.time-admin-detail div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.2rem 0.5rem;
+  align-items: start;
+}
+
+.time-admin-detail dt {
+  color: var(--jobs-muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1.3;
+}
+
+.time-admin-detail dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: pre-wrap;
+  font-size: 0.92rem;
+  line-height: 1.4;
+}
+
+.time-admin-thread {
+  padding: 0.65rem;
+  border-radius: 0.7rem;
+  background: rgba(0, 191, 165, 0.08);
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.time-admin-metrics {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.6rem;
+  margin: 1rem 0;
+}
+
+@media (min-width: 420px) {
+  .time-admin-metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .time-admin-detail div {
+    grid-template-columns: minmax(7.5rem, 0.42fr) minmax(0, 1fr);
+  }
+}
+
+.time-admin-metrics div {
+  padding: 0.85rem 0.55rem;
+  border-radius: 0.9rem;
+  background: #fff;
+  text-align: center;
+}
+
+.time-admin-metrics strong,
+.time-admin-metrics span {
+  display: block;
+}
+
+.time-admin-metrics span {
+  margin-top: 0.25rem;
+  color: var(--jobs-muted);
+  font-size: 0.75rem;
+}
+
+.time-admin-warning {
+  color: #9b1c1c;
+}
+
+.time-location-help {
+  margin: 0.75rem 0 1rem;
+  padding: 0.9rem 1rem;
+  border-radius: 0.9rem;
+  border: 1px solid rgba(0, 158, 136, 0.28);
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--jobs-ink);
+  font: 600 0.88rem/1.45 var(--jobs-font-body);
+}
+
+.time-location-help p + p {
+  margin-top: 0.55rem;
+}
+
+.time-admin-evidence {
+  max-height: 28rem;
+  overflow: auto;
+  margin-top: 1rem;
+  padding: 0.85rem;
+  border-radius: 0.8rem;
+  background: #102b33;
+  color: #ddfff8;
+  font-size: 0.72rem;
+  white-space: pre-wrap;
+}
+
+@media (min-width: 760px) {
+  .time-admin-grid {
+    grid-template-columns: minmax(18rem, 0.8fr) minmax(22rem, 1.2fr);
+  }
+
+  .time-admin-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

@@ -2,6 +2,7 @@
 
 import { CatchUpPanel } from "@/app/components/dashboard/catch-up-panel";
 import { AiCostStatusCard } from "@/app/components/dashboard/ai-cost-status-card";
+import { TimePayrollStatusCard } from "@/app/components/dashboard/time-payroll-status-card";
 import { SecurityHealthCard } from "@/app/components/dashboard/security-health-card";
 import { PageHeader } from "@/app/components/dashboard/page-header";
 import {
@@ -31,6 +32,7 @@ export function DashboardHome({
   onSelectAgent,
   onNavigateSecurity,
   onNavigateAiCost,
+  onNavigateTimekeeping,
 }: {
   stats: DashboardStats;
   agents: Agent[];
@@ -48,6 +50,7 @@ export function DashboardHome({
   onSelectAgent: (agentId: string) => void;
   onNavigateSecurity?: () => void;
   onNavigateAiCost?: () => void;
+  onNavigateTimekeeping?: () => void;
 }) {
   const recentTasks = tasks.slice(0, 5);
   const latestReport = reports[0] ?? null;
@@ -170,6 +173,7 @@ export function DashboardHome({
         onOpenInbox={isOwner ? onNavigateSecurity : undefined}
       />
       {isOwner ? <AiCostStatusCard onOpen={onNavigateAiCost} /> : null}
+      {isOwner ? <TimePayrollStatusCard onOpen={onNavigateTimekeeping} /> : null}
 
       <div
         className={`grid gap-4 sm:grid-cols-2 lg:grid-cols-3 ${

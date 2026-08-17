@@ -18,7 +18,9 @@
     "test:api-auth": "node scripts/test-api-auth-matrix.mjs",
     "test:security": "node scripts/check-security-regression.mjs && node scripts/test-api-auth-matrix.mjs && npx tsx scripts/test-matter-http-gateway.ts && npx tsx scripts/test-sentinel-app.ts",
     "test:mike-intake": "npx tsx scripts/test-mike-intake.ts",
-    "test:ai-cost": "npx tsx scripts/test-ai-cost.ts"
+    "test:ai-cost": "npx tsx scripts/test-ai-cost.ts",
+    "test:time": "npx tsx scripts/test-time.ts",
+    "test:matter-registry": "node AI-HANDOFF/matter/test-matter-registry.mjs"
   },
   "engines": {
     "node": ">=20"

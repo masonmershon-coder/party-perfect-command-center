@@ -134,6 +134,8 @@ export function isOwnerSection(section: import("./types").NavSection) {
     section === "marketing" ||
     section === "reports" ||
     section === "security" ||
-    section === "ai_cost"
+    section === "ai_cost" ||
+    section === "timekeeping" ||
+    section === "matter_control"
   );
 }

@@ -21,6 +21,8 @@ export type NavSection =
   | "hiring"
   | "security"
   | "ai_cost"
+  | "timekeeping"
+  | "matter_control"
   | "chat";
 
 export type DesignAspectRatio =

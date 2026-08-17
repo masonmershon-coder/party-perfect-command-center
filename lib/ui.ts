@@ -28,6 +28,8 @@ export const navItems: {
   { id: "hiring", label: "Hiring", icon: "✎" },
   { id: "security", label: "Security", icon: "⚑", ownerOnly: true },
   { id: "ai_cost", label: "AI Cost & Usage", icon: "¤", ownerOnly: true },
+  { id: "timekeeping", label: "Time & Payroll", icon: "◷", ownerOnly: true },
+  { id: "matter_control", label: "Matter Control", icon: "⬡", ownerOnly: true },
   { id: "reports", label: "Reports", icon: "▤", ownerOnly: true },
 ];
 

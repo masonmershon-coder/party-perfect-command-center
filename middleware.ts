@@ -44,6 +44,15 @@ export function middleware(request: NextRequest) {
     host === "www.partyperfectjobs.com" ||
     host.startsWith("partyperfectjobs.");
 
+  if (host === "time.partyperfect.app") {
+    if (pathname === "/" || pathname === "") {
+      const url = request.nextUrl.clone();
+      url.pathname = "/time";
+      return NextResponse.rewrite(url);
+    }
+    return NextResponse.next();
+  }
+
   if (!isJobsDomain) {
     return NextResponse.next();
   }

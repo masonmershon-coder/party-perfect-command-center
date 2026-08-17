@@ -45,7 +45,8 @@ export type ApiPermission =
   | "admin"
   | "sms_ops"
   | "security"
-  | "ai_cost";
+  | "ai_cost"
+  | "timekeeping";
 
 const OWNER_ONLY: ReadonlySet<ApiPermission> = new Set([
   "marketing",
@@ -55,6 +56,7 @@ const OWNER_ONLY: ReadonlySet<ApiPermission> = new Set([
   "sms_ops",
   "security",
   "ai_cost",
+  "timekeeping",
 ]);
 
 export function roleHasPermission(
@@ -143,6 +145,7 @@ export const PUBLIC_API_ROUTES = [
   { path: "/api/health", reason: "uptime / ops probe (public: ok/service/version only)" },
   { path: "/api/sms/inbound", reason: "Twilio webhook (signature auth)" },
   { path: "/api/get-quote/inquiry", reason: "public website quote/help intake" },
+  { path: "/api/time/session", reason: "employee Time login + session probe (pp_time_session, not CC)" },
 ] as const;
 
 /** Machine principals — not cookie auth; each route validates its own secret. */
@@ -155,6 +158,8 @@ export const MACHINE_API_ROUTES = [
   { path: "/api/por/sync/reservations", reason: "Bearer POR_SYNC_SECRET" },
   { path: "/api/cron/social", reason: "Bearer CRON_SECRET" },
   { path: "/api/cron/weekly-recap", reason: "Bearer CRON_SECRET" },
+  { path: "/api/cron/time-square-sync", reason: "Bearer CRON_SECRET — Square Shadow Mode hourly sync" },
   { path: "/api/mike/intake", reason: "device/worker Bearer (hashed verifiers); intake-only" },
   { path: "/api/ai-cost/ingest", reason: "collector Bearer AI_COST_INGEST_TOKEN_SHA256; ingest-only" },
+  { path: "/api/time/mike", reason: "Mike read-only Bearer TIME_MIKE_TOKEN_SHA256 or owner timekeeping" },
 ] as const;

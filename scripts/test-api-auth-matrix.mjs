@@ -64,7 +64,7 @@ function isMachinePath(routePath) {
 }
 
 const AUTH_RE =
-  /requireApiAuth|requireSession|requireOwner|POR_SYNC_SECRET|CRON_SECRET|validateTwilioSignature|SENTINEL_COLLECTOR_SECRET|matterHttpGate|createIntake|completeIntake|intakeStatus|workerLease|workerAck|workerFail|workerHeartbeat|verifyAiCostIngestBearer/;
+  /requireApiAuth|requireSession|requireOwner|POR_SYNC_SECRET|CRON_SECRET|validateTwilioSignature|SENTINEL_COLLECTOR_SECRET|matterHttpGate|createIntake|completeIntake|intakeStatus|workerLease|workerAck|workerFail|workerHeartbeat|verifyAiCostIngestBearer|requireTimeSession|requireTimeEmployee|requireTimekeepingAdmin|requireMikeOrOwner|verifyTimeMikeBearer/;
 
 check("employee lacks owner-only permissions", () => {
   for (const p of [
@@ -75,6 +75,7 @@ check("employee lacks owner-only permissions", () => {
     "sms_ops",
     "security",
     "ai_cost",
+    "timekeeping",
   ]) {
     assert.equal(roleHasPermission("employee", p), false);
   }
@@ -165,6 +166,7 @@ check("machine prefixes documented", () => {
   assert.ok(MACHINE_API_PREFIXES.includes("/api/cron/social"));
   assert.ok(MACHINE_API_PREFIXES.includes("/api/mike/intake"));
   assert.ok(MACHINE_API_PREFIXES.includes("/api/ai-cost/ingest"));
+  assert.ok(MACHINE_API_PREFIXES.includes("/api/time/mike"));
 });
 
 check("public allowlist includes jobs apply + health + sms inbound", () => {
@@ -173,6 +175,7 @@ check("public allowlist includes jobs apply + health + sms inbound", () => {
     "/api/health",
     "/api/sms/inbound",
     "/api/auth/session",
+    "/api/time/session",
   ]) {
     assert.ok(PUBLIC_API_ROUTE_PATHS.includes(p), p);
   }

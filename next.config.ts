@@ -1,5 +1,8 @@
 import type { NextConfig } from "next";
-import { SECURITY_HEADER_ENTRIES } from "./lib/security-headers";
+import {
+  SECURITY_HEADER_ENTRIES,
+  TIME_PERMISSIONS_POLICY,
+} from "./lib/security-headers";
 
 const isVercel = process.env.VERCEL === "1" || process.env.VERCEL === "true";
 
@@ -15,6 +18,14 @@ const nextConfig: NextConfig = {
       {
         source: "/:path*",
         headers: SECURITY_HEADER_ENTRIES,
+      },
+      {
+        source: "/time",
+        headers: [{ key: "Permissions-Policy", value: TIME_PERMISSIONS_POLICY }],
+      },
+      {
+        source: "/time/:path*",
+        headers: [{ key: "Permissions-Policy", value: TIME_PERMISSIONS_POLICY }],
       },
     ];
   },

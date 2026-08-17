@@ -1,75 +1,69 @@
 {
-  "manifest_version": "1.0.0",
-  "generated_at": "2026-08-17T16:30:00Z",
-  "generated_by": "claude-code (brain reconciliation P0)",
-  "purpose": "Single machine-readable index of the authoritative version of each Party Perfect subsystem. No chat claims. Every SHA is verifiable with `git rev-parse`.",
+  "manifest_version": "1.0.1",
+  "generated_at": "2026-08-17T16:40:00Z",
+  "generated_by": "cursor (brain reconciliation P0; builds on claude v1.0.0)",
+  "purpose": "Single machine-readable index of the authoritative version of each Party Perfect subsystem. No chat claims. Every SHA is verifiable with git rev-parse.",
+  "inventory": "AI-HANDOFF/BRAIN_INVENTORY_2026-08-17.json",
+  "cold_start_proof": "AI-HANDOFF/EVIDENCE/BRAIN_RECONCILIATION_COLD_START_2026-08-17.md",
   "repository": {
     "path": "/Users/mikeai/grok-dashboard",
     "remote": "https://github.com/masonmershon-coder/party-perfect-command-center.git",
     "origin_main_sha": "a10a09a49eae74241da8a7dc77b6d3d973176154",
     "origin_main_date": "2026-08-10",
-    "WARNING": "origin/main is 7 days behind. ALL Aug 13-17 work is UNPUSHED and exists only on this Mac. Pushing requires Mason's authorization (shared repo)."
+    "WARNING": "origin/main is behind Aug 13-17 work. Most Aug 13-17 branches are UNPUSHED. Use git bundles for Codex."
   },
   "authoritative_sources": {
     "source_code": "git (branches below)",
     "structured_runtime_state": "Supabase / AI Core + AI-HANDOFF JSONL ledgers",
-    "shared_knowledge_layer": "NOT YET IMPLEMENTED - see drive_sync",
+    "shared_knowledge_layer": "NOT YET — Google Drive absent; SSD POR brain mounted; brain-sync.mjs READY",
     "business_truth_of_record": "Point of Rental on ENTERPRISE (read-only from here)"
   },
   "subsystems": {
     "party_perfect_time": {
-      "status": "PREVIEW / HELD - not deployed",
+      "status": "PREVIEW / HELD - not production deployed",
       "repository": "grok-dashboard",
       "branch": "agent/cursor/PP-TIME-001",
       "full_sha": "ad5e8b680424aca55ba8828a0175eb33b6c25388",
-      "candidate_sha_for_time_code": "eeb5a8ff666260828e15f783054569d116397373",
+      "brain_package_sha": "25937673d79e85f1303861e4dee2674c55c777bd",
       "deployed_sha": null,
-      "last_verified": "2026-08-17 (evidence bundles only; runtime unverified)",
+      "last_verified": "2026-08-17 (bundle clone recovers app/time + lib/time + tests; runtime unverified)",
       "evidence_path": "AI-HANDOFF/EVIDENCE/PP-TIME-001*.md",
-      "runtime_status": "NOT DEPLOYED. Migration 0009_pp_time.sql committed as a FILE ONLY - NOT APPLIED.",
+      "verification_bundle": "AI-HANDOFF/EVIDENCE/pp-time-001/pp-time-candidate-eeb5a8ff6662.bundle",
+      "runtime_status": "NOT PRODUCTION. Migration 0009 committed as FILE ONLY — NOT APPLIED. Square remains punch authority.",
+      "authoritative_source": "git branch agent/cursor/PP-TIME-001 @ ad5e8b6 (+ bundle)",
       "known_blockers": [
         "preview Vercel access unavailable to verifier",
         "Square verified evidence current only through 2026-08-14",
-        "current sync unproven",
+        "Shadow Mode sync unproven (token scopes)",
         "roles runtime-unverified",
         "correction overlay runtime-unverified"
-      ],
-      "note": "53 Time files were UNCOMMITTED until 2026-08-17 and existed only in the working tree. Now durable.",
-      "verification_bundle": "AI-HANDOFF/EVIDENCE/pp-time-001/pp-time-candidate-eeb5a8ff6662.bundle",
-      "bundle_sha256": "d296e1d707d5c33489605c4e2e8d65bfc91da44119bf0943ff8e9ae8fc0d0306"
+      ]
     },
     "matter_core": {
       "status": "PARTIAL - orchestrator exists, scheduling degraded",
       "repository": "grok-dashboard",
-      "branch": "agent/cursor/PP-TIME-001 (AI-HANDOFF/matter/*)",
-      "full_sha": "ad5e8b680424aca55ba8828a0175eb33b6c25388",
+      "branch": "agent/cursor/PP-TIME-001 (AI-HANDOFF/matter/* preserved)",
+      "full_sha": "25937673d79e85f1303861e4dee2674c55c777bd",
       "deployed_sha": null,
       "last_verified": "2026-08-17",
       "evidence_path": "AI-HANDOFF/MATTER_24_7_AUTONOMY_AUDIT.md",
-      "runtime_status": "orchestrate.mjs runs ONLY on manual kickstart; launchd auto-scheduling degraded",
-      "known_blockers": [
-        "legacy provider-name dispatch still controls real work",
-        "launchd timers dead (see macos diagnostic)"
-      ]
+      "runtime_status": "manual kickstart only; launchd auto-scheduling degraded",
+      "authoritative_source": "AI-HANDOFF/matter + audits",
+      "known_blockers": ["launchd timers dead", "legacy provider-name dispatch still controls real work"]
     },
     "provider_neutral_routing": {
-      "status": "CANDIDATE - awaiting Codex re-verification",
+      "status": "CANDIDATE - bundle available for Codex",
       "repository": "grok-dashboard",
       "branch": "claude/matter-provider-neutral-v1",
       "full_sha": "51c362cb1187d3459d103bd2768767ef3934612e",
       "base_sha": "262d40924823db9440dc95403b3d468333b60e17",
       "deployed_sha": null,
-      "last_verified": "2026-08-15 (17/17 tests, reproduced from a standalone bundle clone)",
+      "last_verified": "2026-08-15 (17/17 from standalone bundle clone)",
       "evidence_path": "AI-HANDOFF/EVIDENCE/MATTER_PROVIDER_NEUTRAL_V1_VERIFICATION_MANIFEST.md",
       "verification_bundle": "AI-HANDOFF/EVIDENCE/matter-v1/matter-v1-candidate-51c362cb1187.bundle",
-      "runtime_status": "NOT WIRED to live dispatch (selection layer only)",
-      "known_blockers": [
-        "Codex returned NOT_READY_FOR_V2_CUTOVER (access); bundle now provided",
-        "acks are not cryptographically authenticated",
-        "all capabilities DECLARED, none MEASURED"
-      ],
-      "policy_version": "1.1.0+b749d6f63bea",
-      "cost_routing": "implemented (ladder applied only among eligible workers)"
+      "runtime_status": "NOT WIRED to live dispatch",
+      "authoritative_source": "git @ 51c362c + matter-v1 bundle",
+      "known_blockers": ["acks not cryptographically authenticated", "capabilities DECLARED not MEASURED"]
     },
     "autonomy_execution_substrate": {
       "status": "BUILT + TESTED, NOT RUNNING",
@@ -77,12 +71,11 @@
       "branch": "claude/matter-p0-execution-substrate",
       "full_sha": "dbcd378387a1132002994db7ce1040cfe704d98f",
       "deployed_sha": null,
-      "last_verified": "2026-08-17 (execution 11/11, watchdog 9/9)",
+      "last_verified": "2026-08-17 (execution 11/11, watchdog 9/9 documented)",
       "evidence_path": "AI-HANDOFF/MATTER_P0_STATUS.md",
-      "runtime_status": "watchdog UNARMED and NOT installed; leases/DLQ idle",
-      "known_blockers": [
-        "launchd cannot supervise (RunAtLoad/StartInterval/KeepAlive all dead)"
-      ]
+      "runtime_status": "watchdog UNARMED and NOT installed",
+      "authoritative_source": "git @ dbcd378",
+      "known_blockers": ["launchd cannot supervise"]
     },
     "mike": {
       "status": "PARTIAL - transport live, answer path unmerged",
@@ -95,14 +88,11 @@
         "agent/cursor/TALK-TO-MIKE-INTAKE-001 @ 7772b1e"
       ],
       "deployed_sha": null,
-      "last_verified": "2026-08-14 (live POR read: deliveriesToday=7 via GET /api/por/sync)",
+      "last_verified": "2026-08-14 (live POR read documented)",
       "evidence_path": "AI-HANDOFF/MIKE_LIVE_ROUTING_P0_STATUS.md",
-      "runtime_status": "iMessage bridge process alive; still replies with the pre-brain stub. Live-answer branch NOT merged, NOT armed.",
-      "known_blockers": [
-        "route.mjs approval-gates read-only POR questions at domain level",
-        "bridge not wired to mike-brain",
-        "arming is Mason's decision"
-      ]
+      "runtime_status": "bridge alive; live-answer NOT armed",
+      "authoritative_source": "git branches listed",
+      "known_blockers": ["bridge not wired to mike-brain", "arming is Mason's decision"]
     },
     "madison": {
       "status": "NOT IMPLEMENTED",
@@ -112,63 +102,58 @@
       "deployed_sha": null,
       "last_verified": null,
       "evidence_path": null,
-      "runtime_status": "no runtime exists; named in BUSINESS_AGENTS.json only",
-      "known_blockers": [
-        "no worker binding"
-      ]
+      "runtime_status": "named in BUSINESS_AGENTS.json only",
+      "authoritative_source": "AI-HANDOFF/matter/BUSINESS_AGENTS.json",
+      "known_blockers": ["no worker binding"]
     },
     "command_center": {
-      "status": "DEPLOYED (older) + local changes unpushed",
+      "status": "DEPLOYED v1.9.7 + local unpushed Aug 13-17 work",
       "repository": "grok-dashboard",
-      "branch": "origin/main",
-      "full_sha": "a10a09a49eae74241da8a7dc77b6d3d973176154",
-      "deployed_sha": "a10a09a49eae74241da8a7dc77b6d3d973176154",
-      "last_verified": "2026-08-17 (live health probe: porSyncConfigured/porSnapshotPresent true)",
-      "evidence_path": "AI-HANDOFF/MIKE_LIVE_ROUTING_P0_STATUS.md",
-      "runtime_status": "LIVE at https://partyperfect.app; POR snapshot fresh",
-      "known_blockers": [
-        "39 local files still uncommitted (owned by other agents)"
-      ]
+      "branch": "release/v1.9.7-full-jobs (documented live)",
+      "full_sha": "e8dac0ea017e463a14ca540ee80a8f05cc64c18d",
+      "deployed_sha": "e8dac0ea017e463a14ca540ee80a8f05cc64c18d",
+      "origin_main_sha_not_live": "a10a09a49eae74241da8a7dc77b6d3d973176154",
+      "last_verified": "2026-08-13 (RELEASE_STATE live checks)",
+      "evidence_path": "AI-HANDOFF/RELEASE_STATE.md",
+      "runtime_status": "LIVE at https://partyperfect.app — APP_VERSION 1.9.7",
+      "authoritative_source": "RELEASE_STATE.md",
+      "known_blockers": ["do not hotfix from stale origin/main"]
     },
     "por_bridge": {
       "status": "READ-ONLY, VERIFIED",
       "repository": "/Users/mikeai/Matter/por-bridge",
-      "branch": "(local, detached)",
+      "branch": "(local)",
       "full_sha": null,
       "deployed_sha": null,
-      "last_verified": "2026-08-13 (por-verifier 7/7 vs real CNTRs 100000-100002)",
+      "last_verified": "2026-08-13",
       "evidence_path": "AI-HANDOFF/EVIDENCE/POR-STAT-VERIFY-001.md",
-      "runtime_status": "read-only; POR writes BLOCKED for every worker (no por_write permission)",
-      "known_blockers": [
-        "POR_WRITE remains BLOCKED by policy - intentional"
-      ]
+      "runtime_status": "read-only; POR writes BLOCKED",
+      "authoritative_source": "POR on ENTERPRISE",
+      "known_blockers": ["POR_WRITE blocked by policy — intentional"]
     },
     "ai_core": {
       "status": "DEPLOYED (older)",
       "repository": "grok-dashboard",
       "branch": "deploy/ai-core-p2a",
-      "full_sha": "be1f9e2",
-      "deployed_sha": "be1f9e2",
-      "last_verified": "2026-08-11",
-      "evidence_path": "AI-HANDOFF/AI_CORE_DATA_CONTRACT.md",
-      "runtime_status": "migrations 0003-0008 present; 0009 NOT applied",
-      "known_blockers": [
-        "cost capture incomplete; monthly budget NOT SET"
-      ]
+      "full_sha": "be1f9e2ef3b9e4d1b87481dfbbfc198c4e2b6235",
+      "deployed_sha": "be1f9e2ef3b9e4d1b87481dfbbfc198c4e2b6235",
+      "last_verified": "2026-08-12",
+      "evidence_path": "AI-HANDOFF/ (Supabase briefs)",
+      "runtime_status": "0003-0005 applied historically; 0009 NOT applied",
+      "authoritative_source": "Supabase project + deploy/ai-core-p2a",
+      "known_blockers": ["monthly budget NOT SET; cost capture incomplete"]
     },
     "security_recovery": {
       "status": "PRESERVED",
       "repository": "grok-dashboard",
       "branch": "recovery/party-perfect-approved-state",
       "full_sha": "b8479b3f10e407863cac598bc6ba5d01bb54ddc7",
-      "related_branches": [
-        "recovery/v196-plus-pp-sec-001 @ 584285f",
-        "deploy/pp-sec-001 @ ddfadc1 (PUSHED)"
-      ],
+      "related_branches": ["recovery/v196-plus-pp-sec-001 @ 584285f", "deploy/pp-sec-001 @ ddfadc1 (PUSHED)"],
       "deployed_sha": "ddfadc10208ce56bdd926d63c1a695de85959d59",
       "last_verified": "2026-08-13",
       "evidence_path": "AI-HANDOFF/EVIDENCE/",
-      "runtime_status": "recovery worktrees intact at /Users/mikeai/pp-approved and /Users/mikeai/pp-recovery",
+      "runtime_status": "recovery worktrees intact",
+      "authoritative_source": "recovery branches + RELEASE_STATE",
       "known_blockers": []
     },
     "por_classification": {
@@ -180,40 +165,38 @@
       "last_verified": "2026-08-13",
       "evidence_path": "AI-HANDOFF/EVIDENCE/POR-STAT-VERIFY-001.md",
       "runtime_status": "not deployed",
+      "authoritative_source": "git @ 16f6118",
       "known_blockers": []
     }
   },
   "drive_sync": {
     "DRIVE_SYNC_IMPLEMENTED": false,
     "drive_connection": "NONE",
-    "evidence": "~/Library/CloudStorage is EMPTY; no 'Google Drive.app'; no rclone; no gdrive/gcloud CLI; no GOOGLE_DRIVE/GDRIVE config in repo. iCloud Drive exists but is not Google Drive.",
+    "evidence": "~/Library/CloudStorage empty of Google Drive; no rclone/gdrive; iCloud is not Google Drive",
+    "ssd_brain_mounted": true,
+    "ssd_brain_path": "/Volumes/PARTYPERF/PARTY-PERFECT-BRAIN",
     "sync_code_ready": true,
     "automatic_sync_running": false,
-    "design_doc": "AI-HANDOFF/BRAIN_SYNC_DESIGN.md"
+    "design_doc": "AI-HANDOFF/BRAIN_SYNC_DESIGN.md",
+    "sync_entry": "AI-HANDOFF/matter/brain-sync.mjs",
+    "last_successful_sync": null
   },
   "verifier_access": {
-    "github_push": "NOT PERFORMED - requires Mason's authorization (shared repo)",
-    "proven_mechanism": "git bundle (self-contained, clonable, verified by independent clone)",
-    "bundle_dir": "AI-HANDOFF/EVIDENCE/matter-v1/",
-    "how_to_verify": "AI-HANDOFF/EVIDENCE/MATTER_PROVIDER_NEUTRAL_V1_VERIFICATION_MANIFEST.md",
-    "bundles": [
-      "AI-HANDOFF/EVIDENCE/matter-v1/matter-v1-candidate-51c362cb1187.bundle",
-      "AI-HANDOFF/EVIDENCE/pp-time-001/pp-time-candidate-eeb5a8ff6662.bundle"
-    ]
+    "github_push": "NOT PERFORMED — requires Mason authorization",
+    "proven_mechanism": "git bundle (self-contained pull of named branch)",
+    "time_bundle": "AI-HANDOFF/EVIDENCE/pp-time-001/pp-time-candidate-eeb5a8ff6662.bundle",
+    "matter_v1_bundle": "AI-HANDOFF/EVIDENCE/matter-v1/matter-v1-candidate-51c362cb1187.bundle",
+    "how_to_verify_time": "AI-HANDOFF/EVIDENCE/BRAIN_RECONCILIATION_COLD_START_2026-08-17.md",
+    "how_to_verify_matter_v1": "AI-HANDOFF/EVIDENCE/MATTER_PROVIDER_NEUTRAL_V1_VERIFICATION_MANIFEST.md"
   },
   "hard_holds": {
-    "paid_autonomous_compute": "OFF - governor blocking; monthly budget NOT SET",
-    "por_writes": "BLOCKED - no worker holds por_write permission",
+    "paid_autonomous_compute": "OFF",
+    "por_writes": "BLOCKED",
     "migration_0009": "NOT APPLIED",
     "time_deploy": "HELD",
-    "watchdog": "UNARMED and NOT INSTALLED",
-    "reboot": "NOT PERFORMED"
-  },
-  "matter_policy": {
-    "version": "1.1.0+b749d6f63bea",
-    "location": "AI-HANDOFF/matter/MATTER_POLICY.json",
-    "statement": "Business agents represent responsibilities, not AI vendors. Providers are replaceable. Capability != authority. Deterministic software preferred. Matter controls paid escalation.",
-    "decision_recorded": "AI-HANDOFF/DECISIONS.md 2026-08-17",
-    "tests": "13/13 provider-neutrality, 17/17 V1"
+    "square_cutover": "HELD — Square remains live punch authority",
+    "watchdog": "UNARMED",
+    "google_drive_sync": "NOT IMPLEMENTED",
+    "automatic_brain_sync": "NOT RUNNING"
   }
 }

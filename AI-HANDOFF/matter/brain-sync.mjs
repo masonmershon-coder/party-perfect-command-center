@@ -40,6 +40,10 @@ const sha256 = (p) => createHash("sha256").update(readFileSync(p)).digest("hex")
 /** What belongs in a SHARED KNOWLEDGE layer. Durable understanding, never source or secrets. */
 const INCLUDE = [
   "PARTY_PERFECT_BRAIN_MANIFEST.json",
+  "BRAIN_INVENTORY_2026-08-17.json",
+  "BRAIN_SYNC_DESIGN.md",
+  "RELEASE_STATE.md",
+  "CURRENT_TASK.md",
   "MATTER_24_7_AUTONOMY_AUDIT.md",
   "MATTER_P0_STATUS.md",
   "MIKE_LIVE_ROUTING_P0_STATUS.md",
@@ -51,6 +55,8 @@ const INCLUDE = [
   "matter/MATTER_POLICY.json",
   "matter/BUSINESS_AGENTS.json",
   "EVIDENCE/MATTER_PROVIDER_NEUTRAL_V1_VERIFICATION_MANIFEST.md",
+  "EVIDENCE/BRAIN_RECONCILIATION_COLD_START_2026-08-17.md",
+  "EVIDENCE/PP-TIME-001_CODEX_VERIFICATION_PACKAGE.md",
 ];
 /** Whole directories of evidence summaries (markdown only — no bundles, no binaries). */
 const INCLUDE_DIRS = [{ dir: "EVIDENCE", ext: [".md"] }];

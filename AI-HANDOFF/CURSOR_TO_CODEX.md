@@ -1,23 +1,31 @@
-# Cursor → Codex · 2026-08-14 · PP-TIME-001 (Shelly-first update)
+# Cursor → Codex · 2026-08-17 · BRAIN-RECONCILE-001
 
-**STATUS:** READY_FOR_VERIFICATION  
-**DO NOT DEPLOY.** `0009_pp_time.sql` NOT APPLIED. Showroom geofence NOT verified.
+**Status:** READY_FOR_CODEX_BRAIN_REVERIFY
 
-Inspect `agent/cursor/PP-TIME-001` (task files only; ignore unrelated dirty AI-HANDOFF/golden-transaction files).
+## What to verify
 
-## Shelly-first workflow (new)
+Party Perfect brain reconciliation P0: inventory, preserve, manifest, handoff, verifier bundles, brain-sync code (not automatic), cold-start.
 
-- Employees never edit official punches — only Fix My Time / Request a Change
-- All requests queue to Shelly first (`queue: shelly`)
-- Shelly can review original snapshot, employee note, ask clarification, add separate remark, approve/deny, record approved correction
-- Michelle = override + final payroll tab (do not flood with routine cleanup)
-- Absence reasons: Sick / Vacation / Personal / Other — admin classification separate; absence ≠ automatic PTO
-- PTO UI eligibility-driven only — never show $0 / “not eligible” / advertise benefit
-- Future time-off requests modeled (`time_off_requests`)
-- In-app notifications + `request_messages` conversation threads
-- Mike read-only flags: pending corrections, absences awaiting, unanswered clarifications, incomplete timecards, time-off awaiting, payroll-impacting; Friday remind Shelly; Monday readiness; `writes: false` / `mayApproveOrModify: false`
+**Do not** verify Time go-live or Square cutover — those remain held.
 
-Also re-verify prior V1: cookie isolation, geofence, idempotent punch, lunch sequence, Square dry-run, 0009 RLS HELD.
+## Exact candidates
 
-Bundle: `AI-HANDOFF/EVIDENCE/PP-TIME-001_VERIFICATION_BUNDLE.md`  
-Tests: `npm run test:time && npm run test:api-auth && npx tsc --noEmit`
+| Subsystem | SHA | Bundle / path |
+|-----------|-----|----------------|
+| Time | `ad5e8b680424aca55ba8828a0175eb33b6c25388` | `EVIDENCE/pp-time-001/pp-time-candidate-eeb5a8ff6662.bundle` |
+| Matter V1 | `51c362cb1187d3459d103bd2768767ef3934612e` | `EVIDENCE/matter-v1/matter-v1-candidate-51c362cb1187.bundle` |
+| Matter P0 autonomy | `dbcd378387a1132002994db7ce1040cfe704d98f` | branch `claude/matter-p0-execution-substrate` (local) |
+| Live CC | `e8dac0e…` | `RELEASE_STATE.md` |
+
+## Start here
+
+1. `AI-HANDOFF/PARTY_PERFECT_BRAIN_MANIFEST.json`
+2. `AI-HANDOFF/BRAIN_INVENTORY_2026-08-17.json`
+3. `AI-HANDOFF/EVIDENCE/BRAIN_RECONCILIATION_COLD_START_2026-08-17.md`
+4. Pull Time branch from bundle (named branch — not empty `main`)
+
+## Non-claims
+
+- Google Drive sync is **not** implemented
+- Automatic brain sync is **not** running (launchd degraded)
+- Time is **not** live for employees

@@ -1,0 +1,11 @@
+REPOSITORY_PATH   : /Users/mikeai/grok-dashboard
+REMOTE_ORIGIN     : https://github.com/masonmershon-coder/party-perfect-command-center.git
+BRANCH            : agent/cursor/PP-TIME-001
+FULL_CANDIDATE_SHA: ad5e8b680424aca55ba8828a0175eb33b6c25388
+BASE_SHA          : 262d40924823db9440dc95403b3d468333b60e17
+BUNDLE_FILE       : pp-time-candidate-eeb5a8ff6662.bundle
+NOTE              : Filename retains earlier label; git bundle list-heads tip is ad5e8b6.
+CLONE             : git init && git pull <bundle> agent/cursor/PP-TIME-001 && git checkout -B agent/cursor/PP-TIME-001
+TEST              : npm run test:time
+DEPLOY            : NOT AUTHORIZED
+MIGRATION_0009    : NOT APPLIED

@@ -2,6 +2,12 @@
 
 Approved decisions worth preserving. Keep short. No secrets.
 
+## 2026-08-17 — Brain reconciliation + verifier access (P0)
+
+- **Decision:** Aug 13–17 work must be durable and independently verifiable (git commits + evidence + git bundles). Google Drive shared-knowledge sync is **not** present on this Mac; `brain-sync.mjs` is SYNC CODE READY but AUTOMATIC SYNC is NOT RUNNING until launchd recovery is certified and a real `BRAIN_SYNC_DEST` exists. Git remains source authority; POR remains business SoR; Drive/SSD sync is knowledge/evidence only. Codex obtains candidates via bundles when GitHub push is unavailable.
+- **Source:** Mason BRAIN RECONCILIATION + VERIFIER ACCESS P0 (2026-08-17).
+- **Evidence:** `AI-HANDOFF/PARTY_PERFECT_BRAIN_MANIFEST.json`, `AI-HANDOFF/BRAIN_INVENTORY_2026-08-17.json`, `AI-HANDOFF/BRAIN_SYNC_DESIGN.md`, `AI-HANDOFF/EVIDENCE/BRAIN_RECONCILIATION_COLD_START_2026-08-17.md`.
+
 ## 2026-08-17 — Time trusted-device persistence + Shadow Mode
 
 - **Decision:** Ordinary employees use long-lived trusted-device sessions (not IP). No visible Sign Out/Switch Account. Logo press-and-hold (4s) opens support gate; only Time admins get Switch Account / Sign Out This Device. Shadow Mode: employees keep punching in Square; PP Time syncs Square→PP read-only for Shelly/Michelle/Mason until cutover. Prefer Square Labor Timecards API (hourly cron); no LLM in sync; no Square write-back.

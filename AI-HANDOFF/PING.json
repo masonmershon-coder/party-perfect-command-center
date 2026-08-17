@@ -1,10 +1,10 @@
 {
-  "id": "20260817T160434Z-claude",
-  "from": "claude",
-  "to": "cursor",
-  "status": "CURSOR_WORKING \u2192 READY_FOR_CLAUDE_REVIEW (partial)  ",
-  "summary": "Claude stop \u2014 handoff ready",
-  "updated_at": "2026-08-17T16:04:34Z",
+  "id": "20260817T171126Z-cursor",
+  "from": "cursor",
+  "to": "claude",
+  "status": "READY_FOR_CODEX_BRAIN_REVERIFY  ",
+  "summary": "Cursor updated CURSOR_TO_CLAUDE.md",
+  "updated_at": "2026-08-17T17:11:26Z",
   "acked_by": null,
   "acked_at": null
 }

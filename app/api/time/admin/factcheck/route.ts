@@ -1,15 +1,15 @@
-import { isAuthError, privateJson } from "@/lib/api-auth";
+import { privateJson } from "@/lib/api-auth";
 import { getTimeStore } from "@/lib/time/deps";
 import { answerFactCheck, type FactCheckQuery } from "@/lib/time/factcheck";
-import { requireTimekeepingAdmin } from "@/lib/time/http";
+import { isTimeAdminError, requireTimeAdmin } from "@/lib/time/http";
 
 /**
  * Mason / Shelly / Michelle fact-check against imported Time records.
  * Never invents answers — store only.
  */
 export async function POST(request: Request) {
-  const gate = await requireTimekeepingAdmin();
-  if (isAuthError(gate)) return gate;
+  const gate = await requireTimeAdmin(request, "review");
+  if (isTimeAdminError(gate)) return gate;
   let body: FactCheckQuery;
   try {
     body = (await request.json()) as FactCheckQuery;
@@ -21,9 +21,9 @@ export async function POST(request: Request) {
   return privateJson(result, { status: result.ok ? 200 : 400 });
 }
 
-export async function GET() {
-  const gate = await requireTimekeepingAdmin();
-  if (isAuthError(gate)) return gate;
+export async function GET(request: Request) {
+  const gate = await requireTimeAdmin(request, "review");
+  if (isTimeAdminError(gate)) return gate;
   return privateJson({
     usage: "POST /api/time/admin/factcheck",
     kinds: [

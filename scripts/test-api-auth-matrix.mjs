@@ -64,7 +64,7 @@ function isMachinePath(routePath) {
 }
 
 const AUTH_RE =
-  /requireApiAuth|requireSession|requireOwner|POR_SYNC_SECRET|CRON_SECRET|validateTwilioSignature|SENTINEL_COLLECTOR_SECRET|matterHttpGate|createIntake|completeIntake|intakeStatus|workerLease|workerAck|workerFail|workerHeartbeat|verifyAiCostIngestBearer|requireTimeSession|requireTimeEmployee|requireTimekeepingAdmin|requireMikeOrOwner|verifyTimeMikeBearer/;
+  /requireApiAuth|requireSession|requireOwner|POR_SYNC_SECRET|CRON_SECRET|validateTwilioSignature|SENTINEL_COLLECTOR_SECRET|matterHttpGate|createIntake|completeIntake|intakeStatus|workerLease|workerAck|workerFail|workerHeartbeat|verifyAiCostIngestBearer|requireTimeSession|requireTimeEmployee|requireTimeAdmin|requireTimekeepingAdmin|requireMikeOrOwner|verifyTimeMikeBearer/;
 
 check("employee lacks owner-only permissions", () => {
   for (const p of [
@@ -167,6 +167,31 @@ check("machine prefixes documented", () => {
   assert.ok(MACHINE_API_PREFIXES.includes("/api/mike/intake"));
   assert.ok(MACHINE_API_PREFIXES.includes("/api/ai-cost/ingest"));
   assert.ok(MACHINE_API_PREFIXES.includes("/api/time/mike"));
+});
+
+check("Time admin routes use requireTimeAdmin (Time session + CC fallback)", () => {
+  const must = [
+    "app/api/time/admin/overview/route.ts",
+    "app/api/time/admin/requests/route.ts",
+    "app/api/time/admin/security/route.ts",
+    "app/api/time/admin/pins/route.ts",
+    "app/api/time/admin/timecards/route.ts",
+    "app/api/time/admin/payroll/route.ts",
+    "app/api/time/admin/employees/route.ts",
+    "app/api/time/admin/sync/route.ts",
+    "app/api/time/admin/factcheck/route.ts",
+    "app/api/time/admin/locations/route.ts",
+    "app/api/time/admin/import/route.ts",
+  ];
+  for (const rel of must) {
+    const src = fs.readFileSync(path.join(root, rel), "utf8");
+    assert.match(src, /requireTimeAdmin/, `${rel} missing requireTimeAdmin`);
+    assert.doesNotMatch(
+      src,
+      /requireTimekeepingAdmin\(/,
+      `${rel} still uses CC-only requireTimekeepingAdmin`,
+    );
+  }
 });
 
 check("public allowlist includes jobs apply + health + sms inbound", () => {

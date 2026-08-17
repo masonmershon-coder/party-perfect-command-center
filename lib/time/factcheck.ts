@@ -96,7 +96,7 @@ export async function answerFactCheck(store: TimeStore, query: FactCheckQuery) {
   }
 
   const employee = await resolveEmployee(store, query);
-  if (!employee && query.kind !== "who_worked_on_date") {
+  if (!employee) {
     return { ok: false as const, error: "employee not found (need unique name or employeeId)" };
   }
 

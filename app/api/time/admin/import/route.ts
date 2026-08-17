@@ -1,17 +1,17 @@
-import { isAuthError, privateJson } from "@/lib/api-auth";
+import { privateJson } from "@/lib/api-auth";
 import { getTimeStore } from "@/lib/time/deps";
-import { requireTimekeepingAdmin } from "@/lib/time/http";
+import { isTimeAdminError, requireTimeAdmin } from "@/lib/time/http";
 import { importSquareCsv } from "@/lib/time/square-import";
 
-export async function GET() {
-  const gate = await requireTimekeepingAdmin();
-  if (isAuthError(gate)) return gate;
+export async function GET(request: Request) {
+  const gate = await requireTimeAdmin(request, "review");
+  if (isTimeAdminError(gate)) return gate;
   return privateJson({ runs: await (await getTimeStore()).listImportRuns() });
 }
 
 export async function POST(request: Request) {
-  const gate = await requireTimekeepingAdmin();
-  if (isAuthError(gate)) return gate;
+  const gate = await requireTimeAdmin(request, "review");
+  if (isTimeAdminError(gate)) return gate;
   const contentType = request.headers.get("content-type") || "";
   let csv = "";
   let fileName = "square.csv";
@@ -39,7 +39,7 @@ export async function POST(request: Request) {
   const result = await importSquareCsv(await getTimeStore(), csv, {
     fileName,
     commit,
-    actor: gate.role,
+    actor: gate.actor,
   });
   return privateJson(result);
 }

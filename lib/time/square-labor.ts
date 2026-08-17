@@ -96,28 +96,25 @@ export async function searchTimecardsUpdatedSince(opts: {
   | { ok: false; error: string; status: number }
 > {
   const locationId = opts.locationId || process.env.SQUARE_LOCATION_ID?.trim();
-  const filter: Record<string, unknown> = {};
-  if (locationId) filter.location_ids = [locationId];
-  // Always pull OPEN so in-progress days stay current.
-  // Also pull CLOSED updated since checkpoint when we have one.
+  const today = new Date().toISOString().slice(0, 10);
+  const startDate = opts.updatedAfterIso?.slice(0, 10) || "2026-01-01";
+  const filter: Record<string, unknown> = {
+    ...(locationId ? { location_ids: [locationId] } : {}),
+    workday: {
+      date_range: {
+        start_date: startDate,
+        end_date: today,
+      },
+      match_timecards_by: "START_AT",
+    },
+  };
   const pages: SquareTimecard[] = [];
   let cursor: string | null = null;
   let guard = 0;
   do {
     const body: Record<string, unknown> = {
       query: {
-        filter: {
-          ...filter,
-          ...(opts.updatedAfterIso
-            ? {
-                workday: {
-                  date_range: {
-                    start_date: opts.updatedAfterIso.slice(0, 10),
-                  },
-                },
-              }
-            : {}),
-        },
+        filter,
         sort: { field: "UPDATED_AT", order: "ASC" },
       },
       limit: opts.limit ?? 100,
@@ -131,7 +128,7 @@ export async function searchTimecardsUpdatedSince(opts: {
     pages.push(...(res.data.timecards || []));
     cursor = res.data.cursor || null;
     guard += 1;
-  } while (cursor && guard < 40);
+  } while (cursor && guard < 80);
 
   // Filter client-side by updated_at when checkpoint present (API workday filter is coarse).
   const filtered = opts.updatedAfterIso
@@ -164,7 +161,7 @@ export async function listTeamMembers(): Promise<
 > {
   const res = await squareFetch<{ team_members?: SquareTeamMember[] }>(
     "/v2/team-members/search",
-    { query: { filter: { status: "ACTIVE" } }, limit: 200 },
+    { query: {}, limit: 200 },
   );
   if (!res.ok) return { ok: false, error: res.error, status: res.status };
   return { ok: true, members: res.data.team_members || [] };

@@ -94,7 +94,7 @@ export function timeOnboardingUrl(env: NodeJS.ProcessEnv = process.env): string 
     return explicit.endsWith("/time") ? explicit : `${explicit}/time`;
   }
   if (env.TIME_PREVIEW === "1" || env.TIME_PREVIEW === "true") {
-    return "https://party-perfect-time-preview.vercel.app/time";
+    return "https://time-preview.partyperfect.app/time";
   }
   return "https://partyperfect.app/time";
 }

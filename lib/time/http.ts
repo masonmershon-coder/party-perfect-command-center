@@ -136,7 +136,7 @@ export function isTimeAdminError(
   return value instanceof NextResponse;
 }
 
-function permitsTimeArea(capabilities: TimeCapability[], area: TimeAdminArea): boolean {
+export function permitsTimeArea(capabilities: TimeCapability[], area: TimeAdminArea): boolean {
   const has = (capability: TimeCapability) => capabilities.includes(capability);
   if (has("timekeeping.owner")) return true;
   if (area === "security") return has("timekeeping.security");

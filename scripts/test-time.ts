@@ -996,6 +996,199 @@ await check("openShift helper and clock status", async () => {
   assert.equal(clockStatusFromShift(await openShiftFor(store, employee.id)), "CLOCKED_IN");
 });
 
+await check("PIN lockout is durable, bounded, and stores no PIN", async () => {
+  const {
+    timePinAllowed,
+    recordTimePinFailure,
+    clearTimePinFailures,
+    resetTimePinLimitForTests,
+    TIME_PIN_MAX_FAILS,
+  } = await import("../lib/time/rate-limit");
+  await resetTimePinLimitForTests();
+  const key = "name:lockout-test:worker";
+  for (let i = 0; i < TIME_PIN_MAX_FAILS; i++) {
+    assert.equal(await timePinAllowed(key), true);
+    await recordTimePinFailure(key);
+  }
+  assert.equal(await timePinAllowed(key), false);
+  const src = read("lib/time/rate-limit.ts");
+  assert.match(src, /getDurableRedis|writeDurableJson/);
+  assert.doesNotMatch(src, /pinHash|scrypt\$/);
+  assert.match(read("app/api/time/session/route.ts"), /auth\.failed/);
+  await clearTimePinFailures(key);
+});
+
+await check("Time admin area gates: Shelly no security, Mason no owner, Michelle superset", async () => {
+  const { permitsTimeArea, requireTimeAdmin, isTimeAdminError } = await import("../lib/time/http");
+  const { resetTimeStoreForTests, getTimeStore } = await import("../lib/time/deps");
+  const { encodeTimeSession, TIME_COOKIE, buildTimeSession } = await import("../lib/time/auth");
+  resetTimeStoreForTests();
+  const store = await getTimeStore();
+  const shelly = (await store.getEmployee("emp-shelly"))!;
+  const mason = (await store.getEmployee("emp-mason"))!;
+  const michelle = (await store.getEmployee("emp-michelle"))!;
+  const jorge = (await store.getEmployee("emp-jorge"))!;
+  assert.equal(permitsTimeArea(shelly.capabilities, "review"), true);
+  assert.equal(permitsTimeArea(shelly.capabilities, "security"), false);
+  assert.equal(permitsTimeArea(shelly.capabilities, "owner"), false);
+  assert.equal(permitsTimeArea(mason.capabilities, "review"), true);
+  assert.equal(permitsTimeArea(mason.capabilities, "security"), true);
+  assert.equal(permitsTimeArea(mason.capabilities, "owner"), false);
+  assert.equal(permitsTimeArea(michelle.capabilities, "owner"), true);
+  assert.equal(permitsTimeArea(michelle.capabilities, "security"), true);
+  assert.equal(permitsTimeArea(jorge.capabilities, "review"), false);
+
+  const cookieFor = (emp: typeof shelly) =>
+    `${TIME_COOKIE}=${encodeTimeSession(buildTimeSession(emp))}`;
+  const url = "https://partyperfect.app/api/time/admin/sync";
+  const httpSrc = read("lib/time/http.ts");
+  assert.match(httpSrc, /timeSessionFromRequest\(request\)/);
+  assert.match(httpSrc, /requireApiAuth\("timekeeping"\)/);
+  const ghost = await requireTimeAdmin(
+    new Request(url, {
+      headers: {
+        cookie: `${TIME_COOKIE}=${encodeTimeSession({
+          employeeId: "emp-nobody",
+          capabilities: ["timekeeping.review"],
+          iat: Date.now(),
+          exp: Date.now() + 60_000,
+          cv: 0,
+          v: 1,
+        })}`,
+      },
+    }),
+    "review",
+  );
+  assert.equal(isTimeAdminError(ghost), true);
+  assert.equal((ghost as Response).status, 401);
+
+  const wrong = await requireTimeAdmin(
+    new Request(url, { headers: { cookie: cookieFor(jorge) } }),
+    "review",
+  );
+  assert.equal(isTimeAdminError(wrong), true);
+  assert.equal((wrong as Response).status, 403);
+
+  const shellyOk = await requireTimeAdmin(
+    new Request(url, { headers: { cookie: cookieFor(shelly) } }),
+    "review",
+  );
+  assert.equal(isTimeAdminError(shellyOk), false);
+
+  const shellySec = await requireTimeAdmin(
+    new Request(url, { headers: { cookie: cookieFor(shelly) } }),
+    "security",
+  );
+  assert.equal(isTimeAdminError(shellySec), true);
+  assert.equal((shellySec as Response).status, 403);
+
+  const masonSec = await requireTimeAdmin(
+    new Request(url, { headers: { cookie: cookieFor(mason) } }),
+    "security",
+  );
+  assert.equal(isTimeAdminError(masonSec), false);
+
+  const masonOwn = await requireTimeAdmin(
+    new Request("https://partyperfect.app/api/time/admin/payroll", {
+      headers: { cookie: cookieFor(mason) },
+    }),
+    "owner",
+  );
+  assert.equal(isTimeAdminError(masonOwn), true);
+  assert.equal((masonOwn as Response).status, 403);
+
+  const michelleOwn = await requireTimeAdmin(
+    new Request("https://partyperfect.app/api/time/admin/payroll", {
+      headers: { cookie: cookieFor(michelle) },
+    }),
+    "owner",
+  );
+  assert.equal(isTimeAdminError(michelleOwn), false);
+});
+
+await check("Shadow sync: correction survives resync; Square change yields SYNC_CONFLICT", async () => {
+  const { applySquareTimecards, sourceShiftId } = await import("../lib/time/shadow-sync");
+  const store = createMemoryTimeStore();
+  const jorge = (await store.getEmployee("emp-jorge"))!;
+  const team = [{ id: "tm-jorge", given_name: "Jorge", family_name: "Arellano", status: "ACTIVE" }];
+  const tc = {
+    id: "tc-corr-1",
+    team_member_id: "tm-jorge",
+    start_at: "2026-08-17T13:00:00.000Z",
+    end_at: "2026-08-17T21:00:00.000Z",
+    status: "CLOSED" as const,
+    updated_at: "2026-08-17T21:00:00.000Z",
+    breaks: [
+      { start_at: "2026-08-17T17:00:00.000Z", end_at: "2026-08-17T17:30:00.000Z" },
+    ],
+  };
+  await applySquareTimecards(store, [tc], team, "2026-08-17T21:01:00.000Z", null);
+  const shiftId = sourceShiftId(tc.id);
+  const first = (await store.getShift(shiftId))!;
+  assert.equal(first.endAt, tc.end_at);
+  const corrId = "corr-1";
+  await store.upsertCorrection({
+    id: corrId,
+    employeeId: jorge.id,
+    shiftId,
+    punchId: null,
+    affectedDate: "2026-08-17",
+    issueType: "wrong_time",
+    requestedCorrection: "Clock out 4:00 PM",
+    employeeExplanation: "Forgot phone",
+    adminRemark: "",
+    approvedCorrection: "",
+    state: "pending",
+    queue: "shelly",
+    decidedBy: null,
+    decidedAt: null,
+    originalSnapshot: JSON.stringify({ endAt: first.endAt }),
+    createdAt: "2026-08-17T21:02:00.000Z",
+    updatedAt: "2026-08-17T21:02:00.000Z",
+  });
+  await store.upsertShift({ ...first, employeeCorrectionId: corrId, status: "pending_correction" });
+
+  await applySquareTimecards(store, [tc], team, "2026-08-17T21:03:00.000Z", tc.updated_at);
+  const afterSame = (await store.getShift(shiftId))!;
+  assert.equal(afterSame.employeeCorrectionId, corrId);
+  assert.equal(afterSame.endAt, tc.end_at);
+  const audit1 = await store.listAudit();
+  assert.equal(audit1.filter((a) => a.action === "SYNC_CONFLICT").length, 0);
+
+  const changed = { ...tc, end_at: "2026-08-17T22:00:00.000Z", updated_at: "2026-08-17T22:00:00.000Z" };
+  const second = await applySquareTimecards(store, [changed], team, "2026-08-17T22:01:00.000Z", tc.updated_at);
+  assert.equal(second.skippedConflict, 1);
+  const afterChange = (await store.getShift(shiftId))!;
+  assert.equal(afterChange.employeeCorrectionId, corrId);
+  assert.equal(afterChange.endAt, tc.end_at, "must not silently overwrite PP correction");
+  const audit2 = await store.listAudit();
+  assert.ok(audit2.some((a) => a.action === "SYNC_CONFLICT" && a.target === shiftId));
+});
+
+await check("Shadow sync is idempotent and keeps OPEN shifts open", async () => {
+  const { applySquareTimecards, sourceShiftId } = await import("../lib/time/shadow-sync");
+  const store = createMemoryTimeStore();
+  const team = [{ id: "tm-jorge", given_name: "Jorge", family_name: "Arellano", status: "ACTIVE" }];
+  const open = {
+    id: "tc-open-1",
+    team_member_id: "tm-jorge",
+    start_at: "2026-08-17T13:00:00.000Z",
+    end_at: null,
+    status: "OPEN" as const,
+    updated_at: "2026-08-17T13:00:00.000Z",
+    breaks: [],
+  };
+  const a = await applySquareTimecards(store, [open], team, "2026-08-17T13:01:00.000Z", null);
+  const b = await applySquareTimecards(store, [open], team, "2026-08-17T13:02:00.000Z", open.updated_at);
+  assert.equal(a.imported, 1);
+  assert.equal(b.imported, 0);
+  const shift = (await store.getShift(sourceShiftId(open.id)))!;
+  assert.equal(shift.status, "open");
+  assert.equal(shift.endAt, null);
+  const punches = (await store.listPunches()).filter((p) => p.shiftId === shift.id);
+  assert.equal(punches.filter((p) => p.type === "clock_in").length, 1);
+});
+
 if (failed) {
   console.error(`\n${failed} check(s) failed`);
   process.exit(1);

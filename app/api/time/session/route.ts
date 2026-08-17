@@ -138,7 +138,7 @@ export async function POST(request: Request) {
   const nameKey = `name:${firstName.toLowerCase()}:${lastName.toLowerCase()}`;
   const deviceKey = `device:${deviceTok?.deviceId || (kiosk ? "kiosk" : "new")}`;
 
-  if (!timePinAllowed(ipKey) || !timePinAllowed(nameKey) || !timePinAllowed(deviceKey)) {
+  if (!(await timePinAllowed(ipKey)) || !(await timePinAllowed(nameKey)) || !(await timePinAllowed(deviceKey))) {
     return timePrivateJson(
       { error: "Too many attempts. Try again in a few minutes." },
       { status: 429 },
@@ -148,9 +148,9 @@ export async function POST(request: Request) {
   const store = await getTimeStore();
   const employee = await authenticateByName(store, firstName, lastName, pin);
   if (!employee) {
-    recordTimePinFailure(ipKey);
-    recordTimePinFailure(nameKey);
-    recordTimePinFailure(deviceKey);
+    await recordTimePinFailure(ipKey);
+    await recordTimePinFailure(nameKey);
+    await recordTimePinFailure(deviceKey);
     await store.appendAudit({
       at: new Date().toISOString(),
       actor: "anonymous",
@@ -174,9 +174,9 @@ export async function POST(request: Request) {
     return timePrivateJson({ error: "That name and PIN did not match." }, { status: 401 });
   }
 
-  clearTimePinFailures(ipKey);
-  clearTimePinFailures(nameKey);
-  clearTimePinFailures(deviceKey);
+  await clearTimePinFailures(ipKey);
+  await clearTimePinFailures(nameKey);
+  await clearTimePinFailures(deviceKey);
   await runOpenShiftSafetySweep(store);
 
   if (kiosk) {

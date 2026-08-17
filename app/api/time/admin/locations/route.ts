@@ -1,18 +1,18 @@
-import { isAuthError, privateJson } from "@/lib/api-auth";
+import { privateJson } from "@/lib/api-auth";
 import { getTimeStore } from "@/lib/time/deps";
-import { requireTimekeepingAdmin } from "@/lib/time/http";
+import { isTimeAdminError, requireTimeAdmin } from "@/lib/time/http";
 import { publicLocation } from "@/lib/time/serialize";
 import type { WorkLocation } from "@/lib/time/types";
 
-export async function GET() {
-  const gate = await requireTimekeepingAdmin();
-  if (isAuthError(gate)) return gate;
+export async function GET(request: Request) {
+  const gate = await requireTimeAdmin(request, "overview");
+  if (isTimeAdminError(gate)) return gate;
   return privateJson({ locations: (await (await getTimeStore()).listLocations()).map(publicLocation) });
 }
 
 export async function PATCH(request: Request) {
-  const gate = await requireTimekeepingAdmin();
-  if (isAuthError(gate)) return gate;
+  const gate = await requireTimeAdmin(request, "overview");
+  if (isTimeAdminError(gate)) return gate;
   let body: Partial<WorkLocation> & { id?: string } = {};
   try {
     body = (await request.json()) as typeof body;
@@ -43,7 +43,7 @@ export async function PATCH(request: Request) {
   const saved = await store.upsertLocation(next);
   await store.appendAudit({
     at: new Date().toISOString(),
-    actor: gate.role,
+    actor: gate.actor,
     action: "location.patch",
     target: saved.id,
     detail: `active=${saved.active} verified=${saved.verified}`,

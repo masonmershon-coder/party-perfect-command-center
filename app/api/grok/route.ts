@@ -7,16 +7,18 @@ import OpenAI from "openai";
 export const runtime = "nodejs";
 export const maxDuration = 300;
 
-const client = new OpenAI({
-  apiKey: process.env.XAI_API_KEY,
-  baseURL: "https://api.x.ai/v1",
-  timeout: 3600 * 1000,
-});
-
 type ChatMessage = {
   role: "system" | "user" | "assistant";
   content: string;
 };
+
+function grokHttpClient() {
+  return new OpenAI({
+    apiKey: process.env.XAI_API_KEY,
+    baseURL: "https://api.x.ai/v1",
+    timeout: 3600 * 1000,
+  });
+}
 
 export async function POST(request: Request) {
   const gate = await requireApiAuth("session");
@@ -46,7 +48,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const stream = await client.responses.create({
+    const stream = await grokHttpClient().responses.create({
       model: "grok-4.3",
       input: messages,
       stream: true,

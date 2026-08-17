@@ -111,10 +111,27 @@ async function formatRentalsInboxForMike(): Promise<string> {
   }
 }
 
-export const grokClient = new OpenAI({
-  apiKey: process.env.XAI_API_KEY,
-  baseURL: "https://api.x.ai/v1",
-  timeout: 3600 * 1000,
+let grokClientSingleton: OpenAI | null = null;
+
+function createGrokClient(): OpenAI {
+  assertGrokConfigured();
+  if (!grokClientSingleton) {
+    grokClientSingleton = new OpenAI({
+      apiKey: process.env.XAI_API_KEY,
+      baseURL: "https://api.x.ai/v1",
+      timeout: 3600 * 1000,
+    });
+  }
+  return grokClientSingleton;
+}
+
+/** Lazy Grok client — avoids build-time failure when XAI_API_KEY is unset (Kituwa-only deploy). */
+export const grokClient: OpenAI = new Proxy({} as OpenAI, {
+  get(_target, prop, receiver) {
+    const client = createGrokClient();
+    const value = Reflect.get(client as object, prop, receiver);
+    return typeof value === "function" ? value.bind(client) : value;
+  },
 });
 
 export function assertGrokConfigured() {

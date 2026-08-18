@@ -57,6 +57,49 @@ await check("PIN and session round-trip; wrong PIN fails", async () => {
   assert.equal(decodeKituwaSession(token.slice(0, 10) + "tamper"), null);
 });
 
+await check("Matter message submit ack + idempotent client_message_id", async () => {
+  const { submitMatterMessage } = await import("../lib/matter/submit-message.ts");
+  const { loadMatterRecords } = await import("../lib/matter/records-store.ts");
+  const clientId = "11111111-1111-4111-8111-111111111111";
+  const text =
+    "Hey Matter, create a project for Integrity Customs. They want help automating email and improving website checkout.";
+  const first = await submitMatterMessage({
+    client_message_id: clientId,
+    conversation_id: null,
+    text,
+    attachments: [],
+    source: "test",
+    client_created_at: new Date().toISOString(),
+  });
+  assert.match(first.ack.message_id, /^[0-9a-f-]{36}$/i);
+  assert.match(first.ack.task_id, /^[0-9a-f-]{36}$/i);
+  assert.ok(first.ack.conversation_id);
+  assert.ok(["accepted", "blocked", "awaiting_approval"].includes(first.ack.status));
+  assert.equal(first.ack.duplicate, undefined);
+
+  const second = await submitMatterMessage({
+    client_message_id: clientId,
+    conversation_id: first.ack.conversation_id,
+    text,
+    attachments: [],
+    source: "test",
+    client_created_at: new Date().toISOString(),
+  });
+  assert.equal(second.ack.message_id, first.ack.message_id);
+  assert.equal(second.ack.task_id, first.ack.task_id);
+  assert.equal(second.ack.duplicate, true);
+
+  const store = await loadMatterRecords();
+  const task = store.tasks[first.ack.task_id];
+  assert.ok(task);
+  assert.ok(task.events.some((ev) => ev.kind === "message.received"));
+  assert.ok(task.subtask_ids.length >= 2);
+  if (task.rejected_workers.length) {
+    const subs = task.subtask_ids.map((id) => store.tasks[id]).filter(Boolean);
+    assert.ok(subs.some((st) => st.events.some((ev) => ev.kind === "worker.rejected")));
+  }
+});
+
 await check("Talk persists plan+tasks; no fake RUNNING workers", async () => {
   const { handleTalk, liveStations } = await import("../lib/kituwa/talk.ts");
   const { loadKituwaState } = await import("../lib/kituwa/store.ts");
@@ -84,6 +127,9 @@ await check("Brain health never fabricates cost", async () => {
   assert.equal(h.costToday, "UNKNOWN");
   assert.equal(h.apiBudget, "UNKNOWN");
   assert.ok(["ONLINE", "DEGRADED", "OFFLINE", "UNKNOWN"].includes(h.matter));
+  assert.ok(h.metrics?.worker_registry?.source);
+  assert.ok(h.metrics?.records_storage?.source);
+  assert.ok(Array.isArray(h.registryWorkers));
 });
 
 await check("No incorrect Kituwa domains in product files", () => {
@@ -103,8 +149,9 @@ await check("No incorrect Kituwa domains in product files", () => {
 });
 
 await check("Kituwa API routes are gated", () => {
-  const dir = path.join(root, "app/api/kituwa");
+  const dirs = [path.join(root, "app/api/kituwa"), path.join(root, "app/api/matter")];
   const walk = (d, out = []) => {
+    if (!fs.existsSync(d)) return out;
     for (const ent of fs.readdirSync(d, { withFileTypes: true })) {
       const p = path.join(d, ent.name);
       if (ent.isDirectory()) walk(p, out);
@@ -112,13 +159,13 @@ await check("Kituwa API routes are gated", () => {
     }
     return out;
   };
-  const routes = walk(dir);
+  const routes = dirs.flatMap((d) => walk(d));
   assert.ok(routes.length >= 5);
   for (const p of routes) {
     const src = fs.readFileSync(p, "utf8");
     assert.match(
       src,
-      /requireKituwaSession|verifyKituwaPin|verifyKituwaWorkerBearer/,
+      /requireKituwaSession|verifyKituwaPin|verifyKituwaWorkerBearer|requireApiAuth/,
       p,
     );
   }
@@ -130,8 +177,20 @@ await check("Matter Live hats are task roles, not hard-coded providers", () => {
   assert.ok(src.includes("assignmentHat") || src.includes("assignmentWorkerId"));
 });
 
+await check("Tower floors derive from real task assignment only", async () => {
+  const { occupyFloors } = await import("../lib/matter/tower.ts");
+  const { loadKituwaState } = await import("../lib/kituwa/store.ts");
+  const state = await loadKituwaState();
+  const occ = occupyFloors(state.tasks);
+  for (const floor of Object.values(occ)) {
+    if (floor.busy) {
+      assert.ok(floor.tasks.some((t) => t.state === "RUNNING"));
+    }
+  }
+});
+
 if (failed) {
   console.error(`\n${failed} Kituwa checks failed.`);
   process.exit(1);
 }
-console.log("\nAll KITUWA V1 checks passed.");
+console.log("\nAll KITUWA checks passed.");

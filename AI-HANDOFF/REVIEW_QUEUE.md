@@ -18,7 +18,8 @@
 | TALK-TO-MIKE-INTAKE-001 | Cursor | Codex | **READY_FOR_VERIFICATION** | Remote intake CREATE/COMPLETE/STATUS + private audio queue; 0007 HELD; not deployed |
 | OWNER-AI-COST-USAGE-001 | Cursor | Codex | **READY_FOR_VERIFICATION** | Owner AI Cost & Usage CC; reuses 0005; 0008 HELD; ingest contract for Claude collectors; not deployed |
 | PP-TIME-001 | Cursor | Mason | **WAITING_FOR_MASON** | Self-contained role-aware `/time` app (Shelly admin in-app); CC mirror only; 0009 HELD; no Square cutover without YES |
-| KITUWA-V1 | Cursor | Codex | **READY_FOR_CODEX_REVIEW** | Mason OS at /kituwa; Matter route() reused; kituwa.app not attached; not PP production |
+| KITUWA-V1 | Cursor | Mason | **WAITING_FOR_MASON** | Live at kituwa.app; Mason scorecard 35/100; request persisted then BLOCKED no eligible worker; voice not approved |
+| KITUWA-V2-REPAIR | Cursor | Codex | **READY_FOR_VERIFICATION** | Matter Tower + message/task contract; preview-only on isolated `kituwa` project — do not promote production until Codex verifies |
 | BRAIN-RECONCILE-001 | Cursor | Codex | **READY_FOR_CODEX_BRAIN_REVERIFY** | Inventory + preserve + manifest v1.0.1 + brain-sync code + Time/Matter bundles + cold-start proof; Drive sync NOT implemented; automatic sync NOT running |
 | MATTER-ORCH-V1 | Cursor | Claude | **READY_FOR_CLAUDE_REVIEW** | Provider-neutral orchestration V1: policy/ack/heartbeat/registry/route/report/audit + Matter Control owner view; evidence `MATTER_ORCHESTRATION_V1_AUDIT.md` |
 | PP-001 (Quote Desk UI) | Claude | (Claude) | CLAUDE_WORKING | Parallel |

@@ -38,6 +38,7 @@ export function middleware(request: NextRequest) {
     if (
       isKituwaHost &&
       !pathname.startsWith("/api/kituwa") &&
+      !pathname.startsWith("/api/matter") &&
       pathname !== "/api/health"
     ) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -54,14 +55,31 @@ export function middleware(request: NextRequest) {
   }
 
   if (isKituwaHost) {
+    const kituwaPages = [
+      "/tasks",
+      "/projects",
+      "/memory",
+      "/system",
+      "/settings",
+      "/offline",
+      "/tower",
+      "/agents",
+    ];
     const kituwaOk =
       pathname === "/kituwa" ||
       pathname.startsWith("/kituwa/") ||
       pathname.startsWith("/api/kituwa") ||
-      pathname === "/api/health";
+      pathname.startsWith("/api/matter") ||
+      pathname === "/api/health" ||
+      kituwaPages.some((p) => pathname === p || pathname.startsWith(`${p}/`));
     if (pathname === "/" || pathname === "") {
       const url = request.nextUrl.clone();
       url.pathname = "/kituwa";
+      return NextResponse.rewrite(url);
+    }
+    if (kituwaPages.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
+      const url = request.nextUrl.clone();
+      url.pathname = `/kituwa${pathname}`;
       return NextResponse.rewrite(url);
     }
     if (!kituwaOk && pathname.startsWith("/api/")) {

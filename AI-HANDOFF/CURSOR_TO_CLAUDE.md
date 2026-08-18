@@ -1,16 +1,51 @@
-# Cursor → Claude · 2026-08-17 · Kituwa live alpha
+# Cursor → Claude · 2026-08-17 · Kituwa V2 repair + Matter Tower
 
-**Status:** `READY_FOR_MASON_LIVE_ALPHA`
+**Status:** `READY_FOR_CLAUDE_REVIEW`  
+**Branch:** `agent/cursor/KITUWA-V2-REPAIR`  
+**Worktree:** `/Users/mikeai/.pp-worktrees/KITUWA-V1`
 
-Kituwa deployed to isolated Vercel project **`kituwa`** at **https://kituwa.app**.
+## Summary
 
-- Deployment: `dpl_98qkwVxpB4kBHoNHxx5CiUkM21SM`
-- SHA: `a01293f78a567c860883d435852fc5e86fc351f3` (parent `c826d8b`)
-- Durable: Vercel Blob `kituwa-alpha` → `kituwa/state.json`
-- PP isolation: `/api/por`, `/api/time`, `/api/auth` → 404 on kituwa host
-- Auth env names PRESENT; PIN auto-set in Vercel — Mason retrieves from UI
-- Real worker slice: not executed live (no PIN in agent context); expect BLOCKED without fresh heartbeat
+Implemented Mason’s Matter Tower north star as a **mobile-first, truthful** Kituwa V2 slice — not pixel-copy concept art, but living floors tied to real orchestration state.
 
-Evidence: `AI-HANDOFF/EVIDENCE/KITUWA_LIVE_ALPHA_2026-08-17.md`
+### Backend contract
 
-PP Time Shadow Mode remains `WAITING_FOR_MASON` (Square Preview env) on separate track.
+| Endpoint | Behavior |
+|----------|----------|
+| `POST /api/matter/messages` | Idempotent by `client_message_id`; returns ack + parent `task_id` |
+| `GET /api/matter/tasks/:taskId` | Task record, message, project, subtasks, events, rejected workers |
+| `GET /api/kituwa/tasks` | List durable tasks |
+| `GET /api/kituwa/projects` | Projects from records store |
+
+Storage: `lib/matter/records-store.ts` → `kituwa/records-v2.json` (plus legacy `kituwa/state.json` sync for UI).
+
+### UI / Matter identity
+
+- **Matter entity** (`matter-entity.tsx`) — repaired robot core, not Kituwa ghost
+- **Matter Tower** — vertical floor stack, elevator indicator, per-floor scenes with equipment LEDs + worker bots; **lit/busy/blocked only from real tasks**
+- **Home** — talk composer, acknowledgment IDs, plan, Matter Live, health provenance
+- **Nav** — Home · Tower · Tasks · Projects · Memory · System
+- Pages: task detail, projects, memory, system, settings, offline
+
+### Safety
+
+- No fake `RUNNING` workers
+- Rejected workers + routing reasons surfaced in Matter Live + task detail
+- `/api/matter/messages` removed from public auth allowlist; alias routes gated
+- Production **not** deployed — preview deploy + Codex verify next
+
+### Tests
+
+```
+npx tsx scripts/test-kituwa.mjs   # pass
+node scripts/test-api-auth-matrix.mjs   # pass
+npx tsc --noEmit   # pass
+```
+
+## Ask for Claude
+
+1. Review contract + idempotency path in `lib/matter/submit-message.ts`
+2. Confirm Tower occupancy never claims busy without `RUNNING`/`VERIFYING`
+3. After preview SHA, verify live ack + task detail on kituwa preview (not prod until Mason/Codex sign off)
+
+PP Time Shadow Mode remains separate track — untouched.

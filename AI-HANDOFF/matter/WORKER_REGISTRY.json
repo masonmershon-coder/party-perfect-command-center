@@ -53,12 +53,12 @@
         "Declared capabilities are not measured; routing weight waits for outcomes."
       ],
       "available": true,
-      "last_probe": "2026-08-17T16:06:24.337Z",
-      "last_heartbeat": "2026-08-15T05:40:38.789Z",
-      "latency_ms": 507,
+      "last_probe": "2026-08-18T19:26:43.664Z",
+      "last_heartbeat": "2026-08-18T19:26:44.445Z",
+      "latency_ms": 620,
       "policy_version_ack": "1.0.0+027e1c37c161",
       "registered_at": "2026-08-15T05:35:51.785Z",
-      "updated_at": "2026-08-15T05:40:38.911Z"
+      "updated_at": "2026-08-18T19:26:44.445Z"
     },
     "cursor-local": {
       "worker_id": "cursor-local",
@@ -101,12 +101,12 @@
         "Command Center implementation lane; declared coding strength only."
       ],
       "available": true,
-      "last_probe": "2026-08-17T16:06:24.745Z",
-      "last_heartbeat": "2026-08-15T05:40:39.540Z",
-      "latency_ms": 407,
+      "last_probe": "2026-08-18T19:26:44.183Z",
+      "last_heartbeat": "2026-08-18T19:26:44.751Z",
+      "latency_ms": 518,
       "policy_version_ack": "1.0.0+027e1c37c161",
       "registered_at": "2026-08-15T05:35:51.849Z",
-      "updated_at": "2026-08-15T05:40:40.087Z"
+      "updated_at": "2026-08-18T19:26:44.751Z"
     },
     "codex-local": {
       "worker_id": "codex-local",
@@ -145,12 +145,12 @@
         "Prefer as independent verifier; local write disabled by default."
       ],
       "available": true,
-      "last_probe": "2026-08-17T16:06:24.827Z",
-      "last_heartbeat": "2026-08-15T05:40:40.203Z",
-      "latency_ms": 82,
+      "last_probe": "2026-08-18T19:26:44.301Z",
+      "last_heartbeat": "2026-08-18T19:26:44.854Z",
+      "latency_ms": 118,
       "policy_version_ack": "1.0.0+027e1c37c161",
       "registered_at": "2026-08-15T05:35:51.920Z",
-      "updated_at": "2026-08-15T05:40:40.295Z"
+      "updated_at": "2026-08-18T19:26:44.855Z"
     },
     "grok-local": {
       "worker_id": "grok-local",
@@ -189,12 +189,12 @@
         "Research-oriented declared profile; not a production deployer."
       ],
       "available": true,
-      "last_probe": "2026-08-17T16:06:24.860Z",
-      "last_heartbeat": "2026-08-15T05:40:40.371Z",
-      "latency_ms": 33,
+      "last_probe": "2026-08-18T19:26:44.349Z",
+      "last_heartbeat": "2026-08-18T19:26:44.913Z",
+      "latency_ms": 48,
       "policy_version_ack": "1.0.0+027e1c37c161",
       "registered_at": "2026-08-15T05:40:37.764Z",
-      "updated_at": "2026-08-15T05:40:40.394Z"
+      "updated_at": "2026-08-18T19:26:44.913Z"
     },
     "claw-local": {
       "worker_id": "claw-local",
@@ -229,7 +229,7 @@
         "Not installed on this host until probe succeeds."
       ],
       "available": false,
-      "last_probe": "2026-08-17T16:06:24.861Z",
+      "last_probe": "2026-08-18T19:26:44.350Z",
       "last_heartbeat": "2026-08-15T05:40:40.398Z",
       "latency_ms": 1,
       "policy_version_ack": "1.0.0+027e1c37c161",
@@ -237,5 +237,5 @@
       "updated_at": "2026-08-15T05:40:40.400Z"
     }
   },
-  "updated_at": "2026-08-17T16:06:24.861Z"
+  "updated_at": "2026-08-18T19:26:44.913Z"
 }

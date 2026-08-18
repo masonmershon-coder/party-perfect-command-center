@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { FLOOR_SPECS, occupyFloors, type TowerFloorId } from "@/lib/matter/tower";
+import { FLOOR_SPECS, floorForTask, occupyFloors, type TowerFloorId } from "@/lib/matter/tower";
 import type { KituwaTask } from "@/lib/kituwa/types";
 import { MatterFloorScene } from "./matter-floor-scene";
 
@@ -80,18 +80,10 @@ export function MatterFloorDetail({
   tasks: KituwaTask[];
 }) {
   const spec = FLOOR_SPECS[floor];
-  const onFloor = tasks.filter((t) => {
-    const worker = t.assignmentWorkerId?.toLowerCase() || "";
-    if (floor === "codex" && (worker.includes("codex") || worker.includes("openai"))) return true;
-    if (floor === "claude" && worker.includes("claude")) return true;
-    if (floor === "grok" && (worker.includes("grok") || worker.includes("xai"))) return true;
-    if (floor === "cursor" && worker.includes("cursor")) return true;
-    if (floor === "local" && worker.includes("local")) return true;
-    if (floor === "outbox" && t.state === "COMPLETE") return true;
-    if (floor === "memory") return false;
-    if (floor === "lobby") return true;
-    return t.category.toLowerCase().includes(floor);
-  });
+  const onFloor = tasks.filter((t) => floorForTask(t) === floor);
+  const waiting = onFloor.filter(
+    (t) => t.state === "BLOCKED" || t.state === "WAITING_APPROVAL" || !t.assignmentWorkerId,
+  );
 
   return (
     <section className="matter-floor-detail" style={{ ["--floor-accent" as string]: spec.accent }}>
@@ -101,18 +93,25 @@ export function MatterFloorDetail({
         <p className="matter-floor-personality">{spec.personality}</p>
       </header>
       {onFloor.length ? (
-        <ul className="matter-floor-tasklist">
-          {onFloor.map((task) => (
-            <li key={task.id}>
-              <strong>{task.title}</strong>
-              <span>{task.state}</span>
-              <span>{task.assignmentWorkerId || "HAT NONE"}</span>
-              {task.blocker ? <small>{task.blocker}</small> : null}
-            </li>
-          ))}
-        </ul>
+        <>
+          {waiting.length === onFloor.length ? (
+            <p className="matter-floor-empty">
+              Floor involved — waiting for an eligible worker. Tasks are saved; execution is not running.
+            </p>
+          ) : null}
+          <ul className="matter-floor-tasklist">
+            {onFloor.map((task) => (
+              <li key={task.id}>
+                <strong>{task.title}</strong>
+                <span>{task.state}</span>
+                <span>{task.assignmentWorkerId || "HAT NONE"}</span>
+                {task.blocker ? <small>{task.blocker}</small> : null}
+              </li>
+            ))}
+          </ul>
+        </>
       ) : (
-        <p className="matter-floor-empty">No live task on this floor. Lights stay low until Matter delegates here.</p>
+        <p className="matter-floor-empty">No task on this floor yet. Lights stay low until Matter delegates here.</p>
       )}
     </section>
   );

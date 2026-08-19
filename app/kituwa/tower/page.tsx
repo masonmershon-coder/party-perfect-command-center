@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { KituwaNav } from "../components/kituwa-nav";
-import { MatterTower, MatterFloorDetail } from "../components/matter-tower";
+import { MatterTower, MatterFloorTakeover } from "../components/matter-tower";
 import type { TowerFloorId } from "@/lib/matter/tower";
 import type { KituwaState } from "@/lib/kituwa/types";
 
@@ -29,19 +28,24 @@ export default function TowerPage() {
   if (!state) return <main className="kituwa-shell"><p className="kituwa-status">Loading tower…</p></main>;
 
   return (
-    <main className="kituwa-shell">
+    <main className="kituwa-shell kituwa-shell-tower">
       <header className="kituwa-top">
         <div>
           <p className="kituwa-brand-word">KITUWA</p>
-          <h1 className="kituwa-page-title">Matter Tower</h1>
+          <h1 className="kituwa-page-title">{floor ? "Inside" : "Matter Tower"}</h1>
         </div>
       </header>
       <KituwaNav />
-      <MatterTower tasks={state.tasks} selectedFloor={floor} onSelectFloor={setFloor} />
-      {floor ? <MatterFloorDetail floor={floor} tasks={state.tasks} /> : null}
-      <Link href="/kituwa" className="kituwa-link-btn kituwa-hit">
-        Back to command
-      </Link>
+      {floor ? (
+        <MatterFloorTakeover
+          floor={floor}
+          tasks={state.tasks}
+          onSelectFloor={setFloor}
+          onClose={() => setFloor(null)}
+        />
+      ) : (
+        <MatterTower tasks={state.tasks} selectedFloor={floor} onSelectFloor={setFloor} />
+      )}
     </main>
   );
 }

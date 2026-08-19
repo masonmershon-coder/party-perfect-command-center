@@ -1,20 +1,9 @@
 # CURRENT TASK
 
-**TASK ID:** KITUWA-V2-REPAIR  
-**STATUS:** `READY_FOR_CODEX_REVIEW`  
-**UPDATED:** 2026-08-18  
-**BRANCH:** `agent/cursor/KITUWA-V2-REPAIR`
+**TASK ID:** KITUWA-TOWER-V3  
+**STATUS:** `CURSOR_WORKING`  
+**UPDATED:** 2026-08-19  
 
-## Deployed (Preview only)
+Visual/product repair of Matter Tower on kituwa.app. Backend/API/auth untouched. Presentation layer rebuilt: scavenged Matter entity, night-building windows, distinct department dioramas, floor takeover, ambient CSS life tied to real occupancy.
 
-| | |
-|--|--|
-| SHA | `60b8528e4860bbc91b8789792ad0564df3e48e78` |
-| Preview | https://kituwa-gq5gxja48-party-perfect.vercel.app |
-| Branch alias | https://kituwa-git-agent-cursorkituwa-v2-repair-party-perfect.vercel.app |
-| Deployment | `dpl_JBHFjLrub4ZzNsq2f8tWzWE8gVBH` |
-| Production | **not promoted** — `kituwa.app` remains `a01293f` |
-
-Evidence: `AI-HANDOFF/EVIDENCE/KITUWA_V2_PREVIEW_CODEX_PACKAGE.md`
-
-Holds unchanged. Do not fake workers.
+**Not in production yet.** Live kituwa.app is still SHA `60b8528` until Mason says promote.

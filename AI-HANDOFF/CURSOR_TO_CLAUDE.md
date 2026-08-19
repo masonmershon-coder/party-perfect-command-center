@@ -1,13 +1,24 @@
-# Cursor → Codex · 2026-08-18 · Kituwa V2 preview verify
+# CURSOR → CLAUDE · 2026-08-19 · Matter Tower V3 visual repair
 
-**Status:** `READY_FOR_CODEX_KITUWA_V2_PREVIEW_VERIFY`
+**Status:** `CURSOR_WORKING`  
+**Scope:** Kituwa frontend presentation only. No API/auth/task-contract changes.
 
-Independent verify of isolated **kituwa Preview** only. Do not promote production.
+## What I inspected on live kituwa.app
 
-- **SHA:** `60b8528e4860bbc91b8789792ad0564df3e48e78`
-- **Preview:** https://kituwa-gq5gxja48-party-perfect.vercel.app
-- **Alias:** https://kituwa-git-agent-cursorkituwa-v2-repair-party-perfect.vercel.app
-- **dpl:** `dpl_JBHFjLrub4ZzNsq2f8tWzWE8gVBH`
-- Package: `AI-HANDOFF/EVIDENCE/KITUWA_V2_PREVIEW_CODEX_PACKAGE.md`
+Home, Tower, floor tap (Codex), Tasks, Memory, System at iPhone width. Already authenticated. The live product is a dark dashboard: pill nav, status cards, tiny geometric “workers,” and a canvas rectangle robot. Tapping a floor opens another card that can say “No live task on this floor” while the stack shows blocked tasks (prod SHA `60b8528` occupancy/detail mismatch; local floor detail now uses `floorForTask`).
 
-Cursor already: hermetic tests + tsc + auth matrix; preview API smoke (durable `message_id`/`task_id`, idempotent replay, BLOCKED not RUNNING); Tower floors lit from those tasks; Home reopen preserved ids. Production `kituwa.app` still V1.
+## What I rebuilt (this worktree)
+
+- `matter-entity.tsx` — scavenged CRT-headed robot, not the Kituwa ghost, not a canvas square.
+- `matter-diorama.tsx` — distinct SVG rooms: Codex shop, Claude archive, Grok newsroom, Cursor bench, Local machine room, Memory stacks, Outbox dock.
+- `matter-tower.tsx` — night building with crown, elevator shaft, window mullions, floor slabs. Tap → full-room takeover + elevator floor selector + real task list.
+- Home: Matter as hero + workforce window strip. Memory page uses the archive room.
+- Ambient CSS (CRT, LEDs, fans, idle bots). Operational motion only when `busy`/`blocked` from `occupyFloors`. Offscreen + reduced-motion pause.
+
+## Keep
+
+Durable message/task IDs, idempotency, truthful BLOCKED, worker registry/heartbeats, PIN auth, Blob records.
+
+## Do not
+
+Fake RUNNING. Do not treat this as Party Perfect work.

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { MatterEntity } from "./components/matter-entity";
 import { MatterAcknowledgment } from "./components/matter-acknowledgment";
 import { KituwaNav } from "./components/kituwa-nav";
+import { MatterWorkforceStrip } from "./components/matter-tower";
 import { MatterLive } from "./matter-live";
 import type { MessageSubmitResponse } from "@/lib/matter/kituwa-contract-types";
 import type { KituwaState } from "@/lib/kituwa/types";
@@ -187,7 +188,7 @@ export function KituwaApp() {
       <header className="kituwa-top">
         <div>
           <p className="kituwa-brand-word">KITUWA</p>
-          <h1 className="kituwa-page-title">Matter command</h1>
+          <h1 className="kituwa-page-title">Matter</h1>
         </div>
         <div className="kituwa-status">
           <span className="kituwa-dot" data-tone={dotTone(status)} />
@@ -199,7 +200,7 @@ export function KituwaApp() {
 
       <section aria-label="Matter core">
         <MatterEntity status={status} />
-        <p className="kituwa-matter-tag">MATTER · Your AI operating system</p>
+        <p className="kituwa-matter-tag">MATTER · headquarters</p>
       </section>
 
       <section aria-label="Talk to Matter">
@@ -250,7 +251,9 @@ export function KituwaApp() {
 
       {error ? <p className="kituwa-error">{error}</p> : null}
 
-      <details className="kituwa-panel" open>
+      <MatterWorkforceStrip tasks={state?.tasks || []} />
+
+      <details className="kituwa-panel">
         <summary>Matter&apos;s live plan</summary>
         <div className="kituwa-panel-body">
           {(state?.plan || []).map((step) => (

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { KituwaNav } from "../components/kituwa-nav";
+import { MatterFloorScene } from "../components/matter-floor-scene";
 
 export default function MemoryPage() {
   const [projects, setProjects] = useState<Array<{ project_id: string; name: string }>>([]);
@@ -21,6 +22,9 @@ export default function MemoryPage() {
         </div>
       </header>
       <KituwaNav />
+      <div className="matter-memory-room" style={{ ["--floor-accent" as string]: "#c9b37a" }}>
+        <MatterFloorScene floor="memory" lit busy={false} blocked={false} workerCount={2} tall />
+      </div>
       <p className="kituwa-using">
         Durable project memory from Blob-backed records. No browser storage authority.
       </p>

@@ -1,67 +1,70 @@
 "use client";
 
-import type { TowerFloorId } from "@/lib/matter/tower";
+import { useEffect, useRef, useState } from "react";
+import { MatterDiorama } from "./matter-diorama";
+import { FLOOR_SPECS, type TowerFloorId } from "@/lib/matter/tower";
 
-const DEPT_BADGES: Partial<Record<TowerFloorId, string>> = {
-  claude: "Anthropic",
-  grok: "xAI",
-  codex: "OpenAI",
-  cursor: "Cursor",
-  local: "Home lab",
-};
-
-const IDLE_EQUIPMENT: Partial<Record<TowerFloorId, string[]>> = {
-  claude: ["cabinet", "scroll", "lamp"],
-  grok: ["tv", "radio", "feed"],
-  codex: ["crt", "terminal", "manual"],
-  cursor: ["scope", "bench", "scanner"],
-  local: ["rack", "fan", "node"],
-  memory: ["tape", "cartridge", "index"],
-  outbox: ["crate", "printer", "slot"],
-};
-
-/** Tiny department room preview — animation follows real floor occupancy only. */
 export function MatterFloorScene({
   floor,
   lit,
   busy,
   blocked,
   workerCount,
+  tall = false,
 }: {
   floor: TowerFloorId;
   lit: boolean;
   busy: boolean;
   blocked: boolean;
   workerCount: number;
+  tall?: boolean;
 }) {
-  const badge = DEPT_BADGES[floor];
-  const equipment = IDLE_EQUIPMENT[floor] || ["relay"];
-  const workers = Math.max(workerCount, lit ? 1 : 0);
+  const ref = useRef<HTMLDivElement>(null);
+  const [animate, setAnimate] = useState(true);
+
+  useEffect(() => {
+    const node = ref.current;
+    if (!node) return;
+    const sync = (onScreen: boolean) => {
+      setAnimate(onScreen && !document.hidden);
+    };
+    const io = new IntersectionObserver(
+      ([entry]) => sync(entry.isIntersecting),
+      { rootMargin: "48px", threshold: 0.05 },
+    );
+    io.observe(node);
+    const onVis = () => sync(!document.hidden);
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      io.disconnect();
+      document.removeEventListener("visibilitychange", onVis);
+    };
+  }, []);
+
+  const spec = FLOOR_SPECS[floor];
 
   return (
     <div
+      ref={ref}
       className="matter-floor-scene"
+      data-floor={floor}
       data-lit={lit ? "1" : "0"}
       data-busy={busy ? "1" : "0"}
       data-blocked={blocked ? "1" : "0"}
+      data-tall={tall ? "1" : "0"}
+      data-animate={animate ? "1" : "0"}
+      style={{ ["--floor-accent" as string]: spec.accent }}
       aria-hidden
     >
-      {badge ? <span className="matter-dept-badge">{badge}</span> : null}
-      <div className="matter-floor-equipment">
-        {equipment.map((kind) => (
-          <span key={kind} className="matter-equipment" data-kind={kind} />
-        ))}
-      </div>
-      <div className="matter-floor-workers">
-        {Array.from({ length: Math.min(workers, 6) }).map((_, i) => (
-          <span
-            key={i}
-            className="matter-worker"
-            data-role={i % 3}
-            style={{ animationDelay: `${i * 240}ms` }}
-          />
-        ))}
-      </div>
+      <MatterDiorama
+        floor={floor}
+        lit={lit}
+        busy={busy}
+        blocked={blocked}
+        workerCount={workerCount}
+        tall={tall}
+      />
+      {blocked ? <span className="matter-floor-warn">HOLD</span> : null}
       {busy ? <span className="matter-floor-scanline" /> : null}
     </div>
   );

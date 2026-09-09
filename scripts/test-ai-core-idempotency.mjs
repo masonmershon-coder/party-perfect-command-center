@@ -9,6 +9,7 @@ import assert from "node:assert/strict";
 
 const migration = readFileSync("supabase/migrations/0006_ai_core_task_idempotency.sql", "utf8");
 const source = readFileSync("lib/ai-core.ts", "utf8");
+const route = readFileSync("app/api/ai-core/tasks/route.ts", "utf8");
 
 assert.match(migration, /add column if not exists idempotency_key/i);
 assert.match(migration, /unique index if not exists tasks_domain_idempotency_key_ux/i);

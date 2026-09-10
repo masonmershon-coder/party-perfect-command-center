@@ -20,6 +20,7 @@
     "test:mike-intake": "npx tsx scripts/test-mike-intake.ts",
     "test:ai-cost": "npx tsx scripts/test-ai-cost.ts",
     "test:time": "npx tsx scripts/test-time.ts",
+    "test:time-square-writeback": "npx tsx scripts/test-square-writeback.ts",
     "test:matter-registry": "node AI-HANDOFF/matter/test-matter-registry.mjs"
   },
   "engines": {
@@ -38,7 +39,7 @@
     "openai": "^6.45.0",
     "pg": "^8.13.1",
     "react": "19.2.4",
-    "react-dom": "19.2.4",
+    "react-dom": "^19.2.4",
     "sharp": "^0.34.4"
   },
   "devDependencies": {

@@ -63,24 +63,36 @@ export type NewTask = {
   dueDate?: string;
   createdBy?: string;
   sourceReference?: string;
+  /** Stable caller key for one intended task effect; scoped by domain. */
+  idempotencyKey?: string;
 };
 
-export async function createTask(t: NewTask): Promise<{ id: string }> {
+export async function createTask(t: NewTask): Promise<{ id: string; reused: boolean }> {
   const domain = requireDomain(t.domain);
   const { rows } = await db().query(
     `insert into ai_core.tasks
        (domain, title, type, source, intent, input_context, suggested_executor, assigned_executor,
-        execution_mode, approval_required, priority, due_date, created_by, source_reference)
+        execution_mode, approval_required, priority, due_date, created_by, source_reference, idempotency_key)
      values ($1,$2,$3,$4,$5,$6::jsonb,$7,$8,coalesce($9,'human_handoff'),coalesce($10,false),
-             coalesce($11,'medium'),$12,$13,$14)
-     returning id`,
+             coalesce($11,'medium'),$12,$13,$14,$15)
+     on conflict (domain, idempotency_key) where idempotency_key is not null
+     do update set updated_at = now()
+     returning id, (xmax <> 0) as reused`,
     [domain, t.title, t.type ?? null, t.source ?? null, t.intent ?? null,
      JSON.stringify(t.inputContext ?? {}), t.suggestedExecutor ?? null, t.assignedExecutor ?? null,
      t.executionMode ?? null, t.approvalRequired ?? null, t.priority ?? null, t.dueDate ?? null,
-     t.createdBy ?? null, t.sourceReference ?? null]
+     t.createdBy ?? null, t.sourceReference ?? null, t.idempotencyKey ?? null]
   );
-  await logAudit({ domain, actor: t.createdBy ?? "system", action: "task.create", entityType: "task", entityId: rows[0].id });
-  return { id: rows[0].id };
+  const reused = Boolean(rows[0].reused);
+  await logAudit({
+    domain,
+    actor: t.createdBy ?? "system",
+    action: reused ? "task.reuse" : "task.create",
+    entityType: "task",
+    entityId: rows[0].id,
+    detail: t.idempotencyKey ? { idempotency_key: t.idempotencyKey, reused } : undefined,
+  });
+  return { id: rows[0].id, reused };
 }
 
 export async function updateTask(id: string, patch: Partial<{ status: TaskStatus; assignedExecutor: Executor; result: string; outputArtifacts: unknown[]; executionMode: ExecutionMode }>): Promise<void> {

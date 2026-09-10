@@ -25,17 +25,24 @@ export async function POST(request: Request) {
   const title = typeof body.title === "string" ? body.title.trim() : "";
   if (!title) return NextResponse.json({ error: "title is required" }, { status: 400 });
 
+  // Retries must carry the same stable key; never derive it from mutable prose.
+  const idempotencyKey =
+    typeof body.idempotencyKey === "string" && /^[A-Za-z0-9._:-]{1,200}$/.test(body.idempotencyKey)
+      ? body.idempotencyKey
+      : undefined;
+
   try {
-    const { id } = await createTask({
+    const { id, reused } = await createTask({
       domain,
       title,
+      idempotencyKey,
       intent: typeof body.intent === "string" ? body.intent : undefined,
       type: typeof body.type === "string" ? body.type : undefined,
       source: typeof body.source === "string" ? body.source : "text",
       suggestedExecutor: typeof body.suggestedExecutor === "string" ? body.suggestedExecutor : undefined,
       createdBy: actorForRole(session.role),
     });
-    return NextResponse.json({ id, domain, status: "NEW" });
+    return NextResponse.json({ id, domain, status: reused ? "REUSED" : "NEW", reused });
   } catch (err) {
     console.error("[ai-core/tasks POST]", err);
     return NextResponse.json({ error: "Could not create task" }, { status: 502 });

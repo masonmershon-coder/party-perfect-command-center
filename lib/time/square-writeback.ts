@@ -345,7 +345,9 @@ export async function writeBackTimecard(store: TimeStore, input: SquareWriteback
 
   let lastError = "Unknown Square write failure";
   let lastRetryable = false;
+  let attemptsUsed = 0;
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
+    attemptsUsed = attempt;
     // Re-read immediately before each attempt. If another actor changed Square, stop.
     const fresh = await retrieveSquareTimecard(input.timecardId);
     if (!fresh.ok || !fresh.data.timecard) {
@@ -416,13 +418,13 @@ export async function writeBackTimecard(store: TimeStore, input: SquareWriteback
     idempotencyHash,
     error: lastError,
     retryable: lastRetryable,
-    attempts: MAX_ATTEMPTS,
+    attempts: attemptsUsed,
   });
   return {
     ok: false,
     status: lastRetryable ? "PENDING_SQUARE_SYNC" : "FAILED",
     error: lastError,
     retryable: lastRetryable,
-    attempts: MAX_ATTEMPTS,
+    attempts: attemptsUsed,
   };
 }

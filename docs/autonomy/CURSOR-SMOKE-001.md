@@ -8,9 +8,11 @@
 | Worker identity | Cursor |
 | Claim timestamp (UTC) | `2026-09-10T14:22:34Z` |
 | Branch | `agent/cursor/CONTROL-PLANE-CURSOR-SMOKE-001-cloud` |
-| Commit SHA | `PENDING_CLAIM_COMMIT` |
+| Commit SHA | `cb23810bb92b24cd60cd8d09882743f69886aa2f` |
 | Related GitHub issue | https://github.com/masonmershon-coder/party-perfect-command-center/issues/12 |
 | Related control-plane PR | https://github.com/masonmershon-coder/party-perfect-command-center/pull/11 |
+
+Worker identity: Cursor
 
 ## Validation
 
@@ -19,19 +21,20 @@ Exact validation command:
 ```bash
 test -f docs/autonomy/CURSOR-SMOKE-001.md \
   && rg -n "CONTROL-PLANE-CURSOR-SMOKE-001|Worker identity: Cursor|no production systems were touched" docs/autonomy/CURSOR-SMOKE-001.md \
-  && git status --porcelain \
-  && git diff --name-only
+  && test -z "$(git status --porcelain)" \
+  && git rev-parse HEAD \
+  && git merge-base --is-ancestor cb23810bb92b24cd60cd8d09882743f69886aa2f HEAD
 ```
 
-Validation result: `PASS`
+Validation result: `PASS` (file present; required strings present; working tree clean after claim commits; claim commit is ancestor of HEAD)
 
 ## Files changed
 
-- `docs/autonomy/CURSOR-SMOKE-001.md` (created)
+- `docs/autonomy/CURSOR-SMOKE-001.md` (created / updated)
 
 ## Safety
 
-**No production systems were touched.** No merge, deploy, migration, POR write, credential change, dependency change, runtime code change, customer communication, or spend.
+**No production systems were touched.** Explicit statement: no production systems were touched. No merge, deploy, migration, POR write, credential change, dependency change, runtime code change, customer communication, or spend.
 
 ## Matter control-plane bridge status
 

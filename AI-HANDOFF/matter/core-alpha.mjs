@@ -2,7 +2,7 @@
 // Matter Core Alpha supervisor.
 // Keeps truthful worker presence + lease recovery alive without invoking a model.
 // Designed to be supervised by launchd/login item; all mutable state goes under MATTER_DATA_ROOT.
-import { mkdirSync, writeFileSync, renameSync } from "node:fs";
+import { mkdirSync, writeFileSync, renameSync, existsSync, copyFileSync } from "node:fs";
 import { hostname, arch, totalmem } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -19,6 +19,9 @@ const { probe, heartbeat, ack }=await import("./matter-registry.mjs");
 const { reclaim, status }=await import("./execution.mjs");
 const interval=Math.max(15,Number(process.env.MATTER_CORE_INTERVAL_SEC||30))*1000;
 const healthPath=path.join(ROOT,"CORE_HEALTH.json");
+// Policy is immutable configuration shipped with Core; seed the data root on first start.
+const policyDst=path.join(ROOT,"MATTER_POLICY.json");
+if(!existsSync(policyDst)) copyFileSync(path.join(HERE,"MATTER_POLICY.json"),policyDst);
 
 function atomicJson(file,obj){const tmp=file+".tmp";writeFileSync(tmp,JSON.stringify(obj,null,2)+"\n",{mode:0o600});renameSync(tmp,file)}
 function disk(){

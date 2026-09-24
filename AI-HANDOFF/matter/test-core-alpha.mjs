@@ -22,7 +22,7 @@ const h=JSON.parse(readFileSync(health,"utf8"));
 assert.equal(h.workers.find(x=>x.worker_id==="alive-worker").available,true);
 assert.equal(h.workers.find(x=>x.worker_id==="dead-worker").available,false);
 assert.ok(h.recovered.reclaimed.includes("recover-me"),"expired lease must be reclaimed");
-const rr=JSON.parse(readFileSync(path.join(ROOT,"WORKER_REGISTRY.json"),"utf8");
+const rr=JSON.parse(readFileSync(path.join(ROOT,"WORKER_REGISTRY.json"),"utf8"));
 assert.ok(rr.workers["alive-worker"].last_heartbeat,"live worker heartbeat must refresh");
 assert.equal(rr.workers["dead-worker"].last_heartbeat,null,"failed probe must not fake heartbeat");
 child.kill("SIGTERM"); await new Promise(r=>child.once("exit",r));

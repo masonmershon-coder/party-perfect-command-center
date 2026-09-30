@@ -1,5 +1,19 @@
 # CONTROL-PLANE-CURSOR-SMOKE-001
 
+## Machine-readable status
+
+```yaml
+status: CLAIMED
+task_id: CONTROL-PLANE-CURSOR-SMOKE-001
+worker: Cursor
+claim_commit: cb23810bb92b24cd60cd8d09882743f69886aa2f
+head_commit: 99a9ed121f6f76a641ce817ec0b7a79ed53e8ae2
+validation: PASS
+matter_bridge: github_only
+```
+
+`head_commit` is the branch HEAD this status block was written against; a commit cannot contain its own SHA, so the repair commit SHA is posted on PR #13.
+
 ## Claim
 
 | Field | Value |

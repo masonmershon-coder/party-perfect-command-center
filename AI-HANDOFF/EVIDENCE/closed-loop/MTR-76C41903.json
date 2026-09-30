@@ -1,0 +1,21 @@
+{
+  "task_id": "MTR-76C41903",
+  "message_id": "MSG-C20B797079",
+  "executed_at": "2026-08-18T19:26:16.426Z",
+  "method": "deterministic HTTP GET (read-only)",
+  "checks": [
+    {
+      "name": "kituwa",
+      "http": 200,
+      "ms": 888,
+      "reachable": true
+    },
+    {
+      "name": "command-center",
+      "http": 200,
+      "ms": 288,
+      "reachable": true
+    }
+  ],
+  "digest": "09125f4c3c7a54c6bedab3712cfe67c90b89c5c05244302dcb10fd51ccc772c1"
+}

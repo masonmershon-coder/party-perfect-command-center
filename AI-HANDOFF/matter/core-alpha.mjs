@@ -45,5 +45,5 @@ async function pass(){
 let stopping=false;
 for(const sig of ["SIGTERM","SIGINT"]){process.on(sig,()=>{if(stopping)return;stopping=true;process.exit(0)})}
 await pass();
-setInterval(()=>pass().catch(e=>console.error("matter-core pass failed:",e)),interval).unref();
-await new Promise(()=>{});
+// Must stay referenced (no .unref()): this handle is what keeps the supervisor process alive.
+setInterval(()=>pass().catch(e=>console.error("matter-core pass failed:",e)),interval);

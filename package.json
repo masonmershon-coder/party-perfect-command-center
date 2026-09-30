@@ -21,6 +21,8 @@
     "test:ai-cost": "npx tsx scripts/test-ai-cost.ts",
     "test:time": "npx tsx scripts/test-time.ts",
     "test:kituwa": "npx tsx scripts/test-kituwa.mjs",
+    "test:matter-callback": "npx tsx scripts/test-matter-callback.ts",
+    "test:matter-e2e": "npx tsx scripts/test-matter-e2e-smoke.ts",
     "test:matter-registry": "node AI-HANDOFF/matter/test-matter-registry.mjs"
   },
   "engines": {

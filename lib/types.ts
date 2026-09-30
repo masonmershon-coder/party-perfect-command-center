@@ -455,6 +455,25 @@ export interface PorMoneySnapshot {
     last30Days: number;
     yearToDate: number;
   };
+  /**
+   * Current Mon-Sun window by EVENT date (agentBuild 2026-09-09-week-revenue+).
+   * `booked` is the value of work going out this week with quotes excluded;
+   * `collected` is cash received this week. Different questions, both reported.
+   * Optional — older ENTERPRISE agents omit it.
+   */
+  week?: {
+    startDate: string;
+    endDate: string;
+    basis: "DeliveryDate";
+    booked: {
+      count: number; rent: number; sale: number;
+      tax: number; total: number; paid: number;
+    };
+    quotePipeline: { count: number; total: number };
+    collected: number;
+    byDay: { date: string; count: number; total: number }[];
+    byStatus: { status: string; count: number; total: number }[];
+  };
 }
 
 export interface PorOpsSnapshot {
@@ -488,6 +507,8 @@ export interface PorSalesSnapshot {
 /** Read-only Point of Rental ops snapshot pushed from ENTERPRISE. */
 export interface PorSnapshot {
   version: 1;
+  /** Which ENTERPRISE agent build produced this. Absent on pre-2026-09-09 agents. */
+  agentBuild?: string;
   syncedAt: string;
   sourceHost: string;
   sourceDatabase: string;

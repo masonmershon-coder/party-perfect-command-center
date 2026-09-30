@@ -188,8 +188,34 @@ function weeklyChecks() {
     });
 
   // 12. Secrets in tracked files (cheap regex, high value).
+  //
+  // The token itself decides severity -- NEVER the file path. A real credential
+  // sitting in a test file is still a real credential, so test files are scanned
+  // exactly like everything else. What is filtered is the obvious placeholder:
+  // `sk-abc...` in a test that asserts secrets get redacted is not a leak, and
+  // reporting it as P0 buries real findings. Four such fixtures held this sweep
+  // at 6 open P0s covering a single genuine issue (verified 2026-09-09).
+  //
+  // Placeholders are still reported, at P2 -- visible, but they do not drive health.
   const tracked = git(["ls-files"]).split("\n").filter((f) => /\.(ts|tsx|mjs|js|json|sh|ps1)$/.test(f));
-  const SECRET = /(xai-[A-Za-z0-9]{16}|sk-[A-Za-z0-9]{16}|AKIA[0-9A-Z]{16}|postgres(ql)?:\/\/[^\s"']+:[^\s"']+@)/;
+  const SECRET = /(xai-[A-Za-z0-9]{16,}|sk-[A-Za-z0-9]{16,}|AKIA[0-9A-Z]{16}|postgres(ql)?:\/\/[^\s"']+:[^\s"']+@)/g;
+
+  /** True when a match is plainly test data rather than a live credential. */
+  const looksSynthetic = (tok) => {
+    if (tok.startsWith("postgres")) return false; // URLs carry real hosts; never assume
+    const tail = tok.replace(/^(sk-|xai-|AKIA)/, "");
+    if (/^(abc|xyz|xxx|aaa|test|fake|dummy|example|sample|placeholder|redact|changeme|secret|0*1234)/i.test(tail)) return true;
+    if (new Set(tail).size <= 6) return true;          // effectively no entropy
+    if (/(.)\1{7,}/.test(tail)) return true;           // long single-character run
+    // Real keys are long. Anything materially shorter is a stand-in.
+    if (tok.startsWith("sk-") && tail.length < 40) return true;
+    if (tok.startsWith("xai-") && tail.length < 60) return true;
+    return false;
+  };
+
+  /** Show enough to identify the hit, never enough to use it. */
+  const mask = (tok) => `${tok.slice(0, 6)}...${tok.slice(-2)} (len ${tok.length})`;
+
   for (const f of tracked.slice(0, 4000)) {
     const abs = path.join(REPO_DIR, f);
     if (!existsSync(abs) || statSync(abs).size > 512 * 1024) continue;
@@ -199,11 +225,25 @@ function weeklyChecks() {
     } catch {
       continue;
     }
-    if (SECRET.test(body))
+    const hits = [...new Set(body.match(SECRET) || [])];
+    if (!hits.length) continue;
+    const real = hits.filter((h) => !looksSynthetic(h));
+    const fake = hits.filter(looksSynthetic);
+    const slug = f.replace(/[^a-z0-9]+/gi, "-").toLowerCase();
+    const lineOf = (tok) => body.slice(0, body.indexOf(tok)).split("\n").length;
+
+    if (real.length)
       findings.push({
         severity: "P0",
-        code: `secret-in-tracked-file-${f.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}`,
-        summary: `Possible secret committed in ${f}`,
+        code: `secret-in-tracked-file-${slug}`,
+        summary: `Possible secret committed in ${f} — ${real.map((h) => `line ${lineOf(h)}: ${mask(h)}`).join("; ")}`,
+        evidence: f,
+      });
+    if (fake.length)
+      findings.push({
+        severity: "P2",
+        code: `secret-placeholder-in-tracked-file-${slug}`,
+        summary: `Test placeholder (not a credential) in ${f} — ${fake.map((h) => `line ${lineOf(h)}: ${mask(h)}`).join("; ")}`,
         evidence: f,
       });
   }

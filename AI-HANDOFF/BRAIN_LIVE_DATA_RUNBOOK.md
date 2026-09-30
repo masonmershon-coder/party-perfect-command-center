@@ -15,7 +15,23 @@
 | **STALE** | ≤ 24 h | only with the cutoff date stated |
 | **FROZEN** | > 24 h | **no** — state the cutoff, or decline |
 | **OFFLINE** | unreachable | **no** |
-| **UNKNOWN** | no/unparseable timestamp | **no** — never assume LIVE |
+| **UNKNOWN** | no/unparseable timestamp, **not configured**, or **future timestamp** | **no** — never assume LIVE |
+
+Boundaries are evaluated in **exact elapsed milliseconds**, not rounded minutes: exactly
+60m is LIVE, 60m + 1ms is STALE; exactly 24h is STALE, 24h + 1ms is FROZEN.
+
+**UNKNOWN vs OFFLINE.** UNKNOWN means *we never looked* — missing configuration, no
+timestamp, or a clock we cannot trust. OFFLINE means *we looked and it is dead*.
+Conflating them would claim knowledge the tool does not have.
+
+**No address fallbacks.** Without explicit `POR_SQL_HOST` / `POR_SQL_PORT` the tool does
+not probe at all and reports UNKNOWN. Guessing an address would both leak topology and
+fabricate a result. Likewise the Redis probe requires a **read-only** token and never
+falls back to a read-write one — a status tool must not silently acquire write authority.
+
+**Clock skew.** A source reporting a timestamp ahead of this machine's clock is UNKNOWN,
+not LIVE, and carries an explicit skew caveat. Future-dating is how a broken writer or a
+drifting clock would otherwise manufacture permanent freshness.
 
 > Do not present figures derived from a FROZEN, OFFLINE, or UNKNOWN source as current.
 > State the cutoff date, or say you cannot answer.

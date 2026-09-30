@@ -14,7 +14,8 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { LIMITS, ageMinutes, grade, classify, isCurrent, presentationGuard } from "./brain-status.mjs";
+import { LIMITS, LIVE_MS, STALE_MS, ageMs, ageMinutes, grade, isFuture, classify, isCurrent,
+         presentationGuard, configStatus, redactSource, buildReport, renderText } from "./brain-status.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const NOW = Date.parse("2026-09-30T12:00:00.000Z");        // frozen clock
@@ -111,6 +112,122 @@ t("6. no test path reads credentials, Redis, POR, SQL or a production API", () =
     const n = parts.join("");
     assert.ok(!self.includes(n), `test file must not reference ${parts[0]}...`);
   }
+});
+
+
+// ---- 7. output contains cutoff timestamps
+t("7. text and JSON output both carry cutoff timestamps", () => {
+  const sources = [{ name: "ops", syncedAt: ago(5) }, { name: "detail", syncedAt: ago(50 * 1440) }];
+  const rep = buildReport(sources, NOW);
+  for (const s of rep.sources) {
+    assert.ok(s.cutoff, `${s.name} must carry a cutoff`);
+    assert.match(s.cutoff, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/, "cutoff must be an ISO timestamp");
+  }
+  const txt = renderText(rep);
+  assert.match(txt, /cutoff 2026-09-30T11:55:00Z/, "LIVE line shows its cutoff");
+  assert.match(txt, /cutoff 2026-08-11T12:00:00Z/, "FROZEN line shows its cutoff");
+  // a source with no timestamp must still render a cutoff field, not silently omit it
+  const none = renderText(buildReport([{ name: "nothing" }], NOW));
+  assert.match(none, /cutoff —/);
+});
+
+// ---- 8. JSON output contains no tokens, passwords or PII
+t("8. JSON output carries no tokens, passwords or PII", () => {
+  // a probe that wrongly attaches sensitive fields must not leak them
+  const dirty = {
+    name: "ops", syncedAt: ago(5),
+    apiToken: "tok_" + "A".repeat(24), password: "hunter2", sessionCookie: "sid=abc",
+    customerEmail: "someone@example.com", customerPhone: "918-555-1234", ownerPin: "1234",
+    serviceRoleKey: "srk_" + "B".repeat(24), note: "safe note",
+  };
+  const out = redactSource(dirty, NOW);
+  for (const k of ["apiToken", "password", "sessionCookie", "customerEmail", "customerPhone", "ownerPin", "serviceRoleKey"]) {
+    assert.ok(!(k in out), `${k} must be dropped from output`);
+  }
+  assert.equal(out.note, "safe note", "allow-listed fields survive");
+  const json = JSON.stringify(buildReport([dirty], NOW));
+  for (const v of ["hunter2", "sid=abc", "someone@example.com", "918-555-1234", "1234", "tok_", "srk_"]) {
+    assert.ok(!json.includes(v), `value ${v} leaked into JSON`);
+  }
+  // the render path must be equally safe
+  assert.ok(!renderText(buildReport([dirty], NOW)).includes("hunter2"));
+});
+
+// ---- 10. missing environment configuration fails truthfully
+t("10. missing configuration fails truthfully, never silently LIVE", () => {
+  const cfg = configStatus({}, { name: "transaction detail", needs: ["KV_REST" + "_API_URL"] });
+  assert.equal(cfg.configured, false);
+  assert.equal(cfg.reachable, undefined, "unconfigured must NOT claim we probed it");
+  assert.match(cfg.note, /not configured/i);
+  assert.match(cfg.note, /absent/i, "the note must name what is missing");
+  assert.equal(classify(cfg, NOW), "UNKNOWN", "unconfigured = never looked = UNKNOWN, never LIVE");
+  assert.equal(presentationGuard(cfg, NOW).ok, false);
+  // and when configuration IS present it does not fabricate freshness
+  const ok = configStatus({ ["KV_REST" + "_API_URL"]: "x" }, { name: "d", needs: ["KV_REST" + "_API_URL"] });
+  assert.equal(ok.configured, true);
+  assert.equal(classify(ok, NOW), "UNKNOWN", "configured but unprobed is UNKNOWN, not LIVE");
+});
+
+
+// ---- 11. exact boundaries, to the millisecond
+t("11. LIVE/STALE/FROZEN boundaries are exact, not rounded minutes", () => {
+  const at = (ms) => ({ name: "b", syncedAt: new Date(NOW - ms).toISOString() });
+  assert.equal(classify(at(LIVE_MS), NOW), "LIVE", "exactly 60m is LIVE");
+  assert.equal(classify(at(LIVE_MS + 1), NOW), "STALE", "60m + 1ms is STALE");
+  assert.equal(classify(at(STALE_MS), NOW), "STALE", "exactly 24h is STALE");
+  assert.equal(classify(at(STALE_MS + 1), NOW), "FROZEN", "24h + 1ms is FROZEN");
+  // the rounding bug this replaces: 60m30s must NOT read as LIVE
+  assert.equal(classify(at(60 * 60_000 + 30_000), NOW), "STALE", "60m30s must not round down to LIVE");
+  assert.equal(ageMs(at(LIVE_MS + 1).syncedAt, NOW), LIVE_MS + 1, "exact ms is preserved");
+});
+
+// ---- 12. future timestamps
+t("12. a future timestamp is UNKNOWN with a clock-skew caveat", () => {
+  const future = { name: "ops snapshot", syncedAt: new Date(NOW + 5 * 60_000).toISOString() };
+  assert.equal(isFuture(future.syncedAt, NOW), true);
+  assert.ok(ageMs(future.syncedAt, NOW) < 0, "future age is negative");
+  assert.equal(classify(future, NOW), "UNKNOWN", "future must never read as LIVE");
+  const g = presentationGuard(future, NOW);
+  assert.equal(g.ok, false);
+  assert.equal(g.skew, true);
+  assert.match(g.caveat, /FUTURE/);
+  assert.match(g.caveat, /clock skew/i);
+  assert.equal(redactSource(future, NOW).clock_skew, true, "JSON flags the skew");
+  // one millisecond into the future is still future
+  assert.equal(classify({ syncedAt: new Date(NOW + 1).toISOString() }, NOW), "UNKNOWN");
+});
+
+// ---- 13. missing POR host/port -> UNKNOWN, without probing
+t("13. missing POR host/port yields UNKNOWN and performs no probe", () => {
+  const cfg = configStatus({}, { name: "Direct POR SQL", needs: ["POR_SQL_HOST", "POR_SQL_PORT"] });
+  assert.equal(cfg.configured, false);
+  assert.equal(cfg.reachable, undefined, "must not claim a probe result");
+  assert.equal(classify(cfg, NOW), "UNKNOWN");
+  assert.match(cfg.note, /POR_SQL_HOST/);
+  assert.match(cfg.note, /POR_SQL_PORT/);
+  assert.match(presentationGuard(cfg, NOW).caveat, /NOT CONFIGURED/);
+  // partial configuration is still not configured
+  assert.equal(configStatus({ POR_SQL_HOST: "h" }, { needs: ["POR_SQL_HOST", "POR_SQL_PORT"] }).configured, false);
+  // the source must carry no hardcoded address fallback
+  const src = readFileSync(path.join(HERE, "brain-status.mjs"), "utf8");
+  assert.doesNotMatch(src, /POR_SQL_HOST\s*\|\|/, "no host fallback allowed");
+  assert.doesNotMatch(src, /POR_SQL_PORT\s*\|\|/, "no port fallback allowed");
+  assert.doesNotMatch(src, /\b\d{1,3}(\.\d{1,3}){3}\b/, "no hardcoded IP address allowed");
+});
+
+// ---- 14. read-only Redis token is required, with no read-write fallback
+t("14. missing read-only token yields UNKNOWN and never falls back to the write token", () => {
+  const RO = "KV_REST" + "_API_READ_ONLY_TOKEN", URL = "KV_REST" + "_API_URL", RW = "KV_REST" + "_API_TOKEN";
+  const cfg = configStatus({ [URL]: "https://example.invalid" }, { name: "detail", needs: [URL, RO] });
+  assert.equal(cfg.configured, false, "url alone is not enough");
+  assert.equal(classify(cfg, NOW), "UNKNOWN");
+  assert.match(cfg.note, /READ_ONLY/);
+  // supplying ONLY the read-write token must not satisfy the requirement
+  const rwOnly = configStatus({ [URL]: "https://example.invalid", [RW]: "x" }, { needs: [URL, RO] });
+  assert.equal(rwOnly.configured, false, "read-write token must not substitute for read-only");
+  // and the source must contain no such fallback
+  const src = readFileSync(path.join(HERE, "brain-status.mjs"), "utf8");
+  assert.doesNotMatch(src, new RegExp(RO + "\\s*\\|\\|"), "no fallback from read-only to read-write token");
 });
 
 console.log(`\n${pass} passed, ${fail} failed`);

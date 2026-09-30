@@ -30,19 +30,41 @@ export const LIMITS = { LIVE: 60, STALE: 1440 };
 
 export const STATUSES = ["LIVE", "STALE", "FROZEN", "OFFLINE", "UNKNOWN"];
 
-/** Age in whole minutes between a timestamp and `nowMs`. null when unparseable/absent. */
-export function ageMinutes(syncedAt, nowMs = Date.now()) {
+/** Boundaries in milliseconds. Grading uses EXACT elapsed time, never rounded minutes:
+ *  rounding made 60m30s read as LIVE. */
+export const LIVE_MS = LIMITS.LIVE * 60_000;
+export const STALE_MS = LIMITS.STALE * 60_000;
+
+/** Exact elapsed milliseconds. Negative means the timestamp is in the future. */
+export function ageMs(syncedAt, nowMs = Date.now()) {
   if (!syncedAt) return null;
   const t = Date.parse(syncedAt);
   if (!Number.isFinite(t)) return null;
-  return Math.round((nowMs - t) / 60000);
+  return nowMs - t;
 }
 
-/** Grade a raw age. Unknown age is UNKNOWN, never optimistically LIVE. */
-export function grade(mins) {
-  if (mins == null) return "UNKNOWN";
-  if (mins <= LIMITS.LIVE) return "LIVE";
-  if (mins <= LIMITS.STALE) return "STALE";
+/** Whole minutes, for DISPLAY only. Never use this for grading. */
+export function ageMinutes(syncedAt, nowMs = Date.now()) {
+  const ms = ageMs(syncedAt, nowMs);
+  return ms == null ? null : Math.round(ms / 60_000);
+}
+
+/** True when a source claims a timestamp ahead of our clock — skew or a bad writer. */
+export function isFuture(syncedAt, nowMs = Date.now()) {
+  const ms = ageMs(syncedAt, nowMs);
+  return ms != null && ms < 0;
+}
+
+/**
+ * Grade EXACT elapsed milliseconds. Unknown age is UNKNOWN, never optimistically LIVE.
+ * A future timestamp is UNKNOWN: we cannot trust a source whose clock disagrees with ours.
+ * Boundaries are inclusive: exactly 60m is LIVE, one millisecond past is STALE.
+ */
+export function grade(ms) {
+  if (ms == null) return "UNKNOWN";
+  if (ms < 0) return "UNKNOWN";
+  if (ms <= LIVE_MS) return "LIVE";
+  if (ms <= STALE_MS) return "STALE";
   return "FROZEN";
 }
 
@@ -52,8 +74,11 @@ export function grade(mins) {
  * carries — a stale timestamp from a dead source must never read as merely STALE.
  */
 export function classify(source, nowMs = Date.now()) {
+  // "not configured" means we never looked -> UNKNOWN. "unreachable" means we looked and
+  // it is dead -> OFFLINE. Conflating them would claim knowledge we do not have.
+  if (source?.configured === false) return "UNKNOWN";
   if (source?.reachable === false) return "OFFLINE";
-  return grade(ageMinutes(source?.syncedAt, nowMs));
+  return grade(ageMs(source?.syncedAt, nowMs));
 }
 
 /** Only a LIVE source may be quoted without a cutoff date. */
@@ -72,6 +97,14 @@ export function presentationGuard(source, nowMs = Date.now()) {
   if (status === "LIVE") return { ok: true, status, caveat: null };
   const name = source?.name || "source";
   const as = source?.syncedAt ? ` as of ${String(source.syncedAt).slice(0, 10)}` : "";
+  if (isFuture(source?.syncedAt, nowMs)) {
+    return { ok: false, status, skew: true,
+      caveat: `${name} reports a timestamp in the FUTURE (${String(source.syncedAt).slice(0, 19)}Z) — clock skew between this machine and the source. Freshness is UNKNOWN; do not present its figures as current until the clocks agree.` };
+  }
+  if (source?.configured === false) {
+    return { ok: false, status,
+      caveat: `${name} is NOT CONFIGURED on this machine — freshness is UNKNOWN because it was never probed. No figure may be taken from it.` };
+  }
   const why = {
     STALE: `${name} is STALE${as} — state the cutoff date with any figure taken from it.`,
     FROZEN: `${name} is FROZEN${as} — do NOT present its figures as current. State the cutoff date, or decline.`,
@@ -83,6 +116,68 @@ export function presentationGuard(source, nowMs = Date.now()) {
 
 export const humanAge = (m) =>
   m == null ? "unknown" : m < 60 ? `${m}m` : m < 2880 ? `${Math.round(m / 60)}h` : `${Math.round(m / 1440)}d`;
+
+/**
+ * Requirement: missing configuration must fail TRUTHFULLY — never silently LIVE.
+ * Pure: takes an env-like object, returns a source-shaped verdict. No filesystem read.
+ */
+export function configStatus(env = {}, { name = "source", needs = [] } = {}) {
+  const missing = needs.filter((k) => !env[k]);
+  if (missing.length) {
+    // Deliberately does NOT set reachable:false — we did not probe, so we must not imply we did.
+    return { name, syncedAt: null,
+             note: `not configured on this machine: ${missing.join(", ")} absent`, configured: false };
+  }
+  return { name, configured: true };
+}
+
+/** Fields that may never appear in emitted output. Enforced by redactSource(). */
+const FORBIDDEN_KEYS = /token|password|secret|key|credential|cookie|authorization|pin|ssn|phone|email/i;
+
+/**
+ * Build the machine-readable report. Emits ONLY an allow-listed set of fields, so a
+ * probe that accidentally attaches a token cannot leak it into --json output.
+ */
+export function redactSource(src, nowMs = Date.now()) {
+  const allow = ["name", "what", "path", "syncedAt", "note", "agentBuild", "missing", "reachable", "configured"];
+  const out = {};
+  for (const k of allow) if (src?.[k] !== undefined) out[k] = src[k];
+  for (const k of Object.keys(out)) if (FORBIDDEN_KEYS.test(k)) delete out[k];
+  out.ageMs = ageMs(out.syncedAt, nowMs);
+  out.ageMinutes = ageMinutes(out.syncedAt, nowMs);
+  if (isFuture(out.syncedAt, nowMs)) out.clock_skew = true;
+  out.status = classify(src, nowMs);
+  out.cutoff = out.syncedAt ? String(out.syncedAt).slice(0, 19) + "Z" : null;
+  const g = presentationGuard(src, nowMs);
+  out.may_be_quoted_as_current = g.ok;
+  out.required_caveat = g.caveat;
+  return out;
+}
+
+export function buildReport(sources, nowMs = Date.now()) {
+  return {
+    generated_at: new Date(nowMs).toISOString(),
+    limits: LIMITS,
+    contract: "Do not present FROZEN, OFFLINE or UNKNOWN figures as current. State the cutoff date, or decline.",
+    sources: sources.map((s) => redactSource(s, nowMs)),
+  };
+}
+
+/** Human render. Every non-LIVE line carries its cutoff timestamp and caveat. */
+export function renderText(report) {
+  const W = 26, L = [];
+  L.push(`PARTY PERFECT BRAIN — DATA FRESHNESS   ${report.generated_at.slice(0, 16).replace("T", " ")}`, "");
+  for (const s of report.sources) {
+    const badge = { LIVE: "● LIVE  ", STALE: "◐ STALE ", FROZEN: "○ FROZEN", OFFLINE: "✕ OFFLINE", UNKNOWN: "? UNKNOWN" }[s.status];
+    L.push(`${badge}  ${(s.name || "").padEnd(W)} ${s.cutoff ? "cutoff " + s.cutoff : "cutoff —"}  (${humanAge(s.ageMinutes)} old)`);
+    if (s.what) L.push(`            ${s.what}`);
+    if (s.note) L.push(`            ${s.note}`);
+    if (s.missing?.length) L.push(`            MISSING FIELDS: ${s.missing.join(", ")}`);
+    if (!s.may_be_quoted_as_current) L.push(`            ${s.required_caveat}`);
+    L.push("");
+  }
+  return L.join("\n");
+}
 
 // ---------------------------------------------------------------- probes (side effects)
 // None of these run on import. The CLI block at the bottom is their only caller.
@@ -115,8 +210,11 @@ async function probeCrmMirror() {
   const src = { name: "POR transaction detail", what: "transactions, customers, payments — every dated dollar figure",
                 path: "ENTERPRISE → /api/por/sync/crm → Redis", syncedAt: null, note: "" };
   const env = envLocal();
-  const url = env.KV_REST_API_URL, tok = env.KV_REST_API_READ_ONLY_TOKEN || env.KV_REST_API_TOKEN;
-  if (!url || !tok) { src.reachable = false; src.note = "KV not configured on this machine"; return src; }
+  // READ-ONLY token only. Never fall back to the read-write token: a status tool must not
+  // hold write authority, and a silent fallback would grant it invisibly.
+  const cfg = configStatus(env, { name: src.name, needs: ["KV_REST_API_URL", "KV_REST_API_READ_ONLY_TOKEN"] });
+  if (!cfg.configured) return { ...src, configured: false, note: cfg.note };
+  const url = env.KV_REST_API_URL, tok = env.KV_REST_API_READ_ONLY_TOKEN;
   try {
     const r = await fetch(`${url}/get/pp:por:crm-meta`, { headers: { Authorization: `Bearer ${tok}` } });
     const j = await r.json();
@@ -136,8 +234,11 @@ async function probeCrmMirror() {
 function probeDirectSql() {
   const src = { name: "Direct POR SQL", what: "ad-hoc queries: any date range, any table",
                 path: "POR host:port (NTLM)", syncedAt: null, note: "" };
-  const host = process.env.POR_SQL_HOST || "192.168.0.5", port = process.env.POR_SQL_PORT || "9676";
-  try { execFileSync("nc", ["-z", "-G2", host, port], { stdio: "ignore" }); src.reachable = true; src.note = "port answers; run a real query to confirm the login"; }
+  // No hardcoded host or port. Without explicit configuration we do not probe at all and
+  // report UNKNOWN -- guessing an address would both leak topology and fake a result.
+  const cfg = configStatus(process.env, { name: src.name, needs: ["POR_SQL_HOST", "POR_SQL_PORT"] });
+  if (!cfg.configured) return { ...src, configured: false, note: cfg.note };
+  try { execFileSync("nc", ["-z", "-G2", process.env.POR_SQL_HOST, process.env.POR_SQL_PORT], { stdio: "ignore" }); src.reachable = true; src.note = "port answers; run a real query to confirm the login"; }
   catch { src.reachable = false; src.note = "port unreachable"; }
   return src;
 }
@@ -148,25 +249,15 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const sources = [await probeOpsSnapshot(), await probeCrmMirror(), probeDirectSql()];
   for (const s of sources) { s.ageMinutes = ageMinutes(s.syncedAt); s.status = classify(s); }
 
-  if (jsonOut) {
-    console.log(JSON.stringify({ generated_at: new Date().toISOString(), limits: LIMITS, sources }, null, 2));
-  } else {
-    const W = 26;
-    console.log(`\nPARTY PERFECT BRAIN — DATA FRESHNESS   ${new Date().toISOString().slice(0, 16).replace("T", " ")}\n`);
-    for (const s of sources) {
-      const badge = { LIVE: "● LIVE  ", STALE: "◐ STALE ", FROZEN: "○ FROZEN", OFFLINE: "✕ OFFLINE", UNKNOWN: "? UNKNOWN" }[s.status];
-      console.log(`${badge}  ${s.name.padEnd(W)} ${s.syncedAt ? humanAge(s.ageMinutes).padStart(5) + " old" : "     —    "}`);
-      console.log(`            ${s.what}`);
-      if (s.note) console.log(`            ${s.note}`);
-      if (s.missing?.length) console.log(`            MISSING FIELDS: ${s.missing.join(", ")} — deploy por-sync-agent/Sync-PorSnapshot.ps1`);
-      console.log();
-    }
-    const notCurrent = sources.filter((s) => !isCurrent(s));
-    if (notCurrent.length) {
+  const report = buildReport(sources);
+  if (jsonOut) { console.log(JSON.stringify(report, null, 2)); }
+  else {
+    console.log("\n" + renderText(report));
+    const bad = report.sources.filter((s) => !s.may_be_quoted_as_current);
+    if (bad.length) {
       console.log("RULE FOR EVERY AGENT:");
-      console.log("  Do NOT present figures from a FROZEN or OFFLINE source as current.");
-      console.log("  State the cutoff date, or say you cannot answer.\n");
-      for (const s of notCurrent) console.log(`  · ${presentationGuard(s).caveat}`);
+      console.log("  " + report.contract + "\n");
+      for (const s of bad) console.log(`  · ${s.required_caveat}`);
       console.log("\n  Fix: AI-HANDOFF/BRAIN_LIVE_DATA_RUNBOOK.md\n");
     } else console.log("All sources current.\n");
   }

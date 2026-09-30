@@ -1,24 +1,26 @@
 # CURRENT TASK
 
 **TASK ID:** PP-TIME-SHADOW-MODE-P0  
-**STATUS:** SHADOW_MODE_REMEDIATION_BLOCKED (Square Labor env)  
+**STATUS:** WAITING_FOR_MASON (Square Preview env still missing after Mason “set” signal)  
 **UPDATED:** 2026-08-17  
 
-## Done
+Mason replied: Preview Square env is set. Cursor re-pulled **party-perfect-command-center Preview** (names only):
 
-- Preview reachable without Vercel SSO: `https://time-preview.partyperfect.app/time`
-- TS2367 factcheck fix; tsc clean
-- Auth matrix recognizes `requireTimeAdmin`; Time admin routes use Time session + area caps
-- PIN lockout durable (Redis / durable JSON)
-- Correction vs resync tests green
-- Shadow sync + parity scripts ready (Labor API)
+- `SQUARE_ACCESS_TOKEN` MISSING  
+- `SQUARE_LOCATION_ID` MISSING  
+- `SQUARE_ENV` MISSING  
+- `CRON_SECRET` MISSING on Preview (PRESENT on Production only)  
+- `SQUARE_TIME_WRITE` MISSING (correct — writes stay off)
 
-## Blocked
+No redeploy. No live Square sync. No Square writes. `0009` HELD. Employees stay on Square.
 
-`SQUARE_ACCESS_TOKEN` + `SQUARE_LOCATION_ID` not available in this environment → cannot prove live Square through **2026-08-17**.
+Public preview still: `https://time-preview.partyperfect.app/time` SHA `e9f31c8` / `dpl_Bi1bhV5RqMz1PoUSfaRS45WktMHn`.
 
-## Holds
+## Data freshness — read before quoting any POR number
 
-`0009` not applied · Square still punch authority · no employee production cutover
+`node AI-HANDOFF/brain-status.mjs`
 
-Evidence: `AI-HANDOFF/EVIDENCE/PP-TIME-SHADOW_MODE_REMEDIATION_2026-08-17.md`
+Sources are graded LIVE / STALE / FROZEN by age. **Never present a FROZEN source's
+figures as current** — state the cutoff date or decline. As of 2026-09-30 the
+transaction detail is 50 days frozen while the ops snapshot beside it is minutes
+old. Fix: `AI-HANDOFF/BRAIN_LIVE_DATA_RUNBOOK.md`

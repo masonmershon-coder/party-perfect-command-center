@@ -223,5 +223,33 @@
     "google_drive_sync": "NOT IMPLEMENTED",
     "automatic_brain_sync": "NOT RUNNING"
   },
-  "brain_package_sha": "c48573d02b3a46ac22942d6575ee8a700acf0e8c"
+  "brain_package_sha": "c48573d02b3a46ac22942d6575ee8a700acf0e8c",
+  "data_freshness_contract": {
+    "check_command": "node AI-HANDOFF/brain-status.mjs",
+    "runbook": "AI-HANDOFF/BRAIN_LIVE_DATA_RUNBOOK.md",
+    "rule": "Do NOT present figures from a FROZEN or OFFLINE source as current. State the cutoff date, or say you cannot answer.",
+    "grades": {
+      "LIVE": "<=60 min",
+      "STALE": "<=24 h",
+      "FROZEN": ">24 h"
+    },
+    "preference_order_for_dated_money": [
+      "direct POR SQL",
+      "ops snapshot money.week / money.revenue",
+      "transaction detail mirror",
+      "SSD export (label the cutoff)"
+    ],
+    "known_state_2026_09_30": {
+      "ops_snapshot": "LIVE (minutes old) but ENTERPRISE runs a pre-2026-08-07 build: money.revenue, money.week, sales, agentBuild all absent",
+      "transaction_detail": "FROZEN 50 days \u2014 hand-loaded CSV bootstrap 2026-08-11; ENTERPRISE build predates the CRM push",
+      "direct_sql": "DEAD since 2026-09-11 \u2014 4453cadmin password expired at 30 days",
+      "incident": "weekly revenue answered from the frozen mirror read ~half of actual ($64,384 vs $116,813 true)"
+    },
+    "fix": {
+      "A": "deploy por-sync-agent/Sync-PorSnapshot.ps1 to ENTERPRISE \u2014 fixes ops fields AND unfreezes detail",
+      "B": "reset 4453cadmin, set never-expires, update keychain \u2014 restores ad-hoc queries",
+      "blocked_for_claude": "both are on-site actions on the Windows box"
+    }
+  },
+  "updated_at": "2026-09-30T18:12:27.305602Z"
 }

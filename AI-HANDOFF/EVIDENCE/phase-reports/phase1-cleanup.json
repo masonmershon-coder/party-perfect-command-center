@@ -1,0 +1,60 @@
+{
+  "branch": "claude/MATTER-FRESHNESS-EVIDENCE-CLEANUP",
+  "base_sha": "c509783877a7a1948a921971c10df305605e879c",
+  "current_sha": "eb94a6b0dc12ab1da70560a168e27eeaebd28eb2",
+  "generated_at": "2026-09-30T20:10:47.972Z",
+  "safety_boundaries": [
+    "no merge",
+    "no deploy",
+    "no LaunchAgent install or arm",
+    "no POR or production SQL write",
+    "no ENTERPRISE change",
+    "no credential/permission/billing change",
+    "no paid compute",
+    "dirty main checkout untouched (30 entries preserved)",
+    "no Cursor worktree touched",
+    "no secrets emitted"
+  ],
+  "phase": 1,
+  "title": "Clean the deferred commits",
+  "status": "COMPLETE",
+  "source_commits": [
+    "bac1581",
+    "dfe4a35"
+  ],
+  "method": "inspection only; neither cherry-picked",
+  "files_examined": [
+    "bac1581:CURSOR_KITUWA_MATTER_API_HANDOFF.md",
+    "bac1581:EVIDENCE/closed-loop/MTR-76C41903.json",
+    "bac1581:matter/WORKER_REGISTRY.json",
+    "dfe4a35:brain-status.mjs",
+    "dfe4a35:BRAIN_LIVE_DATA_RUNBOOK.md",
+    "dfe4a35:CURRENT_TASK.md",
+    "dfe4a35:PARTY_PERFECT_BRAIN_MANIFEST.json",
+    "dfe4a35:BLOCKERS.md"
+  ],
+  "files_changed": [
+    "AI-HANDOFF/brain-status.mjs",
+    "AI-HANDOFF/test-brain-status.mjs",
+    "AI-HANDOFF/BRAIN_LIVE_DATA_RUNBOOK.md",
+    "AI-HANDOFF/CURSOR_KITUWA_MATTER_API_HANDOFF.md",
+    "AI-HANDOFF/EVIDENCE/closed-loop/MTR-76C41903.json",
+    "AI-HANDOFF/EVIDENCE/closed-loop/README.md"
+  ],
+  "excluded": {
+    "AI-HANDOFF/matter/WORKER_REGISTRY.json": "heartbeat/probe timestamp churn only; committing would publish August worker presence as current",
+    "AI-HANDOFF/CURRENT_TASK.md": "3-way merge conflict vs matter-core-alpha (1 hunk)",
+    "AI-HANDOFF/PARTY_PERFECT_BRAIN_MANIFEST.json": "3-way merge conflict vs matter-core-alpha (1 hunk)",
+    "AI-HANDOFF/BLOCKERS.md": "also conflicts; excluded on the same grounds (not in the original exclusion list)"
+  },
+  "tests_run": [
+    "node AI-HANDOFF/test-brain-status.mjs"
+  ],
+  "pass": 13,
+  "fail": 0,
+  "unproven_claims": [
+    "historical evidence is labelled, not re-probed; Aug 18 results are not current runtime proof"
+  ],
+  "recommended_next_action": "Codex review of the branch",
+  "ready_for_codex": true
+}

@@ -1,0 +1,49 @@
+{
+  "branch": "claude/MATTER-FRESHNESS-EVIDENCE-CLEANUP",
+  "base_sha": "c509783877a7a1948a921971c10df305605e879c",
+  "current_sha": "eb94a6b0dc12ab1da70560a168e27eeaebd28eb2",
+  "generated_at": "2026-09-30T20:10:47.972Z",
+  "safety_boundaries": [
+    "no merge",
+    "no deploy",
+    "no LaunchAgent install or arm",
+    "no POR or production SQL write",
+    "no ENTERPRISE change",
+    "no credential/permission/billing change",
+    "no paid compute",
+    "dirty main checkout untouched (30 entries preserved)",
+    "no Cursor worktree touched",
+    "no secrets emitted"
+  ],
+  "phases_completed": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+  ],
+  "reports": [
+    "AI-HANDOFF/EVIDENCE/phase-reports/phase1-cleanup.json",
+    "AI-HANDOFF/EVIDENCE/phase-reports/phase2-freshness-tests.json",
+    "AI-HANDOFF/EVIDENCE/phase-reports/phase3-por-deploy-package.json",
+    "AI-HANDOFF/EVIDENCE/phase-reports/phase4-mac-mini-runtime.json",
+    "AI-HANDOFF/EVIDENCE/phase-reports/phase5-governor-audit.json",
+    "AI-HANDOFF/EVIDENCE/phase-reports/phase6-dirty-worktree.json"
+  ],
+  "tests_total": {
+    "pass": 13,
+    "fail": 0
+  },
+  "production_touched": false,
+  "secrets_exposed": false,
+  "blockers": [
+    "Fix A: POR sync deploy needs file access to the POR host",
+    "Fix B: least-privilege read-only POR account needs a DBA",
+    "Mac Mini validation needs physical access and the 4TB mount path",
+    "F1 control-plane->trust-gate wiring not yet done",
+    "owner budget decision outstanding"
+  ],
+  "ready_for_codex": true
+}

@@ -1,0 +1,47 @@
+{
+  "branch": "claude/MATTER-FRESHNESS-EVIDENCE-CLEANUP",
+  "base_sha": "c509783877a7a1948a921971c10df305605e879c",
+  "current_sha": "eb94a6b0dc12ab1da70560a168e27eeaebd28eb2",
+  "generated_at": "2026-09-30T20:10:47.972Z",
+  "safety_boundaries": [
+    "no merge",
+    "no deploy",
+    "no LaunchAgent install or arm",
+    "no POR or production SQL write",
+    "no ENTERPRISE change",
+    "no credential/permission/billing change",
+    "no paid compute",
+    "dirty main checkout untouched (30 entries preserved)",
+    "no Cursor worktree touched",
+    "no secrets emitted"
+  ],
+  "phase": 3,
+  "title": "POR sync deployment package",
+  "status": "COMPLETE — NOT DEPLOYED",
+  "deliverable": "AI-HANDOFF/EVIDENCE/por-sync-deploy/PACKAGE.md",
+  "sha256": {
+    "por-sync-agent/Sync-PorSnapshot.ps1": "6acc7ed47ecd3f345e8b17a9f42c52708daff5861bdb5a9baf76b155e6f6161f",
+    "por-sync-agent/PorStatus.ps1": "d0c5e0dbd4d71ba26776859288c543aa2fa9e189c15b25e867a3ff66d6a0cd15",
+    "por-sync-agent/Get-PorRevenue.ps1": "87c17041834c85af2b395fac2ebe8202e0fba715a4f345b4df50de0b95456935"
+  },
+  "staging_verified": "all three staged copies byte-identical to git on 2026-09-30",
+  "expected_fields_after_deploy": [
+    "agentBuild",
+    "money.revenue",
+    "money.week",
+    "sales",
+    "CRM mirror freshness advancing"
+  ],
+  "tests_run": [],
+  "pass": 0,
+  "fail": 0,
+  "unproven_claims": [
+    "read-only guarantees are read from source, not observed at runtime on the POR host",
+    "deploy has NOT occurred; no field is claimed present"
+  ],
+  "blockers": [
+    "requires file access to the POR host — Claude has none"
+  ],
+  "recommended_next_action": "operator copies two files to the agent install dir and runs it once by hand",
+  "ready_for_codex": true
+}

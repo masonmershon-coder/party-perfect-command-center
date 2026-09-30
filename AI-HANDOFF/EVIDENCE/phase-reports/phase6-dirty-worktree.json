@@ -1,0 +1,66 @@
+{
+  "branch": "claude/MATTER-FRESHNESS-EVIDENCE-CLEANUP",
+  "base_sha": "c509783877a7a1948a921971c10df305605e879c",
+  "current_sha": "eb94a6b0dc12ab1da70560a168e27eeaebd28eb2",
+  "generated_at": "2026-09-30T20:10:47.972Z",
+  "safety_boundaries": [
+    "no merge",
+    "no deploy",
+    "no LaunchAgent install or arm",
+    "no POR or production SQL write",
+    "no ENTERPRISE change",
+    "no credential/permission/billing change",
+    "no paid compute",
+    "dirty main checkout untouched (30 entries preserved)",
+    "no Cursor worktree touched",
+    "no secrets emitted"
+  ],
+  "phase": 6,
+  "title": "Dirty checkout classification",
+  "status": "COMPLETE (read-only)",
+  "deliverable": "AI-HANDOFF/EVIDENCE/dirty-worktree/CLASSIFICATION.md",
+  "checkout": "/Users/mikeai/grok-dashboard",
+  "checkout_branch": "claude/brain-live-por-001",
+  "checkout_head": "dfe4a3537c4cf6e848ecd57c8265e8aba662acbf",
+  "entries": 30,
+  "classes": {
+    "runtime_state_or_log": 8,
+    "test_generated_state": 4,
+    "agent_generated_report": 3,
+    "coordination_doc": 2,
+    "durable_evidence": 3,
+    "real_time_feature_source": 9,
+    "config_example": 1
+  },
+  "secret_risk": {
+    "scanned": 30,
+    "hits": 1,
+    "verdict": "placeholder — commented postgres URL, user postgres.<ref>, 3-char single-repeat password, already in committed HEAD, absent from the uncommitted diff"
+  },
+  "ownership": {
+    "claude": [
+      "runtime state",
+      "test state",
+      "durable evidence"
+    ],
+    "codex": [
+      "CODEX_* reports"
+    ],
+    "cursor": [
+      "CURSOR_TO_CLAUDE.md",
+      "REVIEW_QUEUE.md"
+    ],
+    "unassigned": [
+      "9 Time-feature source files incl. new square-timecard-write.ts"
+    ]
+  },
+  "tests_run": [],
+  "pass": 0,
+  "fail": 0,
+  "mutations": "none — nothing staged, committed, stashed, reset, cleaned or modified; 30 entries preserved",
+  "unproven_claims": [
+    "classification from filename/path/diff-metadata/pattern-scan; file contents not reproduced"
+  ],
+  "recommended_next_action": "snapshot to a patch + dated folder, then gitignore the 12 runtime/test entries",
+  "ready_for_codex": true
+}

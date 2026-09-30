@@ -1,0 +1,46 @@
+{
+  "branch": "claude/MATTER-FRESHNESS-EVIDENCE-CLEANUP",
+  "base_sha": "c509783877a7a1948a921971c10df305605e879c",
+  "current_sha": "eb94a6b0dc12ab1da70560a168e27eeaebd28eb2",
+  "generated_at": "2026-09-30T20:10:47.972Z",
+  "safety_boundaries": [
+    "no merge",
+    "no deploy",
+    "no LaunchAgent install or arm",
+    "no POR or production SQL write",
+    "no ENTERPRISE change",
+    "no credential/permission/billing change",
+    "no paid compute",
+    "dirty main checkout untouched (30 entries preserved)",
+    "no Cursor worktree touched",
+    "no secrets emitted"
+  ],
+  "phase": 4,
+  "title": "Mac Mini portable runtime package",
+  "status": "COMPLETE — NOT INSTALLED",
+  "deliverable": "AI-HANDOFF/EVIDENCE/mac-mini-runtime/PACKAGE.md",
+  "deploy_commit": "7bbfd1c4d03e80d5fefc9c704e58439f805d6864",
+  "deploy_commit_reason": "base c509783 creates the supervisor interval with .unref(); the repair removes it. Do not deploy the base.",
+  "node_required": ">=20 (validated on v22.22.2)",
+  "validations_documented": [
+    "health file",
+    "heartbeat",
+    "lease recovery",
+    "duplicate task",
+    "restart"
+  ],
+  "launchagent": "HELD behind explicit approval; not installed, not armed",
+  "mount_path": "NOT guessed — the physical Mac must identify the 4TB volume",
+  "tests_run": [],
+  "pass": 0,
+  "fail": 0,
+  "unproven_claims": [
+    "every validation is a procedure to run on the Mini, not a result recorded here",
+    "supervisor has not been started on the Mini"
+  ],
+  "blockers": [
+    "requires physical access to the Mac Mini and its 4TB mount path"
+  ],
+  "recommended_next_action": "clone at 7bbfd1c on the Mini, run foreground, watch last_pass_at advance three times",
+  "ready_for_codex": true
+}

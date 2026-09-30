@@ -1,0 +1,84 @@
+{
+  "branch": "claude/MATTER-FRESHNESS-EVIDENCE-CLEANUP",
+  "base_sha": "c509783877a7a1948a921971c10df305605e879c",
+  "current_sha": "eb94a6b0dc12ab1da70560a168e27eeaebd28eb2",
+  "generated_at": "2026-09-30T20:10:47.972Z",
+  "safety_boundaries": [
+    "no merge",
+    "no deploy",
+    "no LaunchAgent install or arm",
+    "no POR or production SQL write",
+    "no ENTERPRISE change",
+    "no credential/permission/billing change",
+    "no paid compute",
+    "dirty main checkout untouched (30 entries preserved)",
+    "no Cursor worktree touched",
+    "no secrets emitted"
+  ],
+  "phase": 5,
+  "title": "Cost and permission governor audit",
+  "status": "COMPLETE (read-only)",
+  "deliverable": "AI-HANDOFF/EVIDENCE/governor-audit/FINDINGS.md",
+  "findings": [
+    {
+      "id": "F1",
+      "sev": "P0",
+      "title": "control-plane.mjs never calls the trust gate",
+      "evidence": "0 references to trust.mjs / checkIndependentVerification"
+    },
+    {
+      "id": "F2",
+      "sev": "P0",
+      "title": "two tasks CERTIFIED_PASS with verified_by null",
+      "evidence": "CODEX-ACCESS-SMOKE-001, COMMAND-CENTER-EE42DA"
+    },
+    {
+      "id": "F3",
+      "sev": "P1",
+      "title": "MATTER_TRUST_AUTHORITY_TOKEN configured only in tests",
+      "evidence": "absent from .env.example; grantPermission fails closed"
+    },
+    {
+      "id": "F4",
+      "sev": "P1",
+      "title": "provider-name routing still the executor",
+      "evidence": "SUBSYSTEM_OWNER map; shadow-router legacy_is_executor true"
+    },
+    {
+      "id": "F5",
+      "sev": "P2",
+      "title": "no owner-approved budget committed",
+      "evidence": "5 tasks BLOCKED_COMPUTE_NOT_APPROVED"
+    },
+    {
+      "id": "F6",
+      "sev": "P2",
+      "title": "dead-letter queue unmonitored",
+      "evidence": "DEAD_LETTER.jsonl read by nothing"
+    },
+    {
+      "id": "F7",
+      "sev": "P2",
+      "title": "policy-ack staleness checked only on sensitive work",
+      "evidence": "matter-registry.mjs:314"
+    }
+  ],
+  "correctly_enforced": [
+    "no self-granted permissions (registration ignores caller permissions; grantPermission requires authority token, fails closed)",
+    "no self-certification (18 fail conditions incl. SELF_CERTIFICATION, NO_EVIDENCE)",
+    "outcome reporting authority-checked (UNAUTHORIZED_REPORTER, NOT_TASK_EXECUTOR)",
+    "compute denied by default across 6 layers",
+    "retries bounded (MAX_ATTEMPTS 3) with append-only DLQ",
+    "owner escalation states exist"
+  ],
+  "tests_run": [],
+  "pass": 0,
+  "fail": 0,
+  "unproven_claims": [
+    "MASTER_STATE figures are historical as of that file, not re-probed runtime state"
+  ],
+  "permissions_granted": "none",
+  "compute_activated": "none",
+  "recommended_next_action": "repair F1 first — highest value, no permission change, acceptance test already exists",
+  "ready_for_codex": true
+}

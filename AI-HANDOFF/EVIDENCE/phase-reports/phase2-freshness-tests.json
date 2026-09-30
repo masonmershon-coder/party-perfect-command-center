@@ -1,0 +1,112 @@
+{
+  "branch": "claude/MATTER-FRESHNESS-EVIDENCE-CLEANUP",
+  "base_sha": "c509783877a7a1948a921971c10df305605e879c",
+  "current_sha": "eb94a6b0dc12ab1da70560a168e27eeaebd28eb2",
+  "generated_at": "2026-09-30T20:10:47.972Z",
+  "safety_boundaries": [
+    "no merge",
+    "no deploy",
+    "no LaunchAgent install or arm",
+    "no POR or production SQL write",
+    "no ENTERPRISE change",
+    "no credential/permission/billing change",
+    "no paid compute",
+    "dirty main checkout untouched (30 entries preserved)",
+    "no Cursor worktree touched",
+    "no secrets emitted"
+  ],
+  "phase": 2,
+  "title": "Hermetic freshness tests",
+  "status": "COMPLETE",
+  "requirements_covered": {
+    "1": "LIVE <=60m",
+    "2": "STALE >60m <=24h",
+    "3": "FROZEN >24h",
+    "4": "missing -> UNKNOWN",
+    "5": "unreachable -> OFFLINE",
+    "6": "FROZEN/OFFLINE cannot be presented as current",
+    "7": "output carries cutoff timestamps",
+    "8": "JSON carries no tokens/passwords/PII",
+    "9": "no real Redis/SQL/POR/production network",
+    "10": "missing env fails truthfully"
+  },
+  "repairs_applied": [
+    "exact-millisecond boundaries (Math.round made 60m30s read LIVE)",
+    "no hardcoded POR host/port; missing -> UNKNOWN without probing",
+    "read-only KV token required; no fallback to read-write token",
+    "future timestamp -> UNKNOWN + clock-skew caveat",
+    "UNKNOWN (never looked) separated from OFFLINE (looked, dead)",
+    "cutoff timestamps in both renders",
+    "allow-list redaction of emitted fields"
+  ],
+  "files_changed": [
+    "AI-HANDOFF/brain-status.mjs",
+    "AI-HANDOFF/test-brain-status.mjs",
+    "AI-HANDOFF/BRAIN_LIVE_DATA_RUNBOOK.md"
+  ],
+  "tests_run": [
+    "node AI-HANDOFF/test-brain-status.mjs"
+  ],
+  "pass": 13,
+  "fail": 0,
+  "results": [
+    {
+      "result": "PASS",
+      "name": "2. a source 1-24 hours old is STALE, and carries a cutoff caveat"
+    },
+    {
+      "result": "PASS",
+      "name": "3. a source older than 24h is FROZEN"
+    },
+    {
+      "result": "PASS",
+      "name": "4. missing timestamp is UNKNOWN; unreachable source is OFFLINE"
+    },
+    {
+      "result": "PASS",
+      "name": "5. FROZEN data cannot be presented as current"
+    },
+    {
+      "result": "PASS",
+      "name": "6. no test path reads credentials, Redis, POR, SQL or a production API"
+    },
+    {
+      "result": "PASS",
+      "name": "7. text and JSON output both carry cutoff timestamps"
+    },
+    {
+      "result": "PASS",
+      "name": "8. JSON output carries no tokens, passwords or PII"
+    },
+    {
+      "result": "PASS",
+      "name": "10. missing configuration fails truthfully, never silently LIVE"
+    },
+    {
+      "result": "PASS",
+      "name": "11. LIVE/STALE/FROZEN boundaries are exact, not rounded minutes"
+    },
+    {
+      "result": "PASS",
+      "name": "12. a future timestamp is UNKNOWN with a clock-skew caveat"
+    },
+    {
+      "result": "PASS",
+      "name": "13. missing POR host/port yields UNKNOWN and performs no probe"
+    },
+    {
+      "result": "PASS",
+      "name": "14. missing read-only token yields UNKNOWN and never falls back to the write token"
+    }
+  ],
+  "test_edited_for_correctness": {
+    "test": "10",
+    "change": "classify(unconfigured) OFFLINE -> UNKNOWN",
+    "reason": "the old expectation encoded the bug: configStatus set reachable:false, claiming a probe that never ran. Product fixed first; flagged for independent scrutiny."
+  },
+  "unproven_claims": [
+    "hermeticity is asserted by test 6 against source text; a sandboxed network denial would be stronger"
+  ],
+  "recommended_next_action": "Codex adversarial review of the boundary and redaction tests",
+  "ready_for_codex": true
+}

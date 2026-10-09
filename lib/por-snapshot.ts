@@ -349,8 +349,10 @@ export function formatPorContextForAgents(
     // This week by EVENT date — what the owner means by "how much are we pulling
     // this week". Booked value and cash collected are reported separately because
     // Party Perfect bills 50% up front and 50% eleven days before delivery.
-    if (snapshot.money.week) {
-      const w = snapshot.money.week;
+    // The agent still emits a zeroed week block (null dates) when its rollup query
+    // fails; rendering that would present a failure as a real $0 week.
+    const w = snapshot.money.week;
+    if (w && w.startDate && w.endDate) {
       lines.push(
         `This week ${w.startDate} to ${w.endDate} (by ${w.basis}): booked $${w.booked.total.toFixed(2)} across ${w.booked.count} orders — rent $${w.booked.rent.toFixed(2)} · sale $${w.booked.sale.toFixed(2)} · tax $${w.booked.tax.toFixed(2)}; $${w.booked.paid.toFixed(2)} already paid on those orders. Cash collected this week $${w.collected.toFixed(2)}. Open quotes for the week $${w.quotePipeline.total.toFixed(2)} (${w.quotePipeline.count}) — NOT booked revenue.`,
       );
@@ -364,6 +366,10 @@ export function formatPorContextForAgents(
           `This week by status: ${w.byStatus.map((s) => `${s.status} ${s.count} $${s.total.toFixed(2)}`).join(" · ")}`,
         );
       }
+    } else if (w) {
+      lines.push(
+        "This-week booked totals: UNAVAILABLE — the ENTERPRISE week rollup failed on the last sync (no date window). Use POR reports; do not invent.",
+      );
     } else {
       lines.push(
         "This-week booked totals: not in this snapshot — ENTERPRISE is running an agent older than agentBuild 2026-09-09-week-revenue. Use POR reports; do not invent.",

@@ -459,11 +459,12 @@ export interface PorMoneySnapshot {
    * Current Mon-Sun window by EVENT date (agentBuild 2026-09-09-week-revenue+).
    * `booked` is the value of work going out this week with quotes excluded;
    * `collected` is cash received this week. Different questions, both reported.
-   * Optional — older ENTERPRISE agents omit it.
+   * Optional — older ENTERPRISE agents omit it. Dates are null when the agent's
+   * week rollup failed; the totals are then zeros, not a real week.
    */
   week?: {
-    startDate: string;
-    endDate: string;
+    startDate: string | null;
+    endDate: string | null;
     basis: "DeliveryDate";
     booked: {
       count: number; rent: number; sale: number;

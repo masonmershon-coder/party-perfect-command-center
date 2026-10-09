@@ -21,7 +21,9 @@
     "test:ai-cost": "npx tsx scripts/test-ai-cost.ts",
     "test:time": "npx tsx scripts/test-time.ts",
     "test:kituwa": "npx tsx scripts/test-kituwa.mjs",
-    "test:matter-registry": "node AI-HANDOFF/matter/test-matter-registry.mjs"
+    "test:matter-registry": "node AI-HANDOFF/matter/test-matter-registry.mjs",
+    "test:secret-scan": "node AI-HANDOFF/codex/test-secret-scan.mjs",
+    "test:por-week": "npx tsx scripts/test-por-week.ts"
   },
   "engines": {
     "node": ">=20"

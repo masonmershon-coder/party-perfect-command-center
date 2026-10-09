@@ -424,6 +424,45 @@ async function main() {
     eq(callbackRuntime({ NODE_ENV: "test", MATTER_CALLBACK_ENABLED: "1", VERCEL: "1", MATTER_CALLBACK_STORE: "file", MATTER_CALLBACK_DIR: "/tmp/x", MATTER_CALLBACK_KEYS: ringRaw } as NodeJS.ProcessEnv).enabled, false, "file store refused on Vercel");
   });
 
+  await check("extra: lease expiry must be in the future and within the max lease", async () => {
+    const h = harness();
+    const past = { lease_id: "lease-1", expires_at: new Date(h.clock.now - 1_000).toISOString() };
+    const r1 = await send(h, event(h, { event_type: "task_claimed", task_id: "PP-4001", lease: past }));
+    eq(r1.body.code, "LEASE_INVALID", "already-expired claim");
+    eq(await state(h, "PP-4001"), undefined, "no projection for refused claim");
+
+    await claim(h, "PP-4002");
+    const before = (await h.store.getTask("party_perfect", "PP-4002"))?.lease_expires_at;
+    const yearOut = { lease_id: "lease-1", expires_at: new Date(h.clock.now + 365 * 86_400_000).toISOString() };
+    const r2 = await send(h, event(h, { event_type: "heartbeat", task_id: "PP-4002", lease: yearOut }), WORKER);
+    eq(r2.body.code, "LEASE_INVALID", "worker cannot pin lease a year out");
+    eq(r2.body.retryable, false, "not retryable");
+    eq((await h.store.getTask("party_perfect", "PP-4002"))?.lease_expires_at, before, "projection unchanged");
+
+    const r3 = await send(h, event(h, { event_type: "heartbeat", task_id: "PP-4002", lease: LEASE(h) }), WORKER);
+    eq(r3.body.code, "ACCEPTED", "in-bound renewal accepted");
+  });
+
+  await check("extra: same-length key rotation takes effect in a warm runtime", () => {
+    const rotated = ringRaw.replace(MATTER_SECRET, "matter-test-secret-" + "z".repeat(40));
+    eq(rotated.length, ringRaw.length, "same length");
+    const env = { NODE_ENV: "test", MATTER_CALLBACK_ENABLED: "1" } as NodeJS.ProcessEnv;
+    const a = callbackRuntime({ ...env, MATTER_CALLBACK_KEYS: ringRaw });
+    const b = callbackRuntime({ ...env, MATTER_CALLBACK_KEYS: rotated });
+    assert(a.enabled && b.enabled, "both enabled");
+    assert(a.deps.keys.get("matter-core")?.secret !== b.deps.keys.get("matter-core")?.secret, "rotated secret in use");
+  });
+
+  await check("extra: hyphenated provider keys in a payload are refused without echo", async () => {
+    const h = harness();
+    await claim(h, "PP-4003");
+    const seg = () => randomBytes(4).toString("hex").slice(0, 5);
+    const tok = ["xai-", seg(), "_", seg(), "-", seg(), "_", seg(), "-", seg()].join("");
+    const r = await send(h, event(h, { event_type: "worker_failed", task_id: "PP-4003", reason_code: "CRASHED", note: tok }), WORKER);
+    eq(r.body.code, "SECRET_IN_PAYLOAD", "refused");
+    assert(!JSON.stringify(r.body).includes(tok) && !JSON.stringify(h.logs).includes(tok), "token not echoed");
+  });
+
   console.log(`\nmatter-callback: ${passed} passed, ${failed} failed`);
   if (failed) {
     console.log(`failed: ${failures.join(", ")}`);

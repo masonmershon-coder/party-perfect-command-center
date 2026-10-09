@@ -20,6 +20,8 @@ import { validateEvent } from "./validate";
 
 export const DEFAULT_MAX_BODY_BYTES = 64 * 1024;
 export const DEFAULT_MAX_SKEW_SEC = 300;
+/** Upper bound on a reported lease expiry, measured from server receipt time. */
+export const DEFAULT_MAX_LEASE_SEC = 3600;
 
 /** Redacted log line: identifiers and codes only — never bodies, signatures or secrets. */
 export type CallbackLogEntry = {
@@ -64,6 +66,7 @@ export type ProcessorDeps = {
   nowMs?: () => number;
   maxBodyBytes?: number;
   maxSkewSec?: number;
+  maxLeaseSec?: number;
 };
 
 export type ProcessorResult = { status: number; body: CallbackResponseBody };
@@ -216,7 +219,7 @@ export async function processMatterCallback(
       return { status: prior.status, body: { ...prior.response, duplicate: true } };
     }
 
-    const decision = await decide(ev, deps);
+    const decision = await decide(ev, deps, now);
     if (!decision.ok) return reject(decision.code, decision.from, decision.reason);
 
     const response: CallbackResponseBody = {
@@ -269,7 +272,7 @@ type Decision =
   | { ok: true; from: TaskState | null; task?: TaskProjection; worker?: WorkerProjection }
   | { ok: false; code: CallbackErrorCode; from: TaskState | null; reason: string };
 
-async function decide(ev: CallbackEvent, deps: ProcessorDeps): Promise<Decision> {
+async function decide(ev: CallbackEvent, deps: ProcessorDeps, nowMs: number): Promise<Decision> {
   const at = ev.occurred_at;
 
   if (ev.event_type === "worker_registered") {
@@ -317,6 +320,15 @@ async function decide(ev: CallbackEvent, deps: ProcessorDeps): Promise<Decision>
   }
   if (ev.lease && existing?.lease_id && ev.event_type === "heartbeat" && ev.lease.lease_id !== existing.lease_id) {
     return { ok: false, code: "NOT_LEASE_HOLDER", from, reason: "lease_id_mismatch" };
+  }
+  // Expiry is sender-supplied; bound it by server time so a worker key cannot pin a lease
+  // open indefinitely in the projection, and an already-expired lease is never recorded.
+  if (ev.lease) {
+    const exp = Date.parse(ev.lease.expires_at);
+    const maxMs = (deps.maxLeaseSec ?? DEFAULT_MAX_LEASE_SEC) * 1000;
+    if (!(exp > nowMs) || exp - nowMs > maxMs) {
+      return { ok: false, code: "LEASE_INVALID", from, reason: exp > nowMs ? "lease_expiry_beyond_max" : "lease_already_expired" };
+    }
   }
 
   const to = rule.to(from);

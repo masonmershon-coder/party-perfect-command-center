@@ -92,7 +92,9 @@ close, expire leases, dead-letter, or register themselves.
 `CLOSED` and `DEAD_LETTERED` are terminal: any later event → `409 TASK_TERMINAL` (stale events
 cannot reopen). Other impossible moves → `409 INVALID_TRANSITION`. `verifier_id` equal to the
 assigned worker → `403 VERIFIER_NOT_INDEPENDENT`. A heartbeat with a different `lease_id` →
-`403 NOT_LEASE_HOLDER`. Events for an unknown task (other than `task_claimed`) → `409 UNKNOWN_TASK`
+`403 NOT_LEASE_HOLDER`. A `lease.expires_at` that is not after server receipt time, or is more than
+`DEFAULT_MAX_LEASE_SEC` (3600 s) beyond it → `422 LEASE_INVALID` (not retryable), so a worker key
+cannot pin a lease open in the projection. Events for an unknown task (other than `task_claimed`) → `409 UNKNOWN_TASK`
 (retryable: ordering).
 
 ## 5. Idempotency and duplicates
@@ -140,6 +142,8 @@ every test secret and for signature patterns.
 ## 9. Stores and production path (not implemented)
 
 - `MemoryCallbackStore` (default): process-local, lost on restart. Suitable for preview smoke only.
+  The nonce cache and rate limiter are also per isolate, so on Vercel preview neither replay
+  protection nor idempotency holds across instances or cold starts.
 - `FileCallbackStore` (`MATTER_CALLBACK_STORE=file`): local disk, tmp+rename state file plus
   `CALLBACK_AUDIT.jsonl` mirror. Refuses to run when `VERCEL` is set.
 - **No Redis store was added.** Preview deployments may share the production Upstash instance, so

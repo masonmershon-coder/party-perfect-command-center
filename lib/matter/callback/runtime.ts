@@ -1,5 +1,5 @@
 import { DEFAULT_MAX_BODY_BYTES, FixedWindowRateLimiter, type ProcessorDeps } from "./processor";
-import { parseKeyRing } from "./signature";
+import { parseKeyRing, sha256Hex } from "./signature";
 import { FileCallbackStore, MemoryCallbackStore, type CallbackStore } from "./store";
 
 /**
@@ -18,10 +18,12 @@ export type CallbackRuntime =
 let cached: { signature: string; runtime: CallbackRuntime } | null = null;
 
 export function callbackRuntime(env: NodeJS.ProcessEnv = process.env): CallbackRuntime {
+  // The whole key ring is hashed (not just its length) so a same-length rotation
+  // invalidates the cached ring in a warm instance.
   const signature = [
     env.MATTER_CALLBACK_ENABLED,
     env.VERCEL_ENV,
-    env.MATTER_CALLBACK_KEYS?.length,
+    sha256Hex(env.MATTER_CALLBACK_KEYS ?? ""),
     env.MATTER_CALLBACK_STORE,
     env.MATTER_CALLBACK_DIR,
     env.MATTER_CALLBACK_RATE_PER_MIN,

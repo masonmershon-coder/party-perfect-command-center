@@ -42,9 +42,11 @@ const RE = {
 /** Credential shapes that must never travel through a callback. */
 const SECRET_SHAPES = [
   /sk-[A-Za-z0-9_-]{16,}/,
-  /xai-[A-Za-z0-9]{16,}/,
-  /AKIA[0-9A-Z]{16}/,
-  /gh[opsu]_[A-Za-z0-9]{20,}/,
+  /xai-[A-Za-z0-9_-]{16,}/,
+  /(?:sk|rk)_(?:live|test)_[A-Za-z0-9]{16,}/,
+  /(?:AKIA|ASIA)[0-9A-Z]{16}/,
+  /gh[oprsu]_[A-Za-z0-9]{20,}/,
+  /xox[abprs]-[A-Za-z0-9-]{10,}/,
   /eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/,
   /postgres(ql)?:\/\/[^\s"']+:[^\s"']+@/,
   /-----BEGIN [A-Z ]*PRIVATE KEY-----/,

@@ -107,6 +107,7 @@ export type CallbackErrorCode =
   | "DOMAIN_FORBIDDEN"
   | "ROLE_FORBIDDEN"
   | "NOT_LEASE_HOLDER"
+  | "LEASE_INVALID"
   | "VERIFIER_NOT_INDEPENDENT"
   | "IDEMPOTENCY_CONFLICT"
   | "UNKNOWN_TASK"
@@ -134,6 +135,7 @@ export const ERROR_CODES: Record<CallbackErrorCode, { status: number; retryable:
   DOMAIN_FORBIDDEN: { status: 403, retryable: false },
   ROLE_FORBIDDEN: { status: 403, retryable: false },
   NOT_LEASE_HOLDER: { status: 403, retryable: false },
+  LEASE_INVALID: { status: 422, retryable: false },
   VERIFIER_NOT_INDEPENDENT: { status: 403, retryable: false },
   IDEMPOTENCY_CONFLICT: { status: 422, retryable: false },
   UNKNOWN_TASK: { status: 409, retryable: true },

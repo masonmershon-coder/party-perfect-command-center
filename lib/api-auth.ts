@@ -162,4 +162,5 @@ export const MACHINE_API_ROUTES = [
   { path: "/api/mike/intake", reason: "device/worker Bearer (hashed verifiers); intake-only" },
   { path: "/api/ai-cost/ingest", reason: "collector Bearer AI_COST_INGEST_TOKEN_SHA256; ingest-only" },
   { path: "/api/time/mike", reason: "Mike read-only Bearer TIME_MIKE_TOKEN_SHA256 or owner timekeeping" },
+  { path: "/api/matter/callback", reason: "HMAC MATTER_CALLBACK_KEYS (timestamp+nonce); preview/local only" },
 ] as const;

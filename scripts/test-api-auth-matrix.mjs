@@ -64,7 +64,7 @@ function isMachinePath(routePath) {
 }
 
 const AUTH_RE =
-  /requireApiAuth|requireSession|requireOwner|POR_SYNC_SECRET|CRON_SECRET|validateTwilioSignature|SENTINEL_COLLECTOR_SECRET|matterHttpGate|createIntake|completeIntake|intakeStatus|workerLease|workerAck|workerFail|workerHeartbeat|verifyAiCostIngestBearer|requireTimeSession|requireTimeEmployee|requireTimekeepingAdmin|requireMikeOrOwner|verifyTimeMikeBearer/;
+  /requireApiAuth|requireSession|requireOwner|POR_SYNC_SECRET|CRON_SECRET|validateTwilioSignature|SENTINEL_COLLECTOR_SECRET|matterHttpGate|createIntake|completeIntake|intakeStatus|workerLease|workerAck|workerFail|workerHeartbeat|verifyAiCostIngestBearer|requireTimeSession|requireTimeEmployee|requireTimeAdmin|requireTimekeepingAdmin|requireMikeOrOwner|verifyTimeMikeBearer/;
 
 check("employee lacks owner-only permissions", () => {
   for (const p of [

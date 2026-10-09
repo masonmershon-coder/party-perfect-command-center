@@ -20,6 +20,7 @@ import {
   now,
   HEARTBEATS,
 } from "./state.mjs";
+import { classifyFile } from "./secret-scan.mjs";
 
 const SWEEP_TASK = "CODEX-SWEEP";
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -188,8 +189,11 @@ function weeklyChecks() {
     });
 
   // 12. Secrets in tracked files (cheap regex, high value).
+  //
+  // Classification lives in secret-scan.mjs. Unknown credential-shaped strings are
+  // always P0; only exact reviewed fixtures (file + sha256) report at P2.
   const tracked = git(["ls-files"]).split("\n").filter((f) => /\.(ts|tsx|mjs|js|json|sh|ps1)$/.test(f));
-  const SECRET = /(xai-[A-Za-z0-9]{16}|sk-[A-Za-z0-9]{16}|AKIA[0-9A-Z]{16}|postgres(ql)?:\/\/[^\s"']+:[^\s"']+@)/;
+
   for (const f of tracked.slice(0, 4000)) {
     const abs = path.join(REPO_DIR, f);
     if (!existsSync(abs) || statSync(abs).size > 512 * 1024) continue;
@@ -199,13 +203,7 @@ function weeklyChecks() {
     } catch {
       continue;
     }
-    if (SECRET.test(body))
-      findings.push({
-        severity: "P0",
-        code: `secret-in-tracked-file-${f.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}`,
-        summary: `Possible secret committed in ${f}`,
-        evidence: f,
-      });
+    findings.push(...classifyFile(f, body));
   }
 
   return findings;

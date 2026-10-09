@@ -285,6 +285,122 @@ WHERE $arActiveFilter AND ISNULL(CurrentBalance,0) > 0
   $rev30 = Get-Scalar $conn "SELECT SUM(ISNULL(Amount,0)) FROM dbo.PaymentFile WHERE [Date] >= DATEADD(day, -30, GETDATE())"
   $revYearToDate = Get-Scalar $conn "SELECT SUM(ISNULL(Amount,0)) FROM dbo.PaymentFile WHERE [Date] >= DATEFROMPARTS(YEAR(GETDATE()),1,1)"
 
+  # --- THIS WEEK (Mon-Sun) BOOKED WORK, by event date -----------------------------
+  # Answers "how much is Party Perfect pulling this week" for work actually HAPPENING
+  # in the current Mon..Sun window. Basis is DeliveryDate (when the order goes out),
+  # NOT the booking date - so future bookings are excluded by construction.
+  #
+  # Scope decisions (deliberate):
+  #   * Quotes are EXCLUDED from booked; they are reported separately as pipeline.
+  #   * Cancelled rows excluded via $script:PorSqlHistory (secondary 'C' + Cancelled col).
+  #   * Archived rows are KEPT: a Monday order completed mid-week can already be
+  #     archived, and dropping it would silently understate the week.
+  #   * Week start is computed DATEFIRST-independently, so it is Monday on any server.
+  # Every query starts with WITH so Assert-SelectOnly still passes. SELECT only.
+  $weekStart = $null
+  $weekEnd = $null
+  $weekBooked = [ordered]@{ count = 0; rent = 0.0; sale = 0.0; tax = 0.0; total = 0.0; paid = 0.0 }
+  $weekQuotes = [ordered]@{ count = 0; total = 0.0 }
+  $weekCollected = 0.0
+  $weekByDay = @()
+  $weekByStatus = @()
+  try {
+    $wkCte = @"
+WITH w AS (
+  SELECT DATEADD(day, -((DATEPART(weekday, GETDATE()) + @@DATEFIRST - 2) % 7), CAST(GETDATE() AS date)) AS ws
+)
+"@
+    # DeliveryDate inside the Mon..Sun window, joined to the computed week start.
+    $wkWindow = "t.DeliveryDate IS NOT NULL AND CAST(t.DeliveryDate AS date) BETWEEN w.ws AND DATEADD(day, 6, w.ws)"
+    $wkNotQuote = "LEFT(CAST(t.STAT AS nvarchar(10)),1) <> N'Q'"
+    $wkNotCancelled = "ISNULL(t.Cancelled,0)=0 AND UPPER(ISNULL(SUBSTRING(CAST(t.STAT AS nvarchar(10)),2,1),N' ')) <> N'C'"
+
+    $wkRows = Read-Rows $conn @"
+$wkCte
+SELECT
+  CONVERT(varchar(10), w.ws, 23) AS Ws,
+  CONVERT(varchar(10), DATEADD(day, 6, w.ws), 23) AS We,
+  COUNT(t.CNTR) AS Cnt,
+  SUM(ISNULL(t.RENT,0)) AS Rent,
+  SUM(ISNULL(t.SALE,0)) AS Sale,
+  SUM(ISNULL(t.TAX,0)) AS Tax,
+  SUM(ISNULL(t.TOTL,0)) AS Totl,
+  SUM(ISNULL(t.PAID,0)) AS Paid
+FROM w LEFT JOIN dbo.Transactions t
+  ON $wkWindow AND $wkNotQuote AND $wkNotCancelled
+GROUP BY w.ws
+"@
+    if ($wkRows.Count -gt 0) {
+      $r = $wkRows[0]
+      $weekStart = [string]$r.Ws
+      $weekEnd = [string]$r.We
+      $weekBooked.count = [int]$r.Cnt
+      $weekBooked.rent = [math]::Round([double]$r.Rent, 2)
+      $weekBooked.sale = [math]::Round([double]$r.Sale, 2)
+      $weekBooked.tax = [math]::Round([double]$r.Tax, 2)
+      $weekBooked.total = [math]::Round([double]$r.Totl, 2)
+      $weekBooked.paid = [math]::Round([double]$r.Paid, 2)
+    }
+
+    # Quote pipeline for the same window - visibility only, never counted as revenue.
+    $wqRows = Read-Rows $conn @"
+$wkCte
+SELECT COUNT(t.CNTR) AS Cnt, SUM(ISNULL(t.TOTL,0)) AS Totl
+FROM w LEFT JOIN dbo.Transactions t
+  ON $wkWindow
+ AND LEFT(CAST(t.STAT AS nvarchar(10)),1) = N'Q'
+ AND UPPER(ISNULL(SUBSTRING(CAST(t.STAT AS nvarchar(10)),2,1),N' ')) NOT IN (N'C', N'T')
+ AND ISNULL(t.Archived,0)=0 AND ISNULL(t.Cancelled,0)=0
+GROUP BY w.ws
+"@
+    if ($wqRows.Count -gt 0) {
+      $weekQuotes.count = [int]$wqRows[0].Cnt
+      $weekQuotes.total = [math]::Round([double]$wqRows[0].Totl, 2)
+    }
+
+    # Per-day booked value, so the owner can see Sat vs a dead Monday.
+    foreach ($d in (Read-Rows $conn @"
+$wkCte
+SELECT CONVERT(varchar(10), CAST(t.DeliveryDate AS date), 23) AS D,
+       COUNT(*) AS Cnt, SUM(ISNULL(t.TOTL,0)) AS Totl
+FROM dbo.Transactions t CROSS JOIN w
+WHERE $wkWindow AND $wkNotQuote AND $wkNotCancelled
+GROUP BY CAST(t.DeliveryDate AS date)
+ORDER BY CAST(t.DeliveryDate AS date)
+"@)) {
+      $weekByDay += @{ date = [string]$d.D; count = [int]$d.Cnt; total = [math]::Round([double]$d.Totl, 2) }
+    }
+
+    # Split by lifecycle char so "reservations" vs "already out" vs "completed" is visible.
+    foreach ($s in (Read-Rows $conn @"
+$wkCte
+SELECT LEFT(CAST(t.STAT AS nvarchar(10)),1) AS S,
+       COUNT(*) AS Cnt, SUM(ISNULL(t.TOTL,0)) AS Totl
+FROM dbo.Transactions t CROSS JOIN w
+WHERE $wkWindow AND $wkNotQuote AND $wkNotCancelled
+GROUP BY LEFT(CAST(t.STAT AS nvarchar(10)),1)
+"@)) {
+      $char = [string]$s.S
+      if ([string]::IsNullOrEmpty($char)) { $char = ' ' }
+      $label = $script:PorPrimaryStatus[$char.ToUpperInvariant()]
+      if (-not $label) { $label = "Unknown($char)" }
+      $weekByStatus += @{ status = $label; count = [int]$s.Cnt; total = [math]::Round([double]$s.Totl, 2) }
+    }
+
+    # Cash actually RECEIVED Mon..Sun. Different number from booked value - both matter,
+    # because Party Perfect takes 50% up front and the balance 11 days before delivery.
+    $wcRows = Read-Rows $conn @"
+$wkCte
+SELECT SUM(ISNULL(p.Amount,0)) AS Amt
+FROM dbo.PaymentFile p CROSS JOIN w
+WHERE CAST(p.[Date] AS date) BETWEEN w.ws AND DATEADD(day, 6, w.ws)
+GROUP BY w.ws
+"@
+    if ($wcRows.Count -gt 0) { $weekCollected = [math]::Round([double]$wcRows[0].Amt, 2) }
+  } catch {
+    Write-Log ("Week booked/collected rollup unavailable: {0}" -f $_.Exception.Message) "WARN"
+  }
+
   # Open contracts = live reservations + live open orders, from dbo.Transactions.
   # NOT ContractFile (Status there is a different, thinner column) and NOT
   # CustomerFile.QtyOut. Uses LEFT(STAT,1) with no LTRIM - see PorStatus.ps1.
@@ -581,6 +697,9 @@ WHERE ISNULL(ti.Archived,0)=0
 
   $snapshot = [ordered]@{
     version = 1
+    # Bumped whenever the payload gains fields. Lets the app prove which agent build
+    # ENTERPRISE is actually running instead of guessing from missing keys.
+    agentBuild = "2026-09-09-week-revenue"
     syncedAt = (Get-Date).ToUniversalTime().ToString("o")
     sourceHost = [string]$config.SourceHost
     sourceDatabase = [string]$config.SqlDatabase
@@ -611,6 +730,19 @@ WHERE ISNULL(ti.Archived,0)=0
         monthToDate = [math]::Round($revMonthToDate, 2)
         last30Days = [math]::Round($rev30, 2)
         yearToDate = [math]::Round($revYearToDate, 2)
+      }
+      # Current Mon-Sun window, by EVENT date. "booked" is the value of work going out
+      # this week (quotes excluded); "collected" is cash received this week. They are
+      # different questions and both are reported rather than blended.
+      week = [ordered]@{
+        startDate = $weekStart
+        endDate = $weekEnd
+        basis = "DeliveryDate"
+        booked = $weekBooked
+        quotePipeline = $weekQuotes
+        collected = $weekCollected
+        byDay = $weekByDay
+        byStatus = $weekByStatus
       }
     }
     ops = [ordered]@{

@@ -1,0 +1,26 @@
+============================================================
+ PARTY PERFECT - REVENUE FOR A DATE RANGE
+ 100% READ-ONLY. Nothing here changes the server or POR.
+ On ENTERPRISE: Start > type "powershell" > open Windows PowerShell
+ Paste the whole block below, press Enter, screenshot the result.
+ To change the window, edit $From and $To on the first line.
+============================================================
+
+$From='2026-08-05'; $To='2026-09-05'
+$cfg = Get-Content 'C:\PartyPerfect\por-sync-agent\config.json' -Raw | ConvertFrom-Json
+$cs = if ($cfg.UseWindowsAuth) { "Server=$($cfg.SqlServer);Database=$($cfg.SqlDatabase);Integrated Security=True;TrustServerCertificate=True;ApplicationIntent=ReadOnly;" } else { "Server=$($cfg.SqlServer);Database=$($cfg.SqlDatabase);User ID=$($cfg.SqlUser);Password=$($cfg.SqlPassword);TrustServerCertificate=True;ApplicationIntent=ReadOnly;" }
+$cn = New-Object System.Data.SqlClient.SqlConnection $cs; $cn.Open()
+function Q($sql){ if($sql.TrimStart() -notmatch '^(SELECT|WITH)\b'){throw 'blocked'}; $c=$cn.CreateCommand(); $c.CommandText=$sql; $c.CommandTimeout=180; $a=New-Object System.Data.DataTable; $a.Load($c.ExecuteReader()); $a }
+Write-Host "`nPARTY PERFECT  $From .. $To" -ForegroundColor Cyan
+Q "SELECT COUNT(*) AS Payments, SUM(CASE WHEN ISNULL(Amount,0)>0 THEN Amount ELSE 0 END) AS GrossIn, SUM(CASE WHEN ISNULL(Amount,0)<0 THEN Amount ELSE 0 END) AS Refunds, SUM(ISNULL(Amount,0)) AS NetCollected FROM dbo.PaymentFile WHERE CAST([Date] AS date) BETWEEN '$From' AND '$To'" | Format-Table -Auto
+Write-Host "By payment method:" -ForegroundColor Green
+Q "SELECT ISNULL(NULLIF(LTRIM(RTRIM(CAST(Meth AS nvarchar(20)))),N''),N'(none)') AS Method, COUNT(*) AS Cnt, SUM(ISNULL(Amount,0)) AS Amount FROM dbo.PaymentFile WHERE CAST([Date] AS date) BETWEEN '$From' AND '$To' GROUP BY ISNULL(NULLIF(LTRIM(RTRIM(CAST(Meth AS nvarchar(20)))),N''),N'(none)') ORDER BY 3 DESC" | Format-Table -Auto
+Write-Host "Booked work that went out in the same window (quotes excluded):" -ForegroundColor Yellow
+Q "SELECT COUNT(*) AS Orders, SUM(ISNULL(RENT,0)) AS Rent, SUM(ISNULL(SALE,0)) AS Sale, SUM(ISNULL(TAX,0)) AS Tax, SUM(ISNULL(TOTL,0)) AS BookedTotal, SUM(ISNULL(PAID,0)) AS PaidOnThose FROM dbo.Transactions WHERE DeliveryDate IS NOT NULL AND CAST(DeliveryDate AS date) BETWEEN '$From' AND '$To' AND LEFT(CAST(STAT AS nvarchar(10)),1)<>N'Q' AND ISNULL(Cancelled,0)=0 AND UPPER(ISNULL(SUBSTRING(CAST(STAT AS nvarchar(10)),2,1),N' '))<>N'C'" | Format-Table -Auto
+$cn.Close()
+Write-Host "NetCollected = cash in. BookedTotal = value of work that went out. Different numbers - do not add them." -ForegroundColor DarkGray
+
+============================================================
+ NOTE: PaymentFile card columns (Encrypted, EncryptedCard)
+ are never selected. CheckCardFile is never touched.
+============================================================

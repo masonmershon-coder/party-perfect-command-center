@@ -8,17 +8,17 @@ import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 
-/** Internal list for Mike / Command Center — top candidates first. */
+/** Internal list for Mike / Command Center — newest applications first. */
 export async function GET() {
   const gate = await requireSession();
   if (isAuthError(gate)) return gate;
 
   const applications = await listJobApplications();
   const sorted = [...applications].sort((a, b) => {
-    if (a.mike.flagForJosh !== b.mike.flagForJosh) {
-      return a.mike.flagForJosh ? -1 : 1;
-    }
-    return b.mike.score - a.mike.score;
+    const aTime = Date.parse(a.submittedAt);
+    const bTime = Date.parse(b.submittedAt);
+    return (Number.isFinite(bTime) ? bTime : 0) -
+      (Number.isFinite(aTime) ? aTime : 0);
   });
 
   return NextResponse.json({

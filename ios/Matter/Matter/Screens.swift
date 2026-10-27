@@ -31,6 +31,7 @@ struct StatusBanner: View {
         case .online: return model.health?.supervisorHealthy == true ? "Supervisor health is live" : "Phone API connected"
         case .offline: return "Offline"
         case .unauthorized: return "Not authorized"
+        case .sessionExpired: return "Session expired"
         }
     }
 }
@@ -148,8 +149,8 @@ struct ApprovalsView: View {
                                     .foregroundStyle(.secondary)
                             }
                             HStack {
-                                Button("Approve") { Task { await model.decide(approval, decision: "approve") } }
-                                Button("Reject", role: .destructive) { Task { await model.decide(approval, decision: "reject") } }
+                                Button("Approve") { Task { await decide(approval, "approve") } }
+                                Button("Reject", role: .destructive) { Task { await decide(approval, "reject") } }
                             }
                             .disabled(model.loading)
                         }
@@ -165,6 +166,77 @@ struct ApprovalsView: View {
 
     private func taskTitle(_ approval: ApprovalRecord) -> String {
         model.tasks.first { $0.taskId == approval.taskId }?.title ?? approval.taskId
+    }
+
+    private func decide(_ approval: ApprovalRecord, _ decision: String) async {
+        guard await model.authenticateOwner() else { return }
+        await model.decide(approval, decision: decision)
+    }
+}
+
+struct MissionControlView: View {
+    @Environment(MatterModel.self) private var model
+
+    private var live: Bool { model.connection == .online && !model.usingCache }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section("Connection") {
+                    LabeledContent("Phone API") { Text(live ? "Live" : "Not live") }
+                    LabeledContent("Snapshot") { Text(model.usingCache ? "Showing saved data" : "Current response") }
+                    if model.loading { ProgressView() }
+                }
+                Section("Supervisor") {
+                    LabeledContent("Healthy") { Text(live && model.mission?.supervisorHealthy == true ? "Yes" : "No") }
+                    LabeledContent("Process") { Text(live && model.mission?.supervisor.running == true ? "Running" : "Not running") }
+                    if live, let pid = model.mission?.supervisor.pid {
+                        LabeledContent("PID") { Text(String(pid)) }
+                    }
+                    if live, let pass = model.mission?.supervisor.lastPassAt {
+                        Text(pass).font(.caption).foregroundStyle(.secondary)
+                    }
+                }
+                Section("Local intelligence") {
+                    let intel = model.mission?.localIntelligence
+                    LabeledContent("Observed") { Text(intel?.observed == true ? "Yes" : "No") }
+                    LabeledContent("Available") { Text(availability(intel?.available)) }
+                    Text(intel?.reason ?? "No mission snapshot yet.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Section("Task queue") {
+                    if let queue = model.mission?.queue {
+                        LabeledContent("Total") { Text(String(queue.total)) }
+                        ForEach(queue.byState.keys.sorted(), id: \.self) { key in
+                            LabeledContent(key) { Text(String(queue.byState[key] ?? 0)) }
+                        }
+                    } else {
+                        Text("No queue snapshot.")
+                    }
+                    LabeledContent("Approvals pending") { Text(String(model.mission?.approvalsPending ?? model.approvals.count)) }
+                }
+                Section("Workers") {
+                    if model.agents.isEmpty {
+                        Text("No workers in the registry snapshot.")
+                    } else {
+                        ForEach(model.agents) { agent in
+                            LabeledContent(agent.workerId) { Text(availability(agent.available)) }
+                        }
+                    }
+                }
+            }
+            .navigationTitle("Mission")
+            .toolbar { RefreshButton() }
+        }
+    }
+
+    private func availability(_ value: Bool?) -> String {
+        switch value {
+        case true: return "Available"
+        case false: return "Unavailable"
+        case nil: return "Not observed"
+        }
     }
 }
 

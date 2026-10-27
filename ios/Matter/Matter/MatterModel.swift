@@ -1,4 +1,5 @@
 import Foundation
+import LocalAuthentication
 import Observation
 
 enum ConnectionState: Equatable {
@@ -7,6 +8,7 @@ enum ConnectionState: Equatable {
     case online
     case offline(String)
     case unauthorized
+    case sessionExpired
 }
 
 @MainActor
@@ -21,6 +23,7 @@ final class MatterModel {
     var agents: [AgentRecord] = []
     var activity: [ActivityEvent] = []
     var agentSource: String = "none"
+    var mission: MissionResponse?
     var loading = false
     var banner: String?
     var usingCache = false
@@ -62,12 +65,14 @@ final class MatterModel {
         defer { loading = false }
         do {
             let health = try await client.health()
+            let mission = try await client.mission()
             let tasks = try await client.tasks()
             let conversations = try await client.conversations()
             let approvals = try await client.approvals()
             let agents = try await client.agents()
             let activity = try await client.activity()
             self.health = health
+            self.mission = mission
             self.tasks = tasks
             self.conversations = conversations
             self.approvals = approvals
@@ -84,10 +89,15 @@ final class MatterModel {
                 approvals: approvals,
                 agents: agents.agents,
                 activity: activity,
-                health: health
+                health: health,
+                mission: mission
             )
             SnapshotStore.save(snapshot)
             cacheSavedAt = snapshot.savedAt
+        } catch MatterClientError.http(401, "session_expired", let message) {
+            connection = .sessionExpired
+            banner = message
+            usingCache = cacheSavedAt != nil
         } catch MatterClientError.http(401, _, _) {
             connection = .unauthorized
             banner = "The Mac mini rejected the Keychain token."
@@ -131,6 +141,24 @@ final class MatterModel {
         }
     }
 
+    func authenticateOwner() async -> Bool {
+        let context = LAContext()
+        var authError: NSError?
+        guard context.canEvaluatePolicy(.deviceOwnerAuthentication, error: &authError) else {
+            banner = "This iPhone could not start device authentication. The approval was not sent."
+            return false
+        }
+        let ok = await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
+            context.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: "Confirm this Matter approval") { success, _ in
+                continuation.resume(returning: success)
+            }
+        }
+        if !ok {
+            banner = "Device authentication failed. The approval was not sent."
+        }
+        return ok
+    }
+
     func decide(_ approval: ApprovalRecord, decision: String) async {
         guard let client = makeClient() else { return }
         loading = true
@@ -160,5 +188,6 @@ final class MatterModel {
         agents = snapshot.agents
         activity = snapshot.activity.reversed()
         health = snapshot.health
+        mission = snapshot.mission
     }
 }

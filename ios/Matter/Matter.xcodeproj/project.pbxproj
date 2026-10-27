@@ -9,6 +9,7 @@
 		A10000000000000000000002 /* MatterAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000002 /* MatterAPI.swift */; };
 		A10000000000000000000003 /* MatterModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000003 /* MatterModel.swift */; };
 		A10000000000000000000004 /* Screens.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000004 /* Screens.swift */; };
+		A10000000000000000000005 /* ContractTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000007 /* ContractTests.swift */; };
 
 		A20000000000000000000001 /* MatterApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MatterApp.swift; sourceTree = "<group>"; };
 		A20000000000000000000002 /* MatterAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MatterAPI.swift; sourceTree = "<group>"; };
@@ -16,6 +17,8 @@
 		A20000000000000000000004 /* Screens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Screens.swift; sourceTree = "<group>"; };
 		A20000000000000000000005 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A20000000000000000000006 /* Matter.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Matter.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A20000000000000000000007 /* ContractTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContractTests.swift; sourceTree = "<group>"; };
+		A20000000000000000000008 /* MatterTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MatterTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 
 		A30000000000000000000001 /* Matter */ = {
 			isa = PBXGroup;
@@ -33,6 +36,7 @@
 			isa = PBXGroup;
 			children = (
 				A30000000000000000000001 /* Matter */,
+				A30000000000000000000004 /* MatterTests */,
 				A30000000000000000000003 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -41,8 +45,17 @@
 			isa = PBXGroup;
 			children = (
 				A20000000000000000000006 /* Matter.app */,
+				A20000000000000000000008 /* MatterTests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		A30000000000000000000004 /* MatterTests */ = {
+			isa = PBXGroup;
+			children = (
+				A20000000000000000000007 /* ContractTests.swift */,
+			);
+			path = MatterTests;
 			sourceTree = "<group>";
 		};
 
@@ -94,7 +107,47 @@
 			projectRoot = "";
 			targets = (
 				A40000000000000000000001 /* Matter */,
+				A40000000000000000000002 /* MatterTests */,
 			);
+		};
+
+		A40000000000000000000002 /* MatterTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AB0000000000000000000003 /* Build configuration list for PBXNativeTarget "MatterTests" */;
+			buildPhases = (
+				A50000000000000000000002 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A70000000000000000000001 /* PBXTargetDependency */,
+			);
+			name = MatterTests;
+			productName = MatterTests;
+			productReference = A20000000000000000000008 /* MatterTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+
+		A50000000000000000000002 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A10000000000000000000005 /* ContractTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+
+		A70000000000000000000001 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A40000000000000000000001 /* Matter */;
+			targetProxy = A70000000000000000000002 /* PBXContainerItemProxy */;
+		};
+		A70000000000000000000002 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A60000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A40000000000000000000001;
+			remoteInfo = Matter;
 		};
 
 		AA0000000000000000000001 /* Debug */ = {
@@ -135,6 +188,7 @@
 				CODE_SIGNING_REQUIRED = NO;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = "";
+				ENABLE_TESTABILITY = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Matter/Info.plist;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -196,6 +250,51 @@
 			buildConfigurations = (
 				AA0000000000000000000003 /* Debug */,
 				AA0000000000000000000004 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		AA0000000000000000000005 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGNING_REQUIRED = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = app.kituwa.matter.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Matter.app/Matter";
+			};
+			name = Debug;
+		};
+		AA0000000000000000000006 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGNING_REQUIRED = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = app.kituwa.matter.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Matter.app/Matter";
+			};
+			name = Release;
+		};
+		AB0000000000000000000003 /* Build configuration list for PBXNativeTarget "MatterTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AA0000000000000000000005 /* Debug */,
+				AA0000000000000000000006 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

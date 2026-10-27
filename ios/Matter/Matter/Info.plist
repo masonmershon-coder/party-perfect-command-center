@@ -4,6 +4,8 @@
 <dict>
   <key>CFBundleDisplayName</key>
   <string>Matter</string>
+  <key>NSFaceIDUsageDescription</key>
+  <string>Matter asks the device owner to confirm an approval or rejection before sending it. The Mac mini still has to authorize the decision.</string>
   <key>NSLocalNetworkUsageDescription</key>
   <string>Matter connects only to the Mac mini address you enter. It does not track your location.</string>
   <key>NSAppTransportSecurity</key>

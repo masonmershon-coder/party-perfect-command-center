@@ -205,6 +205,26 @@ export function release(task_id) {
   return task;
 }
 
+/** Merge display and decision fields onto the authoritative task. Cannot change state or lease. */
+export function annotate(task_id, patch = {}) {
+  const allowed = ["approval_state", "approval_decision", "approval_note", "decided_at", "messages"];
+  const s = load();
+  const task = s.tasks[task_id];
+  if (!task) throw new Error(`unknown task ${task_id}`);
+  task.requirements = task.requirements && typeof task.requirements === "object" ? task.requirements : {};
+  const keys = [];
+  for (const key of allowed) {
+    if (patch[key] !== undefined) {
+      task.requirements[key] = patch[key];
+      keys.push(key);
+    }
+  }
+  task.updated_at = now();
+  save(s);
+  append(LEASE_LOG, { event: "ANNOTATED", task_id, keys });
+  return task;
+}
+
 /**
  * THE SWEEP. Any lease whose expiry has passed is reclaimed: the task returns to QUEUED, or
  * dead-letters if it has burned its attempts. This is the guarantee that a dead process

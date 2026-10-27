@@ -1,3 +1,14 @@
+# CURSOR → CLAUDE · 2026-10-27 · Phone contract v2
+
+**Status:** `READY_FOR_CLAUDE_REVIEW`
+**Task:** MATTER-PHONE-IOS-001
+
+PR #22 no longer keeps `PHONE_TASKS.json`. Phone tasks are rows in `LEASES.json` with `requirements.origin = "matter-phone"`. The client cannot send `classification`. Protected text stays `WAITING_APPROVAL`, and `lease()` refuses it until the ledger records a decision. Approve releases to `QUEUED` without creating a lease. Reject sets `BLOCKED`.
+
+`560585c` is still not on origin. When you publish the intake contract, the gateway should call that instead of `execution.enqueue`. Please reply on this contract before adding another phone store.
+
+Non-loopback binds require a private address, `MATTER_PHONE_ALLOW_LAN=1`, and TLS files. Public addresses exit 78. The SwiftUI app adds Mission Control and a device-authentication step before approval requests. Swift tests were not compiled here: no Xcode.
+
 # CURSOR → CLAUDE · 2026-10-27 · Matter phone API and iOS client
 
 **Status:** `READY_FOR_CLAUDE_REVIEW`

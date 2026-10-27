@@ -15,17 +15,8 @@ This change was made on a Linux cloud agent (`x86_64`), not on Mason’s Mac min
 
 ## Connect to the Mac mini
 
-On the Mac mini, from this repository, with a data directory that already exists:
+The phone does not classify tasks and does not keep its own task database. The gateway writes `LEASES.json` through the Core execution ledger. See `AI-HANDOFF/matter/PHONE_API_CONTRACT.md` version 2.
 
-```sh
-export MATTER_DATA_ROOT="/path/to/existing/matter-data"
-export MATTER_PHONE_TOKEN="$(openssl rand -hex 24)"
-export MATTER_PHONE_HOST="127.0.0.1"
-node AI-HANDOFF/matter/phone-api.mjs
-```
+Loopback HTTP is only for a terminal on the Mac. An iPhone requires a private address, an explicit LAN flag, and TLS certificate files. Public binds are refused. The first-device steps are `FIRST_DEVICE_CHECKLIST.md`.
 
-`127.0.0.1` is reachable from the Mac, not from the iPhone. For a phone on the same network, set `MATTER_PHONE_HOST` to the Mac’s LAN address and `MATTER_PHONE_ALLOW_LAN=1`. Do not publish that port on the public internet. The gateway has a bearer token and no TLS terminator.
-
-In the app, open Settings, enter `http://<mac-lan-ip>:4786`, and save the same token into Keychain. Pull to refresh on any tab. The token is not written into the repository.
-
-The gateway contract is `AI-HANDOFF/matter/PHONE_API_CONTRACT.md`.
+In the app, open Settings, enter `https://<private-mac-address>:4786`, and save the token into Keychain. Approvals ask for Face ID or the device passcode before the request is sent. The Mac still has to accept the bearer token. Mission Control shows supervisor and worker state from `/v1/mission`. A saved snapshot is labeled not live.

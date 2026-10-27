@@ -33,6 +33,12 @@ No Swift project existed. Kituwa already has session-gated web routes under `app
 
 No iPhone was installed. `swift` and `xcodebuild` are absent. There is no Apple signing identity here. No request from a phone reached a Mac mini.
 
+## Contract v2 follow-up
+
+The first gateway wrote `PHONE_TASKS.json` and accepted a client `classification` field. That conflicted with the Core ledger. Version 2 writes phone tasks through `execution.mjs` into `LEASES.json` and rejects `classification`. `node AI-HANDOFF/matter/test-phone-api.mjs` passed after that change, including a private TLS listener, `session_expired`, a refused public bind, and supervisor restart leaving the ledger task in place. `test-execution.mjs` stayed at 11 passed. `test-core-alpha.mjs` passed.
+
+Swift Mission Control, Face ID / device passcode before approvals, and `MatterTests/ContractTests.swift` are in the Xcode project. They were not compiled. `swift` and `xcodebuild` are absent. The install checklist is `ios/Matter/FIRST_DEVICE_CHECKLIST.md`.
+
 ## Checkpoint reading
 
 This does not move the Mac mini off its local 55% record. On the published alpha line, the new piece is an authenticated phone gateway plus an unsigned SwiftUI client.

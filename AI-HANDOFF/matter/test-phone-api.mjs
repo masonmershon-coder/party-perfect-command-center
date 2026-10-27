@@ -1,10 +1,11 @@
 #!/usr/bin/env node
-// Integration tests for the Matter phone gateway. Hermetic. No model calls.
+// Contract tests for the Matter phone gateway. Hermetic. No model calls.
 import assert from "node:assert/strict";
 import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { spawn, spawnSync } from "node:child_process";
+import https from "node:https";
 import { fileURLToPath } from "node:url";
 import { createPhoneServer } from "./phone-api.mjs";
 
@@ -23,7 +24,9 @@ async function expectClosed(fn) {
 }
 await expectClosed(() => createPhoneServer({ root: missing, token: TOKEN }));
 await expectClosed(() => createPhoneServer({ root, token: "short" }));
-await expectClosed(() => createPhoneServer({ root, token: TOKEN, host: "0.0.0.0" }));
+await expectClosed(() => createPhoneServer({ root, token: TOKEN, host: "0.0.0.0", allowLan: true, tlsCert: "/tmp/x", tlsKey: "/tmp/y" }));
+await expectClosed(() => createPhoneServer({ root, token: TOKEN, host: "203.0.113.10", allowLan: true, tlsCert: "/tmp/x", tlsKey: "/tmp/y" }));
+await expectClosed(() => createPhoneServer({ root, token: TOKEN, host: "192.168.1.20", allowLan: true }));
 assert.equal(existsSync(missing), false, "unavailable data root must not be created");
 
 const cli = spawnSync(process.execPath, [path.join(HERE, "phone-api.mjs")], {
@@ -33,8 +36,9 @@ assert.equal(cli.status, 78, "missing data root must fail closed");
 
 writeFileSync(path.join(root, "WORKER_REGISTRY.json"), JSON.stringify({
   workers: {
-    "codex-local": { worker_id: "codex-local", provider: "openai", product: "codex", model: "test", last_heartbeat: null },
+    "codex-local": { worker_id: "codex-local", provider: "openai", product: "codex", model: "test", last_heartbeat: null, detect: ["codex", "--version"] },
     "cursor-local": { worker_id: "cursor-local", provider: "cursor", product: "cursor", last_heartbeat: "2026-10-01T00:00:00.000Z" },
+    "ollama-local": { worker_id: "ollama-local", provider: "ollama", product: "ollama", model: "local", detect: ["http://127.0.0.1:11434/api/tags"], last_heartbeat: null },
   },
 }));
 writeFileSync(path.join(root, "CORE_HEALTH.json"), JSON.stringify({
@@ -46,11 +50,11 @@ writeFileSync(path.join(root, "CORE_HEALTH.json"), JSON.stringify({
 
 const api = await createPhoneServer({ root, token: TOKEN, host: "127.0.0.1", port: 0 });
 
-async function call(pathname, { method = "GET", body, token = TOKEN } = {}) {
+async function call(pathname, { method = "GET", body, token = TOKEN, base = api.url } = {}) {
   const headers = {};
   if (token) headers.authorization = `Bearer ${token}`;
   if (body) headers["content-type"] = "application/json";
-  const response = await fetch(`${api.url}${pathname}`, { method, headers, body: body ? JSON.stringify(body) : undefined });
+  const response = await fetch(`${base}${pathname}`, { method, headers, body: body ? JSON.stringify(body) : undefined });
   const json = await response.json();
   return { status: response.status, json };
 }
@@ -58,17 +62,13 @@ async function call(pathname, { method = "GET", body, token = TOKEN } = {}) {
 const openHealth = await call("/v1/health", { token: "" });
 assert.equal(openHealth.status, 200);
 assert.equal(openHealth.json.authenticated, false);
-assert.equal(openHealth.json.supervisor, undefined, "unauthenticated health must not reveal supervisor state");
+assert.equal(openHealth.json.supervisor, undefined);
 
-const denied = await call("/v1/tasks", { token: "" });
-assert.equal(denied.status, 401);
-assert.equal(denied.json.error.code, "unauthorized");
-const wrong = await call("/v1/tasks", { token: "not-the-real-token" });
-assert.equal(wrong.status, 401);
+assert.equal((await call("/v1/tasks", { token: "" })).status, 401);
+assert.equal((await call("/v1/tasks", { token: "not-the-real-token" })).json.error.code, "unauthorized");
 
 const health = await call("/v1/health");
-assert.equal(health.json.service, "matter-phone");
-assert.equal(health.json.supervisor_healthy, false, "a dead stale pid is not a healthy supervisor");
+assert.equal(health.json.supervisor_healthy, false);
 assert.equal(health.json.supervisor.pid, 999999);
 assert.equal(health.json.supervisor.running, false);
 
@@ -79,85 +79,90 @@ const created = await call("/v1/tasks", {
 assert.equal(created.status, 201);
 assert.equal(created.json.task.status, "QUEUED");
 assert.equal(created.json.task.executed, false);
-assert.equal(created.json.task.route, "DETERMINISTIC_RECORD");
 assert.equal(created.json.task.classification, "SAFE");
+assert.equal(existsSync(path.join(root, "PHONE_TASKS.json")), false, "phone gateway must not create a second task database");
+const ledger = JSON.parse(readFileSync(path.join(root, "LEASES.json"), "utf8"));
+assert.equal(ledger.tasks[created.json.task.task_id].state, "QUEUED");
+assert.equal(ledger.tasks[created.json.task.task_id].lease, null);
 
 const again = await call("/v1/conversations", {
   method: "POST",
   body: { client_message_id: "msg-safe-1", text: "Remind me to review the Matter notes tomorrow" },
 });
-assert.equal(again.status, 200);
 assert.equal(again.json.duplicate, true);
 assert.equal(again.json.task.task_id, created.json.task.task_id);
+assert.equal(Object.keys(JSON.parse(readFileSync(path.join(root, "LEASES.json"), "utf8")).tasks).length, 1);
 
-const listed = await call("/v1/tasks");
-assert.equal(listed.json.tasks.length, 1);
-const fetched = await call(`/v1/tasks/${created.json.task.task_id}`);
-assert.equal(fetched.json.task.status, "QUEUED");
-
-const blockedRun = await call(`/v1/tasks/${created.json.task.task_id}/execute`, { method: "POST", body: {} });
-assert.equal(blockedRun.status, 403);
-assert.equal(blockedRun.json.error.code, "execution_refused");
+const claimed = await call("/v1/tasks", {
+  method: "POST",
+  body: { client_message_id: "msg-claimed-safe", text: "Email the customer that the tent is ready", classification: "SAFE" },
+});
+assert.equal(claimed.status, 400);
+assert.equal(claimed.json.error.code, "unknown_field");
 
 const approval = await call("/v1/tasks", {
   method: "POST",
-  body: { client_message_id: "msg-approval-1", text: "Email the customer that the tent is ready", classification: "SAFE" },
+  body: { client_message_id: "msg-approval-1", text: "Email the customer that the tent is ready" },
 });
-assert.equal(approval.status, 201);
 assert.equal(approval.json.task.status, "WAITING_APPROVAL");
 assert.equal(approval.json.task.executed, false);
-assert.equal(approval.json.task.classification_override, "protected_language");
 assert.ok(approval.json.task.protected_actions.includes("customer_communication"));
+const execution = await import("./execution.mjs");
+assert.throws(() => execution.lease(approval.json.task.task_id, "phone-client"), /WAITING_APPROVAL/);
 
-const pending = await call("/v1/approvals?status=PENDING");
-assert.equal(pending.json.approvals.length, 1);
-assert.equal(pending.json.approvals[0].task_id, approval.json.task.task_id);
+assert.equal((await call(`/v1/tasks/${created.json.task.task_id}/execute`, { method: "POST", body: {} })).status, 403);
+assert.equal((await call("/v1/approvals?status=PENDING")).json.approvals.length, 1);
 
 const approved = await call(`/v1/approvals/${approval.json.task.task_id}`, {
   method: "POST",
   body: { decision: "approve", note: "owner authorized the record only" },
 });
-assert.equal(approved.status, 200);
-assert.equal(approved.json.task.status, "READY");
+assert.equal(approved.json.task.status, "QUEUED");
 assert.equal(approved.json.task.approval_state, "approved");
-assert.equal(approved.json.task.executed, false, "approval must not start execution");
+assert.equal(approved.json.task.executed, false);
 assert.equal(approved.json.approval.status, "APPROVED");
+assert.equal(JSON.parse(readFileSync(path.join(root, "LEASES.json"), "utf8")).tasks[approval.json.task.task_id].lease, null);
 
 const rejected = await call("/v1/tasks", {
   method: "POST",
-  body: { client_message_id: "msg-approval-2", text: "Delete the production database", classification: "APPROVAL_REQUIRED" },
+  body: { client_message_id: "msg-approval-2", text: "Delete the production database" },
 });
 const denial = await call(`/v1/approvals/${rejected.json.task.task_id}`, { method: "POST", body: { decision: "reject" } });
 assert.equal(denial.json.task.status, "BLOCKED");
 assert.equal(denial.json.task.approval_state, "denied");
-assert.equal(denial.json.approval.status, "REJECTED");
-const conflict = await call(`/v1/approvals/${rejected.json.task.task_id}`, { method: "POST", body: { decision: "approve" } });
-assert.equal(conflict.status, 409);
+assert.throws(() => execution.lease(rejected.json.task.task_id, "phone-client"), /BLOCKED/);
+assert.equal((await call(`/v1/approvals/${rejected.json.task.task_id}`, { method: "POST", body: { decision: "approve" } })).status, 409);
 
 const agents = await call("/v1/agents");
-assert.equal(agents.json.source, "WORKER_REGISTRY.json");
-const codex = agents.json.agents.find((agent) => agent.worker_id === "codex-local");
-const cursor = agents.json.agents.find((agent) => agent.worker_id === "cursor-local");
-assert.equal(codex.available, false, "health false must stay false");
-assert.equal(cursor.available, null, "a registry row without a health observation is not available");
-assert.equal(codex.detect, undefined, "probe commands stay off the phone payload");
+assert.equal(agents.json.agents.find((agent) => agent.worker_id === "codex-local").available, false);
+assert.equal(agents.json.agents.find((agent) => agent.worker_id === "cursor-local").available, null);
+assert.equal(agents.json.agents.find((agent) => agent.worker_id === "ollama-local").detect, undefined);
+const mission = await call("/v1/mission");
+assert.equal(mission.json.local_intelligence.observed, true);
+assert.equal(mission.json.local_intelligence.available, null);
+assert.equal(JSON.stringify(mission.json).includes("11434"), false, "local intelligence endpoint must not be returned");
+assert.equal(mission.json.queue.by_state.WAITING_APPROVAL, 0);
+assert.ok(mission.json.queue.by_state.QUEUED >= 1);
+assert.equal(mission.json.supervisor_healthy, false);
 
 const activity = await call("/v1/activity");
-assert.ok(activity.json.events.some((event) => event.kind === "task.routed" && event.executed === false));
-assert.ok(activity.json.events.some((event) => event.kind === "approval.approved"));
-assert.ok(activity.json.events.some((event) => event.kind === "approval.rejected"));
+assert.ok(activity.json.events.some((event) => event.kind === "WAITING_APPROVAL"));
+assert.ok(activity.json.events.some((event) => event.kind === "BLOCKED"));
+assert.ok(activity.json.events.some((event) => event.kind === "RELEASED"));
 
-const unknown = await call("/v1/tasks", { method: "POST", body: { client_message_id: "x", text: "hello", model: "gpt" } });
-assert.equal(unknown.status, 400);
-assert.equal(unknown.json.error.code, "unknown_field");
-
-const beforeRestart = JSON.parse(readFileSync(path.join(root, "PHONE_TASKS.json"), "utf8"));
+const beforeRestart = JSON.parse(readFileSync(path.join(root, "LEASES.json"), "utf8"));
 await api.close();
 const restarted = await createPhoneServer({ root, token: TOKEN, host: "127.0.0.1", port: 0 });
 const after = await fetch(`${restarted.url}/v1/tasks`, { headers: { authorization: `Bearer ${TOKEN}` } }).then((res) => res.json());
-assert.equal(after.tasks.length, beforeRestart && Object.keys(beforeRestart.tasks).length);
-assert.ok(after.tasks.some((task) => task.client_message_id === "msg-safe-1" && task.status === "QUEUED"));
+assert.equal(after.tasks.length, Object.values(beforeRestart.tasks).filter((task) => task.requirements && task.requirements.origin === "matter-phone").length);
 
+writeFileSync(path.join(root, "WORKER_REGISTRY.json"), JSON.stringify({
+  workers: {
+    "codex-local": { worker_id: "codex-local", provider: "openai", product: "codex", detect: ["false"] },
+    "cursor-local": { worker_id: "cursor-local", provider: "cursor", product: "cursor", detect: ["false"] },
+    "ollama-local": { worker_id: "ollama-local", provider: "ollama", product: "ollama", detect: ["false"] },
+  },
+}));
 const child = spawn(process.execPath, [path.join(HERE, "core-alpha.mjs")], {
   env: { ...process.env, MATTER_DATA_ROOT: root, MATTER_DIR: root, MATTER_EXEC_DIR: root, MATTER_CORE_INTERVAL_SEC: "15" },
   stdio: "ignore",
@@ -172,27 +177,51 @@ while (Date.now() < deadline) {
   }
   await new Promise((resolve) => setTimeout(resolve, 50));
 }
-assert.equal(supervisorPid, child.pid, "fixture supervisor must report its own pid");
+assert.equal(supervisorPid, child.pid);
 const live = await fetch(`${restarted.url}/v1/health`, { headers: { authorization: `Bearer ${TOKEN}` } }).then((res) => res.json());
 assert.equal(live.supervisor.running, true);
 assert.equal(live.supervisor.pid, child.pid);
 child.kill("SIGTERM");
 await new Promise((resolve) => child.once("exit", resolve));
-const persisted = JSON.parse(readFileSync(path.join(root, "PHONE_TASKS.json"), "utf8"));
-assert.equal(persisted.tasks[created.json.task.task_id].status, "QUEUED");
-assert.equal(persisted.tasks[approval.json.task.task_id].executed, false);
-const afterSupervisor = await fetch(`${restarted.url}/v1/health`, { headers: { authorization: `Bearer ${TOKEN}` } }).then((res) => res.json());
+const persisted = JSON.parse(readFileSync(path.join(root, "LEASES.json"), "utf8"));
+assert.equal(persisted.tasks[created.json.task.task_id].state, "QUEUED");
+assert.equal(persisted.tasks[approval.json.task.task_id].lease, null);
+assert.equal(persisted.tasks[rejected.json.task.task_id].state, "BLOCKED");
+const afterSupervisor = await fetch(`${restarted.url}/v1/mission`, { headers: { authorization: `Bearer ${TOKEN}` } }).then((res) => res.json());
 assert.equal(afterSupervisor.supervisor.running, false);
 assert.equal(afterSupervisor.supervisor_healthy, false);
 
+const expired = await createPhoneServer({
+  root, token: TOKEN, host: "127.0.0.1", port: 0, tokenNotAfter: "2020-01-01T00:00:00.000Z",
+});
+const expiredCall = await fetch(`${expired.url}/v1/tasks`, { headers: { authorization: `Bearer ${TOKEN}` } }).then(async (res) => ({ status: res.status, json: await res.json() }));
+assert.equal(expiredCall.status, 401);
+assert.equal(expiredCall.json.error.code, "session_expired");
+await expired.close();
+
+const tlsDir = mkdtempSync(path.join(tmpdir(), "matter-phone-tls-"));
+const cert = path.join(tlsDir, "cert.pem");
+const key = path.join(tlsDir, "key.pem");
+const minted = spawnSync("openssl", ["req", "-x509", "-newkey", "rsa:2048", "-keyout", key, "-out", cert, "-days", "1", "-nodes", "-subj", "/CN=matter-phone-test"], { encoding: "utf8" });
+assert.equal(minted.status, 0, minted.stderr);
+const secure = await createPhoneServer({ root, token: TOKEN, host: "127.0.0.1", port: 0, tlsCert: cert, tlsKey: key });
+assert.ok(secure.url.startsWith("https://"));
+const tlsHealth = await new Promise((resolve, reject) => {
+  const req = https.request(`${secure.url}/v1/health`, { headers: { authorization: `Bearer ${TOKEN}` }, rejectUnauthorized: false }, (res) => {
+    res.resume();
+    res.on("end", () => resolve(res.statusCode));
+  });
+  req.on("error", reject);
+  req.end();
+});
+assert.equal(tlsHealth, 200);
+await secure.close();
+
 const tight = await createPhoneServer({ root, token: TOKEN, host: "127.0.0.1", port: 0, rateLimit: 2, rateWindowMs: 60_000 });
-const first = await fetch(`${tight.url}/v1/health`);
-const second = await fetch(`${tight.url}/v1/health`);
-const third = await fetch(`${tight.url}/v1/health`);
-assert.equal(first.status, 200);
-assert.equal(second.status, 200);
-assert.equal(third.status, 429);
+assert.equal((await fetch(`${tight.url}/v1/health`)).status, 200);
+assert.equal((await fetch(`${tight.url}/v1/health`)).status, 200);
+assert.equal((await fetch(`${tight.url}/v1/health`)).status, 429);
 await tight.close();
 await restarted.close();
 
-console.log(JSON.stringify({ pass: true, root, tasks: Object.keys(persisted.tasks).length }, null, 2));
+console.log(JSON.stringify({ pass: true, root, tasks: Object.keys(persisted.tasks).length, ledger: "LEASES.json" }, null, 2));

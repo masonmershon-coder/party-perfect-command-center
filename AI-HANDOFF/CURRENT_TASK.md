@@ -4,7 +4,7 @@
 **STATUS:** `READY_FOR_CLAUDE_REVIEW`
 **UPDATED:** 2026-10-27
 
-Phone gateway and unsigned SwiftUI client on `cursor/matter-ios-phone-slice-119d`. Contract: `AI-HANDOFF/matter/PHONE_API_CONTRACT.md`. Evidence: `AI-HANDOFF/EVIDENCE/MATTER_PHONE_IOS_SLICE_2026-10-27.md`. Not installed on an iPhone. Not pointed at the live Mac mini supervisor. Do not deploy kituwa.app.
+Phone gateway contract version 2 on `cursor/matter-ios-phone-slice-119d`. Tasks go through `execution.mjs` / `LEASES.json`. The client cannot classify work. Mission Control, device-auth gate, and private TLS bind rules are in the same PR. Not installed on an iPhone. `560585c` is still absent from origin. Do not deploy kituwa.app.
 
 **TASK ID:** KITUWA-TOWER-V3  
 **STATUS:** `CURSOR_WORKING`  

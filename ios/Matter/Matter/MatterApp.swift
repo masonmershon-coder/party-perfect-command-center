@@ -18,6 +18,8 @@ struct RootView: View {
 
     var body: some View {
         TabView {
+            MissionControlView()
+                .tabItem { Label("Mission", systemImage: "gauge.with.dots.needle.67percent") }
             ChatView()
                 .tabItem { Label("Chat", systemImage: "bubble.left") }
             TasksView()

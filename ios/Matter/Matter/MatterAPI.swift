@@ -87,6 +87,27 @@ struct AgentListResponse: Codable {
     var agents: [AgentRecord]
 }
 
+struct QueueStatus: Codable {
+    var total: Int
+    var byState: [String: Int]
+}
+
+struct LocalIntelligence: Codable {
+    var observed: Bool
+    var available: Bool?
+    var workers: [String]
+    var reason: String
+}
+
+struct MissionResponse: Codable {
+    var supervisorHealthy: Bool
+    var supervisor: SupervisorSnapshot
+    var queue: QueueStatus
+    var approvalsPending: Int
+    var agents: [AgentRecord]
+    var localIntelligence: LocalIntelligence
+}
+
 struct ActivityEvent: Codable, Identifiable {
     var at: String
     var kind: String
@@ -116,6 +137,7 @@ struct MatterSnapshot: Codable {
     var agents: [AgentRecord]
     var activity: [ActivityEvent]
     var health: HealthResponse?
+    var mission: MissionResponse?
 }
 
 enum KeychainStore {
@@ -190,6 +212,7 @@ struct MatterClient {
     var token: String
 
     func health() async throws -> HealthResponse { try await send("/v1/health") }
+    func mission() async throws -> MissionResponse { try await send("/v1/mission") }
     func tasks() async throws -> [TaskRecord] { try await send("/v1/tasks", as: TaskListResponse.self).tasks }
     func conversations() async throws -> [ConversationRecord] {
         try await send("/v1/conversations", as: ConversationResponse.self).conversations
@@ -206,6 +229,7 @@ struct MatterClient {
             "text": text,
             "source": "text",
         ])
+        // Classification is intentionally absent. The ledger decides it.
     }
 
     func decide(taskId: String, decision: String) async throws -> ApprovalDecisionResponse {

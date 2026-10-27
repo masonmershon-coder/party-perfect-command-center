@@ -29,6 +29,12 @@ Open blockers only. No secrets/PII. Update status when cleared.
 - **Impact:** No merge-to-main / Vercel production cutover until Claude reviews.
 - **Needed:** Claude VERIFIED on PP-003/PP-004 (and PP-001 after ingest).
 
+## B-006 — Matter iPhone build has no signing identity here
+
+- **Status:** OPEN
+- **Impact:** `ios/Matter` cannot be installed or device-tested from this Linux agent. No Xcode, certificate, or iPhone is present.
+- **Needed:** On the Mac, set the Matter target's Development Team and run it on Mason's iPhone. Then point the app at the phone gateway on the Mac mini.
+
 ## B-005 — OWNER_PIN must be ≥6 digits in Vercel
 
 - **Status:** OPEN (PP-003)

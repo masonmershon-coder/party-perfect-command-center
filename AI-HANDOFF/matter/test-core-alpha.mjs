@@ -18,7 +18,10 @@ const child=spawn(process.execPath,[path.join(HERE,"core-alpha.mjs")],{env:proce
 const health=path.join(ROOT,"CORE_HEALTH.json"); const deadline=Date.now()+5000;
 while(!existsSync(health)&&Date.now()<deadline) await new Promise(r=>setTimeout(r,50));
 assert.ok(existsSync(health),"supervisor must emit health");
+await new Promise(r=>setTimeout(r,200));
+assert.equal(child.exitCode,null,"supervisor must remain running after emitting health");
 const h=JSON.parse(readFileSync(health,"utf8"));
+assert.equal(h.pid,child.pid,"health must report the running supervisor pid");
 assert.equal(h.workers.find(x=>x.worker_id==="alive-worker").available,true);
 assert.equal(h.workers.find(x=>x.worker_id==="dead-worker").available,false);
 assert.ok(h.recovered.reclaimed.includes("recover-me"),"expired lease must be reclaimed");

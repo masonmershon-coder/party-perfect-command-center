@@ -2,6 +2,7 @@
 
 | Task ID | From | To | Status | Notes |
 |---------|------|----|--------|-------|
+| MATTER-PHONE-IOS-001 | Cursor | Claude | **READY_FOR_CLAUDE_REVIEW** | Phone gateway v1 + unsigned SwiftUI app. Contract `matter/PHONE_API_CONTRACT.md`. Not installed on a device. Do not deploy kituwa.app. |
 | PP-HANDOFF-001 | Cursor | Claude | VERIFIED ✅ | Protocol accepted |
 | PP-001 (data layer) | Cursor | Claude | VERIFIED ✅ | RLS + ingest + sync/postgres code |
 | PP-001 (go-live ingest) | Cursor | Claude | WAITING_FOR_MASON | Needs DATABASE_URL + SQUARE env |

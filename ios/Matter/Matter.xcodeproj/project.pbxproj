@@ -1,0 +1,205 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {};
+	objectVersion = 56;
+	objects = {
+
+		A10000000000000000000001 /* MatterApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000001 /* MatterApp.swift */; };
+		A10000000000000000000002 /* MatterAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000002 /* MatterAPI.swift */; };
+		A10000000000000000000003 /* MatterModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000003 /* MatterModel.swift */; };
+		A10000000000000000000004 /* Screens.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000004 /* Screens.swift */; };
+
+		A20000000000000000000001 /* MatterApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MatterApp.swift; sourceTree = "<group>"; };
+		A20000000000000000000002 /* MatterAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MatterAPI.swift; sourceTree = "<group>"; };
+		A20000000000000000000003 /* MatterModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MatterModel.swift; sourceTree = "<group>"; };
+		A20000000000000000000004 /* Screens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Screens.swift; sourceTree = "<group>"; };
+		A20000000000000000000005 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A20000000000000000000006 /* Matter.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Matter.app; sourceTree = BUILT_PRODUCTS_DIR; };
+
+		A30000000000000000000001 /* Matter */ = {
+			isa = PBXGroup;
+			children = (
+				A20000000000000000000001 /* MatterApp.swift */,
+				A20000000000000000000002 /* MatterAPI.swift */,
+				A20000000000000000000003 /* MatterModel.swift */,
+				A20000000000000000000004 /* Screens.swift */,
+				A20000000000000000000005 /* Info.plist */,
+			);
+			path = Matter;
+			sourceTree = "<group>";
+		};
+		A30000000000000000000002 = {
+			isa = PBXGroup;
+			children = (
+				A30000000000000000000001 /* Matter */,
+				A30000000000000000000003 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		A30000000000000000000003 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A20000000000000000000006 /* Matter.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+
+		A40000000000000000000001 /* Matter */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AB0000000000000000000002 /* Build configuration list for PBXNativeTarget "Matter" */;
+			buildPhases = (
+				A50000000000000000000001 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Matter;
+			productName = Matter;
+			productReference = A20000000000000000000006 /* Matter.app */;
+			productType = "com.apple.product-type.application";
+		};
+
+		A50000000000000000000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A10000000000000000000001 /* MatterApp.swift in Sources */,
+				A10000000000000000000002 /* MatterAPI.swift in Sources */,
+				A10000000000000000000003 /* MatterModel.swift in Sources */,
+				A10000000000000000000004 /* Screens.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+
+		A60000000000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastUpgradeCheck = 1600;
+			};
+			buildConfigurationList = AB0000000000000000000001 /* Build configuration list for PBXProject "Matter" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = A30000000000000000000002;
+			productRefGroup = A30000000000000000000003 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				A40000000000000000000001 /* Matter */,
+			);
+		};
+
+		AA0000000000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		AA0000000000000000000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		AA0000000000000000000003 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = "";
+				CODE_SIGN_IDENTITY = "";
+				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGNING_REQUIRED = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Matter/Info.plist;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = app.kituwa.matter;
+				PRODUCT_NAME = Matter;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		AA0000000000000000000004 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = "";
+				CODE_SIGN_IDENTITY = "";
+				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGNING_REQUIRED = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Matter/Info.plist;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = app.kituwa.matter;
+				PRODUCT_NAME = Matter;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		AB0000000000000000000001 /* Build configuration list for PBXProject "Matter" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AA0000000000000000000001 /* Debug */,
+				AA0000000000000000000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		AB0000000000000000000002 /* Build configuration list for PBXNativeTarget "Matter" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AA0000000000000000000003 /* Debug */,
+				AA0000000000000000000004 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+	};
+	rootObject = A60000000000000000000001 /* Project object */;
+}

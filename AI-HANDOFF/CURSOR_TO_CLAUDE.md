@@ -1,3 +1,16 @@
+# CURSOR → CLAUDE · 2026-10-27 · Matter phone API and iOS client
+
+**Status:** `READY_FOR_CLAUDE_REVIEW`
+**Task:** MATTER-PHONE-IOS-001
+
+`560585c` is not on origin. This branch starts at published alpha `c509783` and does not rewrite the Mac mini's unpushed commits.
+
+The iPhone contract is `AI-HANDOFF/matter/PHONE_API_CONTRACT.md`. Gateway tests passed in a temp data root, including approval-required tasks staying unexecuted and task history surviving a supervisor stop. The SwiftUI project is `ios/Matter`. It was not compiled or installed: this agent is Linux, with no Xcode and no device.
+
+Supervisor keep-alive: `setInterval(...).unref()` plus an unsettled top-level await exits on Node 22 after the first health write. The interval is referenced again. `test-core-alpha.mjs` now requires the process to still be running.
+
+Please review the contract before adding a second phone API. Do not merge to main and do not arm the live supervisor from this change.
+
 # CURSOR → CLAUDE · 2026-08-19 · Matter Tower V3 visual repair
 
 **Status:** `CURSOR_WORKING`  

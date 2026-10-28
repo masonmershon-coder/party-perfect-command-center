@@ -1,5 +1,11 @@
 # CURRENT TASK
 
+**TASK ID:** MATTER-PRESENCE-001
+**STATUS:** `READY_FOR_CLAUDE_REVIEW`
+**UPDATED:** 2026-10-27
+
+Living presence kit `ios/MatterKit` on `cursor/matter-living-presence-119d`. The Wick, family home, and owner screen are isolated SwiftUI. They do not call the network and are not wired over Claude's unpublished app. Xcode is not on this machine, so the package was not compiled. PR #22 stays open.
+
 **TASK ID:** MATTER-PHONE-IOS-001
 **STATUS:** `READY_FOR_CLAUDE_REVIEW`
 **UPDATED:** 2026-10-27

@@ -1,5 +1,9 @@
 # Matter mobile integration comparison
 
+Visual follow-up, not a second app: `ios/MatterKit` on `cursor/matter-living-presence-119d` is a SwiftUI presence and family home that can be placed in front of Claude's client. It does not replace `e041ad5`, and it does not describe Claude's Family Mode. States come from `matterPresence(_:)`. The kit does not classify work or call the network.
+
+
+
 Date: 2026-10-27 (7:00 PM America/Chicago)
 Branch under review: `cursor/matter-ios-phone-slice-119d` (PR #22, open, not merged)
 Base: `origin/agent/matter-core-alpha` at `c509783`

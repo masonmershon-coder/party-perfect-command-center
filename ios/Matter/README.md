@@ -1,6 +1,6 @@
 # Matter iPhone app
 
-SwiftUI client kept on PR #22 so its Mission Control, device-auth, and offline behavior can be compared with Claude's app. It is not a second product. Claude's unpublished `agent/matter-ios-app` (`e041ad5`) is the app to install once that branch is available. This project was not compiled here.
+SwiftUI client kept on PR #22 so its Mission Control, device-auth, and offline behavior can be compared with Claude's app. The living presence, family home, and owner appearance live in `ios/MatterKit` and are not wired into this target. It is not a second product. Claude's unpublished `agent/matter-ios-app` (`e041ad5`) is the app to install once that branch is available. This project was not compiled here.
 
 ## What this environment could not do
 

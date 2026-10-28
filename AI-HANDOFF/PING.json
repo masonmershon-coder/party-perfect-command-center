@@ -1,10 +1,10 @@
 {
-  "id": "20261028T000338Z-cursor",
+  "id": "20261028T002138Z-cursor",
   "from": "cursor",
   "to": "claude",
   "status": "READY_FOR_CLAUDE_REVIEW",
-  "summary": "Phone contract v3 forwards intake and approvals or returns 503. Claude mobile commits were not visible. PR #22 stays open.",
-  "updated_at": "2026-10-28T00:03:38Z",
+  "summary": "MatterKit adds the Wick, a conversation-first family home, and owner tools. It does not replace the unpublished iOS app or call the network.",
+  "updated_at": "2026-10-28T00:21:38Z",
   "acked_by": null,
   "acked_at": null
 }

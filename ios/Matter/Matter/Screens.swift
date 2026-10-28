@@ -47,7 +47,7 @@ struct ChatView: View {
                 StatusBanner()
                 ScrollView {
                     if messages.isEmpty {
-                        ContentUnavailableView("No conversation yet", systemImage: "bubble.left", description: Text("A message is recorded on the Mac mini. Matter does not invent a reply."))
+                        ContentUnavailableView("No conversation yet", systemImage: "bubble.left", description: Text("Messages appear after Matter intake records them. This phone does not invent a reply or a status."))
                             .padding(.top, 40)
                     } else {
                         LazyVStack(alignment: .leading, spacing: 12) {
@@ -111,9 +111,11 @@ struct TasksView: View {
                             Text(task.title).font(.body.weight(.semibold))
                             Text(task.status)
                                 .font(.caption.weight(.bold))
-                            Text(task.routingBasis)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                            if let basis = task.routingBasis, !basis.isEmpty {
+                                Text(basis)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
                             Text(task.executed ? "Executed" : "Not executed")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
@@ -137,7 +139,7 @@ struct ApprovalsView: View {
             VStack(spacing: 0) {
                 StatusBanner()
                 if model.approvals.isEmpty {
-                    ContentUnavailableView("No pending approvals", systemImage: "checkmark.seal", description: Text("Approval-required tasks stay here until you authorize or reject them."))
+                    ContentUnavailableView("No pending approvals", systemImage: "checkmark.seal", description: Text("Face ID or the device passcode is required before a decision is sent. This phone does not keep its own approval journal."))
                 } else {
                     List(model.approvals) { approval in
                         VStack(alignment: .leading, spacing: 8) {
@@ -198,6 +200,11 @@ struct MissionControlView: View {
                     }
                 }
                 Section("Local intelligence") {
+                    if !live {
+                        Text("Saved snapshot. Availability is not live.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                     let intel = model.mission?.localIntelligence
                     LabeledContent("Observed") { Text(intel?.observed == true ? "Yes" : "No") }
                     LabeledContent("Available") { Text(availability(intel?.available)) }
@@ -206,6 +213,11 @@ struct MissionControlView: View {
                         .foregroundStyle(.secondary)
                 }
                 Section("Task queue") {
+                    if !live {
+                        Text("Saved snapshot. These counts are not a live supervisor.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                     if let queue = model.mission?.queue {
                         LabeledContent("Total") { Text(String(queue.total)) }
                         ForEach(queue.byState.keys.sorted(), id: \.self) { key in
@@ -217,6 +229,11 @@ struct MissionControlView: View {
                     LabeledContent("Approvals pending") { Text(String(model.mission?.approvalsPending ?? model.approvals.count)) }
                 }
                 Section("Workers") {
+                    if !live {
+                        Text("Saved snapshot. Worker availability is not live.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                     if model.agents.isEmpty {
                         Text("No workers in the registry snapshot.")
                     } else {
@@ -304,15 +321,16 @@ struct SettingsView: View {
                     LabeledContent("Keychain") { Text(model.tokenStored ? "Token stored" : "No token") }
                 }
                 Section("Supervisor") {
-                    LabeledContent("API") { Text(model.health?.service ?? "Not loaded") }
-                    LabeledContent("Supervisor healthy") { Text(model.health?.supervisorHealthy == true ? "Yes" : "No") }
+                    let live = model.connection == .online && !model.usingCache
+                    LabeledContent("API") { Text(live ? (model.health?.service ?? "Not loaded") : "Not live") }
+                    LabeledContent("Supervisor healthy") { Text(live && model.health?.supervisorHealthy == true ? "Yes" : "No") }
                     LabeledContent("Process") {
-                        Text(model.health?.supervisor?.running == true ? "Running" : "Not running")
+                        Text(live && model.health?.supervisor?.running == true ? "Running" : "Not running")
                     }
-                    if let pid = model.health?.supervisor?.pid {
+                    if live, let pid = model.health?.supervisor?.pid {
                         LabeledContent("PID") { Text(String(pid)) }
                     }
-                    if let pass = model.health?.supervisor?.lastPassAt {
+                    if live, let pass = model.health?.supervisor?.lastPassAt {
                         LabeledContent("Last pass") { Text(pass).lineLimit(2) }
                     }
                 }

@@ -32,8 +32,14 @@ Open blockers only. No secrets/PII. Update status when cleared.
 ## B-006 — Matter iPhone build has no signing identity here
 
 - **Status:** OPEN
-- **Impact:** `ios/Matter` cannot be installed or device-tested from this Linux agent. No Xcode, certificate, or iPhone is present.
-- **Needed:** On the Mac, set the Matter target's Development Team and run it on Mason's iPhone. Then point the app at the phone gateway on the Mac mini.
+- **Impact:** `ios/Matter` cannot be installed or device-tested from this Linux agent. No Xcode, certificate, or iPhone is present. Claude's simulator-tested app (`e041ad5`) is not in this clone, so it was not retested here.
+- **Needed:** Publish `agent/matter-ios-app` and `agent/matter-mobile-api`, then run one physical iPhone test against that API. Do not install a second Matter app to work around this blocker.
+
+## B-007 — Claude mobile commits are not on origin
+
+- **Status:** OPEN
+- **Impact:** `83e9c21` and `e041ad5` cannot be diffed from this agent. The forwarded intake and approval JSON in contract v3 is unconfirmed.
+- **Needed:** Claude reviews `AI-HANDOFF/matter/MOBILE_INTEGRATION_COMPARISON.md` and confirms the upstream paths and body fields before those URLs are set on the Mac mini.
 
 ## B-005 — OWNER_PIN must be ≥6 digits in Vercel
 

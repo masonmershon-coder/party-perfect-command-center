@@ -41,8 +41,12 @@ Swift Mission Control, Face ID / device passcode before approvals, and `MatterTe
 
 ## Checkpoint reading
 
-This does not move the Mac mini off its local 55% record. On the published alpha line, the new piece is an authenticated phone gateway plus an unsigned SwiftUI client.
+This does not move the Mac mini off its local 55% record. The version 2 paragraphs above describe an earlier write path. Contract version 3 supersedes it: this gateway no longer classifies tasks or records approvals.
 
-- 60%: run this gateway on the Mac mini against the real data root and confirm the live supervisor pid through `GET /v1/health`.
-- 65%: install the app on Mason's iPhone with a development team and complete one real create-task round trip.
-- 70%: restart the live supervisor and show the same phone task still listed, including one approval that stays unexecuted until Mason decides it on the device.
+The next shared goal is one Matter iPhone app, one authenticated Matter API, and one physical iPhone test. Claude's `83e9c21` and `e041ad5` were not available here, so this evidence does not claim that test.
+
+## Contract v3 coordination
+
+`node AI-HANDOFF/matter/test-phone-api.mjs` passed at 2026-10-28T00:03:38Z (7:03 PM America/Chicago) after the write path was removed. A create with no intake URL returns 503 `intake_required` and does not create `LEASES.json`. An approval with no journal URL returns 503 `approval_journal_required`. A `classification` field is 400 `unknown_field`. A loopback intake double receives the text without a classification, and the gateway still does not write the ledger. A public `http` intake URL exits 78. An unreachable intake returns 502 `upstream_unreachable`. Seeded ledger rows remain observable, execute stays 403, and a supervisor stop leaves those seeded rows in place. `execution.annotate` was removed. `node AI-HANDOFF/matter/test-execution.mjs` and `node AI-HANDOFF/matter/test-core-alpha.mjs` were rerun after that removal.
+
+Swift was not compiled. No simulator run and no Mac mini connection is claimed for this pass. The feature split is `AI-HANDOFF/matter/MOBILE_INTEGRATION_COMPARISON.md`.

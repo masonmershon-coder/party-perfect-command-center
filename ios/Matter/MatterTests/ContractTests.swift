@@ -17,6 +17,19 @@ final class ContractTests: XCTestCase {
         XCTAssertEqual(mission.agents.first?.available, false)
     }
 
+    func testTaskObservationAllowsMissingClassification() throws {
+        let json = """
+        {"task_id":"ledger-safe","client_message_id":null,"conversation_id":"ledger-safe","text":"seeded","title":"seeded","status":"QUEUED","classification":null,"approval_state":"none","executed":false,"route":null,"routing_basis":null,"protected_actions":[],"created_at":"2026-10-27T00:00:00Z"}
+        """.data(using: .utf8)!
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        let task = try decoder.decode(TaskRecord.self, from: json)
+        XCTAssertNil(task.classification)
+        XCTAssertNil(task.routingBasis)
+        XCTAssertEqual(task.status, "QUEUED")
+        XCTAssertFalse(task.executed)
+    }
+
     func testTaskCreateFieldsExcludeClassification() {
         let body = ["client_message_id": "msg-1", "text": "Remind me to review the Matter notes", "source": "text"]
         XCTAssertNil(body["classification"])

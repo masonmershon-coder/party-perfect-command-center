@@ -20,19 +20,23 @@ struct SupervisorSnapshot: Codable {
 
 struct TaskRecord: Codable, Identifiable {
     var taskId: String
-    var clientMessageId: String
+    var clientMessageId: String?
     var conversationId: String
     var text: String
     var title: String
     var status: String
-    var classification: String
+    var classification: String?
     var approvalState: String
     var executed: Bool
-    var route: String
-    var routingBasis: String
+    var route: String?
+    var routingBasis: String?
     var protectedActions: [String]
     var createdAt: String
     var id: String { taskId }
+}
+
+struct IntakeReceipt {
+    var taskStatus: String?
 }
 
 struct TaskListResponse: Codable { var tasks: [TaskRecord] }
@@ -223,17 +227,21 @@ struct MatterClient {
     func agents() async throws -> AgentListResponse { try await send("/v1/agents") }
     func activity() async throws -> [ActivityEvent] { try await send("/v1/activity", as: ActivityResponse.self).events }
 
-    func createTask(clientMessageId: String, text: String) async throws -> TaskCreateResponse {
-        try await send("/v1/tasks", method: "POST", body: [
+    func createTask(clientMessageId: String, text: String) async throws -> IntakeReceipt {
+        let data = try await requestData("/v1/tasks", method: "POST", body: [
             "client_message_id": clientMessageId,
             "text": text,
             "source": "text",
         ])
-        // Classification is intentionally absent. The ledger decides it.
+        if let created = try? SnapshotStore.decoder().decode(TaskCreateResponse.self, from: data),
+           !created.task.status.isEmpty {
+            return IntakeReceipt(taskStatus: created.task.status)
+        }
+        return IntakeReceipt(taskStatus: nil)
     }
 
-    func decide(taskId: String, decision: String) async throws -> ApprovalDecisionResponse {
-        try await send("/v1/approvals/\(taskId)", method: "POST", body: ["decision": decision])
+    func decide(taskId: String, decision: String) async throws {
+        _ = try await requestData("/v1/approvals/\(taskId)", method: "POST", body: ["decision": decision])
     }
 
     private func send<T: Decodable>(_ path: String, method: String = "GET", body: [String: String]? = nil) async throws -> T {
@@ -241,6 +249,11 @@ struct MatterClient {
     }
 
     private func send<T: Decodable>(_ path: String, method: String = "GET", body: [String: String]? = nil, as type: T.Type) async throws -> T {
+        let data = try await requestData(path, method: method, body: body)
+        return try SnapshotStore.decoder().decode(type, from: data)
+    }
+
+    private func requestData(_ path: String, method: String = "GET", body: [String: String]? = nil) async throws -> Data {
         guard !token.isEmpty, let url = URL(string: path, relativeTo: baseURL)?.absoluteURL else {
             throw MatterClientError.notConfigured
         }
@@ -266,6 +279,6 @@ struct MatterClient {
             let failure = try? SnapshotStore.decoder().decode(APIFailure.self, from: data)
             throw MatterClientError.http(http.statusCode, failure?.error.code ?? "http", failure?.error.message ?? "Request failed")
         }
-        return try SnapshotStore.decoder().decode(T.self, from: data)
+        return data
     }
 }

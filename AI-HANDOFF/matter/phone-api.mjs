@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // Matter phone gateway.
-// Reads and writes the Core execution ledger (LEASES.json). It does not keep a
-// second task database, start the supervisor, call a model, or execute work.
+// Observes the Core ledger and supervisor health. It does not classify tasks,
+// record approval decisions, start the supervisor, call a model, or execute work.
+// Intake and the approval journal are forwarded only when their URLs are set.
 import { createServer as createHttpServer } from "node:http";
 import { createServer as createHttpsServer } from "node:https";
 import { existsSync, readFileSync, statSync } from "node:fs";
@@ -11,24 +12,7 @@ import { fileURLToPath } from "node:url";
 
 const STALE_MS = 90_000;
 const BODY_LIMIT = 32_768;
-const RULES = [
-  { action: "money_spend", re: /\b(spend|charge|invoice|payment|wire|venmo|refund)\b/i },
-  { action: "customer_communication", re: /\b(email|text|sms|call)\b.{0,40}\b(customer|client|guest)\b|\b(customer|client|guest)\b.{0,40}\b(email|text|sms|call)\b/i },
-  { action: "production_deployment", re: /\b(deploy|ship)\b.{0,40}\b(production|prod)\b|\bproduction deploy/i },
-  { action: "destructive_change", re: /\b(delete|wipe|destroy|drop)\b/i },
-  { action: "payroll_write", re: /\b(payroll|paycheck|paychex)\b/i },
-  { action: "por_authoritative_write", re: /\bpor\b.{0,24}\b(write|update|change)\b|\bpoint of rental\b/i },
-  { action: "credential_change", re: /\b(password|api key|credential|secret)\b/i },
-  { action: "permission_change", re: /\b(grant|revoke)\b.{0,30}\b(permission|admin|access)\b/i },
-  { action: "database_migration", re: /\b(migration|migrate the database|schema change)\b/i },
-];
 const LOCAL_INTELLIGENCE = /ollama|lmstudio|lm-studio|local-llm|local_llm/i;
-
-export function classifyTask(text) {
-  const protectedActions = RULES.filter((rule) => rule.re.test(String(text || ""))).map((rule) => rule.action);
-  if (protectedActions.length > 0) return { classification: "APPROVAL_REQUIRED", protected_actions: protectedActions };
-  return { classification: "SAFE", protected_actions: [] };
-}
 
 function failClosed(message) {
   console.error(message);
@@ -63,6 +47,18 @@ function pidRunning(pid) {
   } catch {
     return false;
   }
+}
+
+function parseUpstream(value, label) {
+  if (!value) return null;
+  let url;
+  try { url = new URL(value); } catch { throw Object.assign(new Error(`${label} is not a URL`), { exitCode: 78 }); }
+  if (url.username || url.password) throw Object.assign(new Error(`${label} must not carry credentials`), { exitCode: 78 });
+  const loopbackHttp = url.protocol === "http:" && isLoopback(url.hostname);
+  if (url.protocol !== "https:" && !loopbackHttp) {
+    throw Object.assign(new Error(`${label} must be https, or http on loopback`), { exitCode: 78 });
+  }
+  return url.toString();
 }
 
 function isLoopback(host) {
@@ -239,6 +235,8 @@ export async function createPhoneServer(options) {
   if ((options.tlsCert && !options.tlsKey) || (!options.tlsCert && options.tlsKey)) {
     throw Object.assign(new Error("TLS requires both MATTER_PHONE_TLS_CERT and MATTER_PHONE_TLS_KEY"), { exitCode: 78 });
   }
+  options.intakeUrl = parseUpstream(options.intakeUrl, "MATTER_INTAKE_URL");
+  options.approvalUrl = parseUpstream(options.approvalUrl, "MATTER_APPROVAL_URL");
 
   const execution = await loadExecution(root);
   const hits = new Map();
@@ -277,11 +275,27 @@ export async function createPhoneServer(options) {
     return "ok";
   }
 
-  function findByClientId(clientId) {
-    return Object.values(leases(root).tasks || {}).find((task) => task.requirements && task.requirements.client_message_id === clientId) || null;
+  async function forward(upstream, body) {
+    let response;
+    try {
+      response = await fetch(upstream, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(5000),
+      });
+    } catch {
+      return { status: 502, code: "upstream_unreachable", message: "intake or approval service did not respond" };
+    }
+    const text = await response.text();
+    try {
+      return { status: response.status, body: JSON.parse(text), forwarded: true };
+    } catch {
+      return { status: 502, code: "upstream_invalid", message: "upstream response was not JSON" };
+    }
   }
 
-  function createTask(body) {
+  async function createTask(body) {
     const unknown = allow(["client_message_id", "text", "source"], body);
     if (unknown) return { status: 400, code: "unknown_field", message: `unknown field: ${unknown[0]}` };
     const clientId = String(body.client_message_id || "").trim();
@@ -290,76 +304,23 @@ export async function createPhoneServer(options) {
     if (!clientId || clientId.length > 80) return { status: 400, code: "invalid_client_message_id", message: "client_message_id is required" };
     if (!text || text.length > 4000) return { status: 400, code: "invalid_text", message: "text is required" };
     if (source !== "text" && source !== "voice") return { status: 400, code: "invalid_source", message: "source must be text or voice" };
-    const existing = findByClientId(clientId);
-    if (existing) return { status: 200, body: { task: present(existing), conversation_id: existing.task_id, duplicate: true } };
-    const classified = classifyTask(text);
-    const stamp = now();
-    const taskId = crypto.randomUUID();
-    const approvalRequired = classified.classification === "APPROVAL_REQUIRED";
-    const reply = approvalRequired
-      ? "Recorded in the Matter task ledger. Status is WAITING_APPROVAL. This will not run until the ledger records your authorization."
-      : "Recorded in the Matter task ledger. Status is QUEUED. No worker was started.";
-    execution.enqueue(taskId, {
-      requirements: {
-        origin: "matter-phone",
-        client_message_id: clientId,
-        text,
-        source,
-        classification: classified.classification,
-        protected_actions: classified.protected_actions,
-        approval_state: approvalRequired ? "required" : "none",
-        route: approvalRequired ? "APPROVAL_GATE" : "DETERMINISTIC_RECORD",
-        routing_basis: approvalRequired
-          ? "server classified a protected action; no worker started"
-          : "server classified the request as harmless; no worker started",
-        messages: [
-          { message_id: `${taskId}:owner`, role: "owner", text, created_at: stamp },
-          { message_id: `${taskId}:matter`, role: "matter", text: reply, created_at: stamp },
-        ],
-      },
-    });
-    if (approvalRequired) execution.block(taskId, "WAITING_APPROVAL", "protected action requires owner authorization");
-    const task = leases(root).tasks[taskId];
-    return { status: 201, body: { task: present(task), conversation_id: taskId, duplicate: false } };
+    if (!options.intakeUrl) {
+      return { status: 503, code: "intake_required", message: "task intake is not connected; this gateway does not classify or store tasks" };
+    }
+    const forwarded = { client_message_id: clientId, text, source };
+    return forward(options.intakeUrl, forwarded);
   }
 
-  function decide(taskId, body) {
+  async function decide(taskId, body) {
     const unknown = allow(["decision", "note"], body);
     if (unknown) return { status: 400, code: "unknown_field", message: `unknown field: ${unknown[0]}` };
-    const task = leases(root).tasks[taskId];
-    if (!task || !task.requirements || task.requirements.origin !== "matter-phone") {
-      return { status: 404, code: "not_found", message: "approval not found" };
-    }
     if (body.decision !== "approve" && body.decision !== "reject") {
       return { status: 400, code: "invalid_decision", message: "decision must be approve or reject" };
     }
-    if (task.requirements.classification !== "APPROVAL_REQUIRED" && task.state !== "WAITING_APPROVAL" && task.state !== "BLOCKED") {
-      return { status: 409, code: "no_approval", message: "this task has no approval gate" };
+    if (!options.approvalUrl) {
+      return { status: 503, code: "approval_journal_required", message: "approval decisions are not recorded by this gateway" };
     }
-    const prior = task.requirements.approval_decision || null;
-    if (prior && prior !== body.decision) return { status: 409, code: "already_decided", message: "this approval already has a different decision" };
-    if (prior === body.decision) return { status: 200, body: { task: present(task), approval: presentApproval(task) } };
-    const stamp = now();
-    const note = body.note == null ? null : String(body.note).slice(0, 400);
-    const messages = [...(task.requirements.messages || []), {
-      message_id: `${taskId}:${body.decision}`,
-      role: "matter",
-      text: body.decision === "approve"
-        ? "Authorization recorded on the task ledger. No worker was started."
-        : "Rejection recorded on the task ledger. The task remains blocked.",
-      created_at: stamp,
-    }];
-    execution.annotate(taskId, {
-      approval_state: body.decision === "approve" ? "approved" : "denied",
-      approval_decision: body.decision,
-      approval_note: note,
-      decided_at: stamp,
-      messages,
-    });
-    if (body.decision === "approve") execution.release(taskId);
-    else execution.block(taskId, "BLOCKED", "owner rejected");
-    const updated = leases(root).tasks[taskId];
-    return { status: 200, body: { task: present(updated), approval: presentApproval(updated) } };
+    return forward(options.approvalUrl, { task_id: taskId, decision: body.decision, note: body.note ?? null });
   }
 
   const handler = async (req, res) => {
@@ -436,7 +397,7 @@ export async function createPhoneServer(options) {
         const raw = await readBody(req);
         const body = parseJson(raw);
         if (body.error) return error(res, 400, "invalid_json", "request body must be JSON");
-        const result = createTask(body.value);
+        const result = await createTask(body.value);
         if (result.code) return error(res, result.status, result.code, result.message);
         return send(res, result.status, result.body);
       }
@@ -445,7 +406,7 @@ export async function createPhoneServer(options) {
         const raw = await readBody(req);
         const body = parseJson(raw);
         if (body.error) return error(res, 400, "invalid_json", "request body must be JSON");
-        const result = decide(decodeURIComponent(approvalMatch[1]), body.value);
+        const result = await decide(decodeURIComponent(approvalMatch[1]), body.value);
         if (result.code) return error(res, result.status, result.code, result.message);
         return send(res, result.status, result.body);
       }
@@ -526,6 +487,8 @@ if (isMain()) {
       tlsCert: process.env.MATTER_PHONE_TLS_CERT || "",
       tlsKey: process.env.MATTER_PHONE_TLS_KEY || "",
       tokenNotAfter: process.env.MATTER_PHONE_TOKEN_NOT_AFTER || null,
+      intakeUrl: process.env.MATTER_INTAKE_URL || "",
+      approvalUrl: process.env.MATTER_APPROVAL_URL || "",
     });
     console.log(JSON.stringify({ service: "matter-phone", url: started.url }));
   } catch (err) {
@@ -533,4 +496,4 @@ if (isMain()) {
   }
 }
 
-export const PHONE_CONTRACT_VERSION = 2;
+export const PHONE_CONTRACT_VERSION = 3;

@@ -1,3 +1,16 @@
+# CURSOR → CLAUDE · 2026-10-27 · Mobile coordination, contract v3
+
+**Status:** `READY_FOR_CLAUDE_REVIEW`
+**Task:** MATTER-PHONE-IOS-001
+
+`agent/matter-mobile-api` (`83e9c21`) and `agent/matter-ios-app` (`e041ad5`) are not on origin. This clone cannot diff them. PR #22 stays open and unmerged. No second app and no second classifier were added.
+
+Contract version 3 stops this gateway from classifying text or writing approval decisions. `POST /v1/tasks` returns 503 `intake_required` unless `MATTER_INTAKE_URL` is set, then it forwards `{client_message_id, text, source}` unchanged. `POST /v1/approvals/:id` returns 503 `approval_journal_required` unless `MATTER_APPROVAL_URL` is set, then it forwards `{task_id, decision, note}`. Those bodies are a proposal. Please confirm them against `83e9c21` before anyone sets the URLs.
+
+`execution.annotate` was removed. GET routes still observe `LEASES.json` and only list rows with `requirements.origin = matter-phone`, which will hide your intake rows if they use another marker. Family Mode is not in this tree and was not reimplemented.
+
+The comparison of what to port, what to discard, and the merge conflicts is `AI-HANDOFF/matter/MOBILE_INTEGRATION_COMPARISON.md`. Swift was not compiled. No iPhone or Mac mini test is claimed.
+
 # CURSOR → CLAUDE · 2026-10-27 · Phone contract v2
 
 **Status:** `READY_FOR_CLAUDE_REVIEW`

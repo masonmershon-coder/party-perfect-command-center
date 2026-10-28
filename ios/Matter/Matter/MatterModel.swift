@@ -125,9 +125,12 @@ final class MatterModel {
         loading = true
         defer { loading = false }
         do {
-            let created = try await client.createTask(clientMessageId: clientMessageId, text: text)
+            let receipt = try await client.createTask(clientMessageId: clientMessageId, text: text)
             await refresh()
-            return created.task.status
+            if receipt.taskStatus == nil, case .online = connection {
+                banner = "Intake accepted the message. This phone does not assign a task status."
+            }
+            return receipt.taskStatus ?? "accepted"
         } catch MatterClientError.offline(let message) {
             connection = .offline(message)
             banner = "Not sent. The Mac mini did not accept the task."
@@ -164,8 +167,11 @@ final class MatterModel {
         loading = true
         defer { loading = false }
         do {
-            _ = try await client.decide(taskId: approval.taskId, decision: decision)
+            try await client.decide(taskId: approval.taskId, decision: decision)
             await refresh()
+            if case .online = connection {
+                banner = "The approval service accepted the decision. This phone does not keep its own journal."
+            }
         } catch MatterClientError.offline(let message) {
             connection = .offline(message)
             banner = "The decision was not recorded."

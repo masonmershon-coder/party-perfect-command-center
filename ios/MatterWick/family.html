@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Matter — family experience study</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: #0C0B0A; color: #F3EDE4; }
+  body { font-family: Helvetica, Arial, sans-serif; }
+  .intro { max-width: 720px; padding: 28px 22px 0; }
+  .intro h1 { font: 500 28px/1.2 Georgia, serif; margin: 0 0 8px; }
+  .intro p { color: #B7A99A; font-size: 15px; line-height: 1.45; margin: 0 0 8px; }
+  .board { display: flex; gap: 16px; padding: 22px; width: max-content; align-items: flex-start; }
+  .board h2 { display: none; }
+  body.showall .board { display: flex; flex-wrap: wrap; width: auto; }
+  body.showall .wrap { padding-bottom: 12px; }
+  body.showall .board h2 { display: block; width: 100%; font: 500 13px Helvetica, Arial, sans-serif; letter-spacing: .16em; color: #B7A99A; margin: 8px 0 0; }
+  .col { width: 390px; }
+  .cap { font: 11px/1.3 Helvetica, Arial, sans-serif; letter-spacing: .14em; color: #B7A99A; margin: 0 0 8px; text-transform: uppercase; }
+  .phone { width: 390px; height: 800px; border-radius: 32px; overflow: hidden; display: flex; flex-direction: column; position: relative; border: 1px solid rgba(255,255,255,.06); }
+  .dark { background: #100E0C; color: #F3EDE4; }
+  .light { background: #F6F1EA; color: #1E1A17; border-color: rgba(0,0,0,.08); }
+  .cool { background: #141311; color: #F3EDE4; }
+  .bar { display: flex; justify-content: space-between; align-items: center; padding: 22px 20px 0; }
+  .bar b { font: 500 22px Georgia, serif; font-weight: 500; }
+  .bar span, .muted { color: #B7A99A; }
+  .light .muted, .light .bar span, .light .fine, .light .who { color: #6F655C; }
+  .presence { height: 168px; display: flex; align-items: center; justify-content: center; position: relative; }
+  .presence.small { height: 112px; }
+  .glow { position: absolute; width: 140px; height: 140px; border-radius: 50%; background: radial-gradient(circle, rgba(231,176,137,.45), transparent 68%); }
+  .glow.dim { background: radial-gradient(circle, rgba(138,129,120,.28), transparent 68%); }
+  .glow.cool { background: radial-gradient(circle, rgba(196,165,116,.22), transparent 70%); }
+  h3 { font: 500 28px/1.15 Georgia, serif; margin: 0 20px 8px; font-weight: 500; }
+  .lead { margin: 0 20px; font-size: 16px; line-height: 1.45; color: #F3EDE4; }
+  .light .lead { color: #1E1A17; }
+  .fine { color: #B7A99A; font-size: 12px; line-height: 1.4; margin: 8px 20px; }
+  .stack { margin-top: auto; padding: 12px 16px 22px; display: flex; flex-direction: column; gap: 8px; }
+  .btn { border: 0; border-radius: 999px; padding: 14px 16px; font: 16px Helvetica, Arial, sans-serif; }
+  .btn.primary { background: #E7B089; color: #1A120E; }
+  .btn.ghost { background: transparent; color: #F3EDE4; border: 1px solid rgba(255,255,255,.14); }
+  .light .btn.ghost { color: #1E1A17; border-color: rgba(0,0,0,.12); }
+  .btn.back { background: #F3EDE4; color: #1A120E; }
+  .plate { margin: 16px 20px; background: #1C1916; border-radius: 18px; padding: 16px; }
+  .light .plate { background: #FFFCF8; }
+  .plate b { display: block; font-weight: 500; margin-bottom: 6px; }
+  .row { display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 12px 20px; border-top: 1px solid rgba(255,255,255,.08); font-size: 15px; }
+  .light .row { border-top-color: rgba(0,0,0,.08); }
+  .switch { width: 36px; height: 22px; border-radius: 999px; background: #3A332C; position: relative; flex: none; }
+  .switch.on { background: #8A6238; }
+  .switch i { position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #F3EDE4; }
+  .switch.on i { left: 17px; }
+  .chips { display: flex; gap: 8px; padding: 4px 20px 0; flex-wrap: wrap; }
+  .chip { background: #1C1916; border-radius: 999px; padding: 8px 12px; font-size: 13px; color: #F3EDE4; }
+  .light .chip { background: #FFFCF8; color: #1E1A17; }
+  .modes { display: flex; gap: 6px; margin: 12px 20px 0; background: #1C1916; border-radius: 999px; padding: 4px; width: max-content; }
+  .light .modes { background: #FFFCF8; }
+  .modes span { font-size: 12px; color: #B7A99A; padding: 6px 10px; border-radius: 999px; }
+  .modes .sel { background: #2A2420; color: #FBE2C7; }
+  .light .modes .sel { background: #F0E2D4; color: #1E1A17; }
+  .thread { margin-top: auto; padding: 16px 20px 0; font-size: 16px; line-height: 1.45; }
+  .thread.big { font-size: 18px; }
+  .who { color: #B7A99A; font-size: 12px; margin: 10px 0 4px; }
+  .you { margin-left: 56px; background: #1C1916; border-radius: 16px; padding: 10px 12px; }
+  .light .you { background: #FFFCF8; }
+  .matter { border-left: 2px solid #E7B089; padding-left: 12px; }
+  .mike { border-left: 2px solid #C4A574; padding-left: 12px; }
+  .composer { margin: 8px 16px 18px; display: flex; gap: 8px; align-items: center; background: #1C1916; border-radius: 999px; padding: 10px 14px; color: #B7A99A; }
+  .light .composer { background: #FFFCF8; color: #6F655C; }
+  .banner { margin: 12px 16px 0; padding: 10px 12px; border-radius: 12px; background: #241C16; color: #D6B483; font-size: 13px; line-height: 1.4; }
+  .hold { margin: 12px 16px 0; padding: 10px 12px; border-radius: 12px; background: #1A1816; color: #E4D3B0; font-size: 13px; line-height: 1.4; border: 1px solid rgba(228,211,176,.25); }
+  .sec { padding: 14px 20px 4px; }
+  .k { font-size: 11px; letter-spacing: .12em; color: #B7A99A; }
+  .v { font-size: 16px; margin-top: 4px; line-height: 1.35; }
+  .dead { opacity: .55; }
+</style>
+</head>
+<body>
+<div class="intro" id="intro">
+  <h1>Matter first.</h1>
+  <p>Design study for the approved family experience. Matter is the assistant on every launch. A specialist such as Mike appears only when someone asks, and the Wick returns when they come back. Saying a name is not a sign-in. Nothing on these screens is a live account, a live agent, or a live safety system.</p>
+</div>
+
+<section class="board" id="onboarding">
+  <h2>ONBOARDING</h2>
+  <div class="col"><p class="cap">01 · First launch</p><div class="phone dark">
+    <div class="presence"><div class="glow"></div><svg width="46" height="104" viewBox="0 0 34 76"><path d="M17.7 3.8 C26.5 15.2 31.3 31.9 23.8 47.1 C19.7 59.3 19 69.9 17 73 C13.6 68.4 6.1 56.2 10.2 44.1 C13.6 30.4 12.2 12.2 17.7 3.8 Z" fill="#E7B089"/><circle cx="17" cy="16" r="3" fill="#FBE2C7"/></svg></div>
+    <h3>I’m Matter.</h3>
+    <p class="lead">I stay on this phone for the people who are allowed to use it.</p>
+    <p class="fine">The Wick is how I arrive. This introduction happens once.</p>
+    <div class="stack"><div class="btn primary">Continue</div></div>
+  </div></div>
+  <div class="col"><p class="cap">02 · Who this phone is for</p><div class="phone dark">
+    <div class="bar"><b>Matter</b><span>First launch</span></div>
+    <h3 style="margin-top:28px">Who should this phone know?</h3>
+    <p class="lead">A spoken name is not proof. I need the sign-in this household already trusts.</p>
+    <div class="plate"><b>Not accepted as identity</b><span class="muted">“I’m Josh.”</span></div>
+    <div class="stack">
+      <div class="btn primary">Continue with a trusted sign-in</div>
+      <div class="btn ghost">Someone new needs an invitation</div>
+      <p class="fine">Design only. This picture cannot enroll anyone.</p>
+    </div>
+  </div></div>
+  <div class="col"><p class="cap">03 · Secure enrollment</p><div class="phone dark">
+    <div class="bar"><b>Matter</b><span>Sign in</span></div>
+    <h3 style="margin-top:28px">Confirm it is you.</h3>
+    <p class="lead">Use the passkey or Face ID already tied to the household account.</p>
+    <div class="plate"><b>Trusted sign-in</b><span class="muted">Sample prompt. Not a live system sheet.</span></div>
+    <p class="fine">Matter associates the authenticated account with this device. The account system is not built in this study.</p>
+    <div class="stack"><div class="btn primary">Use trusted sign-in</div></div>
+  </div></div>
+  <div class="col"><p class="cap">04 · This device</p><div class="phone dark">
+    <div class="bar"><b>Matter</b><span>Trusted</span></div>
+    <h3 style="margin-top:28px">This phone is linked.</h3>
+    <div class="row"><span>Account</span><span class="muted">Signed-in sample</span></div>
+    <div class="row"><span>Device</span><span class="muted">This iPhone</span></div>
+    <p class="lead" style="margin-top:18px">Next time, I recognize this sign-in and skip the introduction.</p>
+    <p class="fine">A different person still has to sign in. The phone does not guess.</p>
+    <div class="stack"><div class="btn primary">Continue</div></div>
+  </div></div>
+  <div class="col"><p class="cap">05 · Permitted preferences</p><div class="phone dark">
+    <div class="bar"><b>Matter</b><span>Preferences</span></div>
+    <h3 style="margin-top:22px">What may I keep?</h3>
+    <p class="fine" style="margin-top:0">Only what this account is allowed to store. These switches are a picture, not a save.</p>
+    <div class="row"><span>Spoken replies</span><span class="switch on"><i></i></span></div>
+    <div class="row"><span>Quiet hours</span><span class="switch"><i></i></span></div>
+    <div class="row"><span>Remember shortcut order</span><span class="switch on"><i></i></span></div>
+    <div class="stack"><div class="btn primary">That’s enough</div></div>
+  </div></div>
+  <div class="col"><p class="cap">06 · What I can do</p><div class="phone dark">
+    <div class="presence small"><div class="glow"></div><svg width="32" height="72" viewBox="0 0 34 76"><path d="M17.7 3.8 C26.5 15.2 31.3 31.9 23.8 47.1 C19.7 59.3 19 69.9 17 73 C13.6 68.4 6.1 56.2 10.2 44.1 C13.6 30.4 12.2 12.2 17.7 3.8 Z" fill="#E7B089"/><circle cx="17" cy="16" r="3" fill="#FBE2C7"/></svg></div>
+    <h3>You can talk to me from here.</h3>
+    <div class="row"><span>Ask in the chat</span><span class="muted">Always</span></div>
+    <div class="row"><span>Ask for a specialist</span><span class="muted">On command</span></div>
+    <div class="row"><span>Come back to me</span><span class="muted">One tap</span></div>
+    <p class="fine">I remain the one who opens. Mike and anyone like him do not take the home screen.</p>
+    <div class="stack"><div class="btn primary">Open Matter</div></div>
+  </div></div>
+</section>
+
+<section class="board" id="homes">
+  <h2>PERSONALIZED HOME</h2>
+  <div class="col"><p class="cap">Josh · business shortcuts</p><div class="phone dark">
+    <div class="bar"><b>Matter</b><span>Josh</span></div>
+    <div class="presence small"><div class="glow"></div><svg width="28" height="64" viewBox="0 0 34 76"><path d="M17.7 3.8 C26.5 15.2 31.3 31.9 23.8 47.1 C19.7 59.3 19 69.9 17 73 C13.6 68.4 6.1 56.2 10.2 44.1 C13.6 30.4 12.2 12.2 17.7 3.8 Z" fill="#E7B089"/><circle cx="17" cy="16" r="3" fill="#FBE2C7"/></svg></div>
+    <p class="fine" style="text-align:center;margin-top:-6px">Here · sample seat, not a live account</p>
+    <div class="chips"><span class="chip">Today’s board</span><span class="chip">Invoices</span><span class="chip">Ask for Mike</span></div>
+    <div class="modes"><span class="sel">Automatic</span><span>Fast</span><span>Deep</span></div>
+    <div class="thread">
+      <div class="who" style="text-align:right">Josh</div>
+      <div class="you">What’s on for tomorrow?</div>
+      <div class="who">Matter</div>
+      <div class="matter">I can keep the business board you chose on this seat. There is no live schedule in this study.</div>
+    </div>
+    <div class="composer" style="margin-top:auto"><span style="flex:1">Message Matter</span><span>↑</span></div>
+  </div></div>
+  <div class="col"><p class="cap">Michelle · light theme</p><div class="phone light">
+    <div class="bar"><b>Matter</b><span>Michelle</span></div>
+    <div class="presence small"><div class="glow"></div><svg width="28" height="64" viewBox="0 0 34 76"><path d="M17.7 3.8 C26.5 15.2 31.3 31.9 23.8 47.1 C19.7 59.3 19 69.9 17 73 C13.6 68.4 6.1 56.2 10.2 44.1 C13.6 30.4 12.2 12.2 17.7 3.8 Z" fill="#C4653A"/><circle cx="17" cy="16" r="3" fill="#8C3E22"/></svg></div>
+    <p class="fine" style="text-align:center;margin-top:-6px">Here · optional light theme</p>
+    <div class="chips"><span class="chip">The week</span><span class="chip">Household notes</span><span class="chip">A reminder</span></div>
+    <div class="modes"><span class="sel">Automatic</span><span>Fast</span><span>Deep</span></div>
+    <div class="thread">
+      <div class="who" style="text-align:right">Michelle</div>
+      <div class="you">What should I remember tonight?</div>
+      <div class="who">Matter</div>
+      <div class="matter">I can keep a note on your seat. Nothing is saved in this picture.</div>
+    </div>
+    <div class="composer" style="margin-top:auto"><span style="flex:1">Message Matter</span><span>↑</span></div>
+  </div></div>
+  <div class="col"><p class="cap">Mason · Foundry</p><div class="phone dark">
+    <div class="bar"><b>Matter</b><span>Mason</span></div>
+    <div class="presence small"><div class="glow"></div><svg width="28" height="64" viewBox="0 0 34 76"><path d="M17.7 3.8 C26.5 15.2 31.3 31.9 23.8 47.1 C19.7 59.3 19 69.9 17 73 C13.6 68.4 6.1 56.2 10.2 44.1 C13.6 30.4 12.2 12.2 17.7 3.8 Z" fill="#E7B089"/><circle cx="17" cy="16" r="3" fill="#FBE2C7"/></svg></div>
+    <p class="fine" style="text-align:center;margin-top:-6px">Here · same Matter, different tools</p>
+    <div class="chips"><span class="chip">Foundry</span><span class="chip">Builds</span><span class="chip">Devices</span></div>
+    <div class="modes"><span class="sel">Automatic</span><span>Fast</span><span>Deep</span></div>
+    <div class="thread">
+      <div class="who" style="text-align:right">Mason</div>
+      <div class="you">Where is the latest build?</div>
+      <div class="who">Matter</div>
+      <div class="matter">Foundry would open from this seat once it is connected. It is not connected here.</div>
+    </div>
+    <div class="composer" style="margin-top:auto"><span style="flex:1">Message Matter</span><span>↑</span></div>
+  </div></div>
+  <div class="col"><p class="cap">Child seat · no specialists, no Fast or Deep</p><div class="phone dark">
+    <div class="bar"><b>Matter</b><span>Child</span></div>
+    <div class="presence small"><div class="glow"></div><svg width="28" height="64" viewBox="0 0 34 76"><path d="M17.7 3.8 C26.5 15.2 31.3 31.9 23.8 47.1 C19.7 59.3 19 69.9 17 73 C13.6 68.4 6.1 56.2 10.2 44.1 C13.6 30.4 12.2 12.2 17.7 3.8 Z" fill="#E7B089"/><circle cx="17" cy="16" r="3" fill="#FBE2C7"/></svg></div>
+    <p class="fine" style="text-align:center;margin-top:-6px">A grown-up decides what this seat can do</p>
+    <div class="chips"><span class="chip">Ask Matter</span><span class="chip">Tonight’s reminder</span></div>
+    <div class="thread big">
+      <div class="who" style="text-align:right">You</div>
+      <div class="you">Can you turn the porch light off?</div>
+      <div class="who">Matter</div>
+      <div class="matter">A grown-up has to allow that. I can ask them.</div>
+    </div>
+    <div class="composer"><span style="flex:1">Message Matter</span><span>↑</span></div>
+  </div></div>
+</section>
+
+<section class="board" id="handoff">
+  <h2>MATTER AND MIKE</h2>
+  <div class="col"><p class="cap">Ask · still Matter</p><div class="phone dark">
+    <div class="bar"><b>Matter</b><span>Josh</span></div>
+    <div class="presence small"><div class="glow"></div><svg width="28" height="64" viewBox="0 0 34 76"><path d="M17.7 3.8 C26.5 15.2 31.3 31.9 23.8 47.1 C19.7 59.3 19 69.9 17 73 C13.6 68.4 6.1 56.2 10.2 44.1 C13.6 30.4 12.2 12.2 17.7 3.8 Z" fill="#E7B089"/><circle cx="17" cy="16" r="3" fill="#FBE2C7"/></svg></div>
+    <div class="thread">
+      <div class="who" style="text-align:right">Josh</div>
+      <div class="you">Matter, let me talk to Mike.</div>
+      <div class="who">Matter</div>
+      <div class="matter">I can open Mike. I’ll be here when you come back.</div>
+    </div>
+    <div class="stack"><div class="btn primary">Open Mike</div><div class="btn ghost">Stay with Matter</div></div>
+  </div></div>
+  <div class="col"><p class="cap">Leaving · Wick steps back</p><div class="phone dark">
+    <div class="bar"><b>Matter</b><span>Opening Mike</span></div>
+    <div class="presence">
+      <div class="glow dim"></div>
+      <svg width="28" height="64" viewBox="0 0 34 76" style="opacity:.45"><path d="M17.7 3.8 C26.5 15.2 31.3 31.9 23.8 47.1 C19.7 59.3 19 69.9 17 73 C13.6 68.4 6.1 56.2 10.2 44.1 C13.6 30.4 12.2 12.2 17.7 3.8 Z" fill="#8A8178"/><circle cx="17" cy="16" r="3" fill="#A79C93"/></svg>
+      <svg width="72" height="96" viewBox="0 0 72 96" style="margin-left:18px">
+        <rect x="22" y="18" width="28" height="52" rx="2" fill="none" stroke="#C4A574" stroke-width="2"/>
+        <path d="M36 18 V70" stroke="#C4A574" stroke-width="1"/>
+        <rect x="8" y="74" width="56" height="5" rx="1" fill="#C4A574"/>
+      </svg>
+    </div>
+    <h3>Opening Mike.</h3>
+    <p class="lead">This is a visit. Matter stays the assistant this phone returns to.</p>
+    <p class="fine">A visit. Matter is still the assistant this phone returns to.</p>
+  </div></div>
+  <div class="col"><p class="cap">With Mike · specialist room</p><div class="phone cool">
+    <div class="bar"><b>Mike</b><span>Specialist</span></div>
+    <div class="presence small"><div class="glow cool"></div>
+      <svg width="64" height="84" viewBox="0 0 72 96">
+        <rect x="22" y="18" width="28" height="52" rx="2" fill="none" stroke="#C4A574" stroke-width="2"/>
+        <path d="M36 18 V70" stroke="#C4A574" stroke-width="1"/>
+        <rect x="8" y="74" width="56" height="5" rx="1" fill="#C4A574"/>
+      </svg>
+    </div>
+    <p class="fine" style="text-align:center;margin-top:-4px">You asked to talk to Mike</p>
+    <div class="chips"><span class="chip">Sample board</span><span class="chip">A quote</span><span class="chip">A schedule</span></div>
+    <div class="thread">
+      <div class="who">Mike</div>
+      <div class="mike">I can work from the business tools this account is allowed to open. None of them are connected in this study.</div>
+    </div>
+    <p class="fine">Mike cannot become the default from this room.</p>
+    <div class="stack"><div class="btn back">Back to Matter</div></div>
+  </div></div>
+  <div class="col"><p class="cap">Return · Wick restored</p><div class="phone dark">
+    <div class="bar"><b>Matter</b><span>Josh</span></div>
+    <div class="presence small"><div class="glow"></div><svg width="28" height="64" viewBox="0 0 34 76"><path d="M17.7 3.8 C26.5 15.2 31.3 31.9 23.8 47.1 C19.7 59.3 19 69.9 17 73 C13.6 68.4 6.1 56.2 10.2 44.1 C13.6 30.4 12.2 12.2 17.7 3.8 Z" fill="#E7B089"/><circle cx="17" cy="16" r="3" fill="#FBE2C7"/></svg></div>
+    <div class="thread">
+      <div class="who" style="text-align:right">Josh</div>
+      <div class="you">Back to Matter.</div>
+      <div class="who">Matter</div>
+      <div class="matter">I’m here.</div>
+    </div>
+    <div class="composer" style="margin-top:auto"><span style="flex:1">Message Matter</span><span>↑</span></div>
+  </div></div>
+  <div class="col"><p class="cap">Consult · Mike stays hidden</p><div class="phone dark">
+    <div class="bar"><b>Matter</b><span>Josh</span></div>
+    <div class="presence small"><div class="glow"></div><svg width="28" height="64" viewBox="0 0 34 76"><path d="M17.7 3.8 C26.5 15.2 31.3 31.9 23.8 47.1 C19.7 59.3 19 69.9 17 73 C13.6 68.4 6.1 56.2 10.2 44.1 C13.6 30.4 12.2 12.2 17.7 3.8 Z" fill="#E7B089"/><circle cx="17" cy="16" r="3" fill="#FBE2C7"/></svg></div>
+    <div class="thread">
+      <div class="who" style="text-align:right">Josh</div>
+      <div class="you">How did the business do this week?</div>
+      <div class="who">Matter</div>
+      <div class="matter">I would ask an authorized business source and answer here. I don’t have that permission in this study, so I won’t invent a number.</div>
+    </div>
+    <div class="composer" style="margin-top:auto"><span style="flex:1">Message Matter</span><span>↑</span></div>
+  </div></div>
+</section>
+
+<section class="board" id="safety">
+  <h2>OWNER SAFETY CONSOLE</h2>
+  <div class="col"><p class="cap">Reserved states · not operational</p><div class="phone dark">
+    <div class="bar"><b>Owner</b><span>Safety</span></div>
+    <div class="banner">Planned safeguards. Not running. This screen cannot intervene, quarantine, revoke, approve, or shut anything down.</div>
+    <div class="sec"><div class="k">ANTI-MATTER</div><div class="v">Reserved. No intervention is shown as real.</div></div>
+    <div class="sec"><div class="k">SAFETY PROTOCOL</div><div class="v">Reserved. A hold would be decided in the service, then displayed here.</div></div>
+    <div class="sec"><div class="k">QUARANTINE</div><div class="v">No agent is quarantined in this study.</div></div>
+    <div class="sec"><div class="k">PERMISSIONS</div><div class="v">Nothing is shown as revoked.</div></div>
+    <div class="sec"><div class="k">APPROVALS</div><div class="v">Nothing is waiting in this study.</div></div>
+    <div class="sec dead"><div class="k">EMERGENCY HOLD</div><div class="v">Would ask the owner, then the service. Not wired.</div></div>
+    <div class="stack"><div class="btn ghost">Hold Matter — unavailable</div></div>
+  </div></div>
+  <div class="col"><p class="cap">If an authenticated hold arrived</p><div class="phone dark">
+    <div class="bar"><b>Matter</b><span>Held</span></div>
+    <div class="hold">Appearance only. No safety event exists in this study.</div>
+    <div class="presence">
+      <div class="glow dim"></div>
+      <svg width="36" height="82" viewBox="0 0 34 76"><path d="M17.7 3.8 C26.5 15.2 31.3 31.9 23.8 47.1 C19.7 59.3 19 69.9 17 73 C13.6 68.4 6.1 56.2 10.2 44.1 C13.6 30.4 12.2 12.2 17.7 3.8 Z" fill="#8C7A62"/><circle cx="17" cy="16" r="3" fill="#E4D3B0"/></svg>
+      <svg width="90" height="120" viewBox="0 0 90 120" style="position:absolute">
+        <path d="M18 28 V100 M72 28 V100" fill="none" stroke="#E4D3B0" stroke-width="1.6"/>
+      </svg>
+    </div>
+    <h3 style="text-align:center">Held.</h3>
+    <p class="fine" style="text-align:center">The Wick stops. Two quiet bars mean an authenticated safety hold. The picture does not create the hold.</p>
+    <div class="stack"><div class="btn ghost">This control does nothing</div></div>
+  </div></div>
+</section>
+<script>
+  const board = new URLSearchParams(location.search).get("board");
+  if (!board) document.body.classList.add("showall");
+  else document.getElementById(board)?.style && (document.querySelectorAll(".board").forEach(n => n.style.display = "none"), document.getElementById(board).style.display = "flex", document.getElementById("intro").style.display = "none");
+</script>
+</body>
+</html>

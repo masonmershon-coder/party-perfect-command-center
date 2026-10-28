@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Matter — Wick study</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: #070605; color: #F3EDE4; font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; }
+  body { min-height: 100vh; }
+  header.top { display: flex; justify-content: space-between; gap: 16px; align-items: baseline; padding: 18px 22px 0; }
+  header.top[hidden] { display: none; }
+  header.top h1 { font: 500 22px Georgia, serif; margin: 0; }
+  header.top p { margin: 0; color: #B7A99A; font-size: 13px; max-width: 640px; }
+  .stage { display: flex; gap: 28px; align-items: flex-start; padding: 18px 22px 40px; flex-wrap: wrap; }
+  .phone { width: 390px; min-height: 760px; background: #100E0C; border-radius: 28px; overflow: hidden; display: flex; flex-direction: column; border: 1px solid rgba(255,255,255,.06); }
+  .bar { display: flex; justify-content: space-between; align-items: center; padding: 18px 18px 0; }
+  .bar b { font: 500 22px Georgia, serif; font-weight: 500; }
+  .bar span { color: #B7A99A; font-size: 15px; }
+  .presence { height: 250px; display: flex; align-items: center; justify-content: center; position: relative; }
+  canvas, .svgwrap { width: 220px; height: 240px; }
+  .stateword { text-align: center; font: 17px Georgia, serif; margin-top: -8px; }
+  .fine { text-align: center; color: #B7A99A; font-size: 12px; padding: 6px 28px 0; }
+  .thread { padding: 18px 20px 8px; font-size: 16px; line-height: 1.45; }
+  .you { margin-left: 72px; background: #1C1916; border-radius: 16px; padding: 10px 12px; }
+  .who { color: #B7A99A; font-size: 12px; margin: 12px 0 4px; }
+  .matter { border-left: 2px solid #E7B089; padding-left: 12px; }
+  .composer { margin-top: auto; display: flex; gap: 8px; align-items: center; margin: 16px; background: #1C1916; border-radius: 999px; padding: 8px 12px; color: #B7A99A; }
+  .panel { flex: 1; min-width: 320px; max-width: 560px; }
+  .panel h2 { font: 500 13px Helvetica, Arial, sans-serif; letter-spacing: .14em; color: #B7A99A; margin: 18px 0 8px; }
+  .states { display: flex; flex-wrap: wrap; gap: 8px; }
+  button { background: #1C1916; color: #F3EDE4; border: 1px solid rgba(255,255,255,.1); border-radius: 999px; padding: 8px 12px; font: 14px Helvetica, Arial, sans-serif; cursor: pointer; }
+  button.on { border-color: #E7B089; color: #FBE2C7; }
+  label { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; color: #B7A99A; margin: 8px 0; }
+  input[type="range"] { width: 180px; }
+  .pair { display: flex; gap: 18px; align-items: flex-end; }
+  .pair figure { margin: 0; text-align: center; color: #B7A99A; font-size: 12px; }
+  .sheet { display: grid; grid-template-columns: repeat(3, 220px); gap: 18px; padding: 24px; width: max-content; }
+  .sheet figure { margin: 0; }
+  .sheet figcaption { font: 13px Georgia, serif; margin-top: 4px; }
+  .sheet .sub { color: #B7A99A; font: 11px Helvetica, Arial, sans-serif; }
+  .warn { color: #D6B483; font-size: 12px; }
+</style>
+</head>
+<body>
+<header class="top" id="top">
+  <h1>The Wick</h1>
+  <p>Simulated states only. This study does not listen, think, or run a task. Sound stays off until you turn it on, and it never plays while resting.</p>
+</header>
+<div class="stage" id="stage"></div>
+<script>
+const ORDER = ["dormant","idle","listening","thinking","speaking","working","approval","offline","lockdown"];
+const WORD = {
+  dormant: "Dormant", idle: "Here", listening: "Listening", thinking: "Thinking",
+  speaking: "Speaking", working: "Working", approval: "Waiting for you",
+  offline: "Offline", lockdown: "Held"
+};
+const NOTE = {
+  dormant: "Simulated rest. Almost no motion.",
+  idle: "Simulated idle. A slow breath, not a live mind.",
+  listening: "Simulated microphone. The level is a test signal.",
+  thinking: "Simulated pending request. Nothing is being reasoned.",
+  speaking: "Simulated playback. The pulse is not a real voice.",
+  working: "Simulated running task. No work is happening.",
+  approval: "Simulated hold for a person. Nothing is authorized here.",
+  offline: "Simulated loss of connection.",
+  lockdown: "Simulated safety hold. This picture does not enforce it."
+};
+
+const params = new URLSearchParams(location.search);
+const sheet = params.get("sheet") === "1";
+let state = ORDER.includes(params.get("state")) ? params.get("state") : "idle";
+let soundOn = false;
+let volume = 0.35;
+let speed = 1;
+let warmth = 0.72;
+let glow = 0.85;
+let level = 0.35;
+const still = params.get("still") === "1" || sheet;
+let audioCtx = null;
+let started = performance.now();
+
+function specOf(s) {
+  return {
+    dormant:   { h: 0.52, w: 0.62, e: 0.34, turb: 0.04 },
+    idle:      { h: 0.9,  w: 1,    e: 0.78, turb: 0.34 },
+    listening: { h: 1,    w: 1.28, e: 0.95, turb: 0.42 },
+    thinking:  { h: 1.06, w: 0.9,  e: 1,    turb: 0.9 },
+    speaking:  { h: 1.02, w: 1.18, e: 1,    turb: 0.5 },
+    working:   { h: 0.94, w: 1.04, e: 0.86, turb: 0.28 },
+    approval:  { h: 0.84, w: 0.92, e: 0.72, turb: 0.04 },
+    offline:   { h: 0.42, w: 0.55, e: 0.2,  turb: 0 },
+    lockdown:  { h: 0.66, w: 0.74, e: 0.32, turb: 0 }
+  }[s];
+}
+function colors(s, warm) {
+  if (s === "offline") return { core: "#A79C93", body: "#6E675F", deep: "#3A342F", gold: "#6E675F" };
+  if (s === "lockdown") return { core: "#E4D3B0", body: "#8C7A62", deep: "#3A332C", gold: "#E4D3B0" };
+  if (s === "approval") return { core: "#F0E2C4", body: "#D6B483", deep: "#8A6232", gold: "#D6B483" };
+  const hot = warm;
+  const core = mix("#FBE2C7", "#FFF6EA", hot);
+  const body = mix("#C4845A", "#E7B089", hot);
+  const deep = mix("#8A4E32", "#A86840", hot);
+  return { core, body, deep, gold: "#D6B483" };
+}
+function mix(a, b, t) {
+  const pa = [1,3,5].map(i => parseInt(a.slice(i, i+2), 16));
+  const pb = [1,3,5].map(i => parseInt(b.slice(i, i+2), 16));
+  const c = pa.map((v, i) => Math.round(v + (pb[i] - v) * t));
+  return "#" + c.map(v => v.toString(16).padStart(2, "0")).join("");
+}
+function wave(t, a, b, c) {
+  return Math.sin(t * a) * 0.5 + Math.sin(t * b + 1.3) * 0.3 + Math.sin(t * c + 2.2) * 0.2;
+}
+
+function draw(ctx, w, h, s, t, amp, technique) {
+  ctx.clearRect(0, 0, w, h);
+  const spec = specOf(s);
+  const turb = spec.turb * (technique === "layers" ? 0.12 : 1);
+  const col = colors(s, warmth);
+  const breathe = (s === "offline" || s === "lockdown" || s === "dormant") ? 0.25 : 1;
+  const breath = 1 + Math.sin(t * 1.15) * 0.045 * breathe * speed;
+  const speak = s === "speaking" ? amp : 0;
+  const listen = s === "listening" ? amp : 0;
+  const cx = w * 0.5 + Math.sin(t * 0.63) * 10 * turb;
+  const base = h * 0.74;
+  const flameH = h * 0.5 * spec.h * breath * (1 + speak * 0.08);
+  const half = w * 0.16 * spec.w * breath * (1 + listen * 0.22);
+  const tip = base - flameH;
+  const wob = Math.sin(t * 1.8) * half * 0.16 * turb;
+
+  const pool = ctx.createRadialGradient(cx, base, 4, cx, base, half * 2.2);
+  pool.addColorStop(0, hexA(col.body, 0.35 * spec.e * glow));
+  pool.addColorStop(1, hexA(col.body, 0));
+  ctx.fillStyle = pool;
+  ctx.beginPath();
+  ctx.ellipse(cx, base + 10, half * 1.7, 14, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  const hy = tip + flameH * 0.45;
+  const haloR = Math.min(half * 2.1, cx - 8, w - cx - 8, hy - 8, h - hy - 8);
+  const halo = ctx.createRadialGradient(cx, hy, 8, cx, hy, Math.max(12, haloR));
+  halo.addColorStop(0, hexA(col.body, 0.42 * spec.e * glow));
+  halo.addColorStop(1, hexA(col.body, 0));
+  ctx.fillStyle = halo;
+  ctx.beginPath();
+  ctx.arc(cx, hy, Math.max(12, haloR), 0, Math.PI * 2);
+  ctx.fill();
+
+  const body = ctx.createLinearGradient(cx, tip, cx, base);
+  body.addColorStop(0, col.core);
+  body.addColorStop(0.42, col.body);
+  body.addColorStop(1, col.deep);
+  ctx.fillStyle = body;
+  ctx.beginPath();
+  ctx.moveTo(cx + wob * 0.2, tip);
+  ctx.bezierCurveTo(cx - half * 0.25 + wob, tip + flameH * 0.28, cx - half + wob, tip + flameH * 0.62, cx - half * 0.22, base);
+  ctx.quadraticCurveTo(cx, base + half * 0.18, cx + half * 0.22, base);
+  ctx.bezierCurveTo(cx + half * 1.05 - wob * 0.6, tip + flameH * 0.58, cx + half * 0.35, tip + flameH * 0.24, cx + wob * 0.2, tip);
+  ctx.fill();
+
+  if (technique === "canvas") {
+    const core = ctx.createRadialGradient(cx, tip + flameH * 0.42, 2, cx, tip + flameH * 0.48, half * 0.55);
+    core.addColorStop(0, hexA(col.core, 0.85 * spec.e));
+    core.addColorStop(1, hexA(col.core, 0));
+    ctx.fillStyle = core;
+    ctx.beginPath();
+    ctx.ellipse(cx + wob * 0.3, tip + flameH * (0.4 + speak * 0.08), half * (0.28 + listen * 0.08), flameH * 0.22, 0, 0, Math.PI * 2);
+    ctx.fill();
+    if (turb > 0.2) {
+      const fy = tip + flameH * (0.3 + 0.25 * (0.5 + 0.5 * Math.sin(t * 1.4)));
+      const g = ctx.createRadialGradient(cx + wob, fy, 1, cx + wob, fy, half * 0.45);
+      g.addColorStop(0, hexA("#FFF6EA", 0.9));
+      g.addColorStop(1, hexA("#FFF6EA", 0));
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(cx + wob, fy, half * 0.42, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  if (s === "approval") {
+    ctx.strokeStyle = col.gold;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.arc(cx, tip - half * 0.45, half * 0.38, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  if (s === "lockdown") {
+    ctx.strokeStyle = "#E4D3B0";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(cx - half * 1.35, tip + flameH * 0.12);
+    ctx.lineTo(cx - half * 1.35, base);
+    ctx.moveTo(cx + half * 1.35, tip + flameH * 0.12);
+    ctx.lineTo(cx + half * 1.35, base);
+    ctx.stroke();
+  }
+  if (s === "working") {
+    ctx.strokeStyle = hexA(col.gold, 0.9);
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(cx, tip + flameH * 0.5, half * 1.85, -Math.PI * 0.95, Math.PI * 0.15);
+    ctx.stroke();
+  }
+}
+function hexA(hex, a) {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
+}
+
+function loop(canvas, technique) {
+  const ctx = canvas.getContext("2d");
+  const tick = (now) => {
+    const t = ((now - started) / 1000) * speed;
+    let amp = level;
+    if (state === "listening") amp = 0.25 + 0.75 * (0.5 + 0.5 * Math.sin(t * 6.5));
+    if (state === "speaking") amp = Math.pow(Math.max(0, Math.sin(t * 8.2)), 1.6);
+    draw(ctx, canvas.width, canvas.height, state, still ? phaseFor(state) : t, amp, technique);
+    const quiet = state === "dormant" || state === "offline" || state === "lockdown" || still;
+    if (!quiet && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      canvas._raf = requestAnimationFrame(tick);
+    }
+  };
+  cancelAnimationFrame(canvas._raf || 0);
+  tick(performance.now());
+}
+function phaseFor(s) {
+  return { dormant: 0.2, idle: 1.4, listening: 0.6, thinking: 2.2, speaking: 0.35, working: 1.1, approval: 0.4, offline: 0, lockdown: 0.2 }[s];
+}
+
+function mountPhone(root, technique) {
+  const canvas = document.createElement("canvas");
+  canvas.width = 440; canvas.height = 480;
+  const word = document.createElement("div");
+  word.className = "stateword";
+  const fine = document.createElement("div");
+  fine.className = "fine";
+  const phone = document.createElement("div");
+  phone.className = "phone";
+  phone.innerHTML = `<div class="bar"><b>Matter</b><span>Owner</span></div>`;
+  const presence = document.createElement("div");
+  presence.className = "presence";
+  canvas.style.width = "220px"; canvas.style.height = "240px";
+  presence.appendChild(canvas);
+  phone.appendChild(presence);
+  phone.appendChild(word);
+  phone.appendChild(fine);
+  phone.insertAdjacentHTML("beforeend", `
+    <div class="thread">
+      <div class="who" style="text-align:right">You</div>
+      <div class="you">Is the porch light still on?</div>
+      <div class="who">Matter</div>
+      <div class="matter">Yes. It has been on since dusk. I can turn it off when you say so.</div>
+    </div>
+    <div class="fine">Sample dialogue. Not a live reply.</div>
+    <div class="composer"><span>⌘</span><span style="flex:1">Message Matter</span><span>↑</span></div>`);
+  root.appendChild(phone);
+  const paintWord = () => { word.textContent = WORD[state]; fine.textContent = NOTE[state]; };
+  paintWord();
+  canvas._paintWord = paintWord;
+  loop(canvas, technique);
+  return canvas;
+}
+
+function setState(next) {
+  state = next;
+  document.querySelectorAll("[data-state]").forEach(b => b.classList.toggle("on", b.dataset.state === state));
+  document.querySelectorAll("canvas").forEach(c => {
+    if (c._paintWord) c._paintWord();
+    const tech = c.dataset.tech || "canvas";
+    loop(c, tech);
+  });
+}
+
+function tone(ctx, dest, freq, when, dur, type, gain) {
+  const o = ctx.createOscillator();
+  const g = ctx.createGain();
+  o.type = type;
+  o.frequency.setValueAtTime(freq, when);
+  g.gain.setValueAtTime(0, when);
+  g.gain.linearRampToValueAtTime(gain, when + 0.03);
+  g.gain.exponentialRampToValueAtTime(0.0001, when + dur);
+  o.connect(g); g.connect(dest);
+  o.start(when); o.stop(when + dur + 0.02);
+}
+function cue(kind) {
+  if (!soundOn) return;
+  const ctx = audioCtx || (audioCtx = new AudioContext());
+  if (ctx.state === "suspended") ctx.resume();
+  const now = ctx.currentTime + 0.02;
+  const bus = ctx.createGain();
+  bus.gain.value = volume;
+  bus.connect(ctx.destination);
+  const sine = (f, t, d, g) => tone(ctx, bus, f, now + t, d, "sine", g);
+  if (kind === "awaken") { sine(196, 0, 0.7, 0.08); sine(247, 0.12, 0.6, 0.05); sine(294, 0.28, 0.55, 0.04); }
+  if (kind === "listen") sine(330, 0, 0.22, 0.07);
+  if (kind === "accepted") { sine(349, 0, 0.18, 0.06); sine(415, 0.02, 0.2, 0.04); }
+  if (kind === "ready") { sine(392, 0, 0.28, 0.07); sine(588, 0.04, 0.22, 0.025); }
+  if (kind === "done") { sine(262, 0, 0.16, 0.06); sine(330, 0.14, 0.16, 0.05); sine(392, 0.28, 0.28, 0.05); }
+  if (kind === "approval") { sine(233, 0, 0.9, 0.06); tone(ctx, bus, 349, now, 0.9, "triangle", 0.02); }
+  if (kind === "loss") {
+    const o = ctx.createOscillator(); const g = ctx.createGain();
+    o.frequency.setValueAtTime(440, now); o.frequency.exponentialRampToValueAtTime(196, now + 0.45);
+    g.gain.setValueAtTime(0.0001, now); g.gain.linearRampToValueAtTime(0.06, now + 0.03); g.gain.exponentialRampToValueAtTime(0.0001, now + 0.5);
+    o.connect(g); g.connect(bus); o.start(now); o.stop(now + 0.52);
+  }
+  if (kind === "safety") sine(146, 0, 0.5, 0.08);
+}
+
+function buildInteractive() {
+  const stage = document.getElementById("stage");
+  const mainCol = document.createElement("div");
+  const c1 = mountPhone(mainCol, "canvas");
+  c1.dataset.tech = "canvas";
+  const panel = document.createElement("div");
+  panel.className = "panel";
+  panel.innerHTML = `<h2>SIMULATED STATE</h2><div class="states" id="states"></div>
+    <h2>LIGHT AND MOTION</h2>
+    <label>Warmth <input id="warm" type="range" min="0" max="100" value="72"></label>
+    <label>Glow <input id="glow" type="range" min="20" max="100" value="85"></label>
+    <label>Motion <input id="speed" type="range" min="40" max="160" value="100"></label>
+    <label>Test level <input id="level" type="range" min="0" max="100" value="35"></label>
+    <p class="fine" style="text-align:left;padding:0">Test level drives the synthetic listening and speaking signal. It is not a microphone.</p>
+    <h2>SOUND</h2>
+    <div class="states" id="cues"></div>
+    <label>Volume <input id="vol" type="range" min="0" max="100" value="35"></label>
+    <p class="warn">Sound is optional. Nothing plays while the Wick is only resting. On a phone, these cues should follow the silent switch.</p>
+    <h2>TWO TECHNIQUES</h2>
+    <div class="pair" id="pair"></div>
+    <p class="fine" style="text-align:left;padding:0">Left is procedural canvas light. Right is the cheaper shape-layer breath a first SwiftUI version can ship. Reduce Motion holds a single frame.</p>
+    <h2>VOICE, NOT A RECORDING</h2>
+    <p class="fine" style="text-align:left;padding:0">Matter’s speaking voice is not in this study. The intended voice is warm, low, and unhurried, with a pause before anything that needs a decision. A child’s seat would use the same voice, a little quieter. No catchphrase. The tones above are signals, not speech.</p>`;
+  stage.appendChild(mainCol);
+  stage.appendChild(panel);
+  const states = panel.querySelector("#states");
+  ORDER.forEach(s => {
+    const b = document.createElement("button");
+    b.textContent = WORD[s];
+    b.dataset.state = s;
+    b.onclick = () => setState(s);
+    states.appendChild(b);
+  });
+  const cues = [["Enable sound", "enable"], ["Awaken", "awaken"], ["Listening", "listen"], ["Accepted", "accepted"], ["Ready", "ready"], ["Completed", "done"], ["Approval", "approval"], ["Connection lost", "loss"], ["Safety hold", "safety"]];
+  const cueBox = panel.querySelector("#cues");
+  cues.forEach(([label, kind]) => {
+    const b = document.createElement("button");
+    b.textContent = label;
+    b.onclick = () => {
+      if (kind === "enable") { soundOn = true; b.classList.add("on"); if (!audioCtx) audioCtx = new AudioContext(); return; }
+      if (!soundOn) { soundOn = true; }
+      cue(kind);
+    };
+    cueBox.appendChild(b);
+  });
+  panel.querySelector("#warm").oninput = e => { warmth = e.target.value / 100; setState(state); };
+  panel.querySelector("#glow").oninput = e => { glow = e.target.value / 100; setState(state); };
+  panel.querySelector("#speed").oninput = e => { speed = e.target.value / 100; };
+  panel.querySelector("#level").oninput = e => { level = e.target.value / 100; };
+  panel.querySelector("#vol").oninput = e => { volume = e.target.value / 100; };
+  const pair = panel.querySelector("#pair");
+  const left = document.createElement("figure");
+  left.innerHTML = "<figcaption>Canvas light</figcaption>";
+  const a = document.createElement("canvas"); a.width = 440; a.height = 480; a.style.width = "140px"; a.style.height = "152px"; a.dataset.tech = "canvas";
+  left.prepend(a);
+  const right = document.createElement("figure");
+  right.innerHTML = "<figcaption>Shape layers</figcaption>";
+  const b = document.createElement("canvas"); b.width = 440; b.height = 480; b.style.width = "140px"; b.style.height = "152px"; b.dataset.tech = "layers";
+  right.prepend(b);
+  pair.append(left, right);
+  setState(state);
+}
+
+function buildSheet() {
+  const grid = document.createElement("div");
+  grid.className = "sheet";
+  document.getElementById("stage").appendChild(grid);
+  ORDER.forEach(s => {
+    state = s;
+    const fig = document.createElement("figure");
+    const canvas = document.createElement("canvas");
+    canvas.width = 440; canvas.height = 480; canvas.style.width = "200px"; canvas.style.height = "218px";
+    const ctx = canvas.getContext("2d");
+    const amp = s === "speaking" ? 0.85 : s === "listening" ? 0.7 : 0.3;
+    draw(ctx, canvas.width, canvas.height, s, phaseFor(s), amp, "canvas");
+    fig.appendChild(canvas);
+    fig.insertAdjacentHTML("beforeend", `<figcaption>${WORD[s]}</figcaption><div class="sub">${NOTE[s]}</div>`);
+    grid.appendChild(fig);
+  });
+}
+
+if (sheet) {
+  document.getElementById("top").hidden = true;
+  buildSheet();
+} else buildInteractive();
+</script>
+</body>
+</html>

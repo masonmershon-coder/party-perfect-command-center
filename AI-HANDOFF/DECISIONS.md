@@ -255,6 +255,12 @@ no production routing changed.
 4. **Provider neutrality holds:** no rule says Claude/Cursor/Claw operates POR. Matter selects
    dynamically. This must stay true when the bridge is built.
 
+## 2026-10-27 — Family visuals do not build the household backend
+
+- **Decision:** Individual profiles, personal agents, private photos, NAS storage, and home/work permissions are specified as host-provided display data. `ios/MatterKit` can show a seat, an agent title, a private title, and a work room. It does not create accounts, read storage, or decide who is allowed. Claude's SwiftUI app remains the implementation those views plug into.
+- **Source:** Matter family visual assignment, 2026-10-27.
+- **Evidence:** `ios/MatterKit/INTEGRATION.md`, `ios/MatterKit/Sources/MatterKit/MatterHousehold.swift`.
+
 ## 2026-10-27 — Matter's presence is a kit, not a second app
 
 - **Decision:** The iPhone presence is the Wick, a banked flame on warm charcoal or warm paper. Family mode is conversation first. Owner mode holds mission, agents, approvals, tasks, and health. The phone shows listening, thinking, speaking, or working only from events the host reports. `ios/MatterKit` does not replace Claude's unpublished app and does not call the network.

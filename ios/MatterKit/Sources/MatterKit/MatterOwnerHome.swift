@@ -65,23 +65,26 @@ public struct MatterOwnerHome: View {
     var appearance: Binding<MatterColorChoice>
     var onDecide: (String, String) -> Void
     var onClose: () -> Void
+    var onOpenWork: () -> Void
 
     public init(
         snapshot: MatterOwnerSnapshot?,
         appearance: Binding<MatterColorChoice>,
         onDecide: @escaping (String, String) -> Void,
-        onClose: @escaping () -> Void
+        onClose: @escaping () -> Void,
+        onOpenWork: @escaping () -> Void = {}
     ) {
         self.snapshot = snapshot
         self.appearance = appearance
         self.onDecide = onDecide
         self.onClose = onClose
+        self.onOpenWork = onOpenWork
     }
 
     public var body: some View {
         NavigationStack {
             MatterChrome {
-                OwnerBody(snapshot: snapshot, appearance: appearance, onDecide: onDecide)
+                OwnerBody(snapshot: snapshot, appearance: appearance, onDecide: onDecide, onOpenWork: onOpenWork)
             }
             .navigationTitle("Owner")
             .navigationBarTitleDisplayMode(.inline)
@@ -98,6 +101,7 @@ private struct OwnerBody: View {
     var snapshot: MatterOwnerSnapshot?
     var appearance: Binding<MatterColorChoice>
     var onDecide: (String, String) -> Void
+    var onOpenWork: () -> Void
 
     @Environment(\.matterPalette) private var palette
 
@@ -107,6 +111,9 @@ private struct OwnerBody: View {
                 Text("Protected actions stay on the Mac. This screen does not grant permission.")
                     .font(.footnote)
                     .foregroundStyle(palette.muted)
+                Button("Work room", action: onOpenWork)
+                    .frame(minHeight: 44)
+                    .accessibilityHint("Opens work records the Mac has already separated from the family chat.")
                 appearancePicker
                 if let snapshot {
                     loaded(snapshot)

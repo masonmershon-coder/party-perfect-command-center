@@ -37,11 +37,14 @@ public struct MatterFamilyHome: View {
     var statusLine: String?
     var turns: [MatterTurn]
     var routines: [MatterRoutine]
+    var places: [MatterPlace]
+    var activePlaceID: String?
     var draft: Binding<String>
     var canSend: Bool
     var onSend: () -> Void
     var onListen: () -> Void
     var onOpenOwner: () -> Void
+    var onSelectPlace: (String) -> Void
 
     public init(
         presence: MatterPresenceState,
@@ -49,22 +52,28 @@ public struct MatterFamilyHome: View {
         statusLine: String? = nil,
         turns: [MatterTurn],
         routines: [MatterRoutine],
+        places: [MatterPlace] = [],
+        activePlaceID: String? = nil,
         draft: Binding<String>,
         canSend: Bool,
         onSend: @escaping () -> Void,
         onListen: @escaping () -> Void,
-        onOpenOwner: @escaping () -> Void
+        onOpenOwner: @escaping () -> Void,
+        onSelectPlace: @escaping (String) -> Void = { _ in }
     ) {
         self.presence = presence
         self.progress = progress
         self.statusLine = statusLine
         self.turns = turns
         self.routines = routines
+        self.places = places
+        self.activePlaceID = activePlaceID
         self.draft = draft
         self.canSend = canSend
         self.onSend = onSend
         self.onListen = onListen
         self.onOpenOwner = onOpenOwner
+        self.onSelectPlace = onSelectPlace
     }
 
     public var body: some View {
@@ -75,11 +84,14 @@ public struct MatterFamilyHome: View {
                 statusLine: statusLine,
                 turns: turns,
                 routines: routines,
+                places: places,
+                activePlaceID: activePlaceID,
                 draft: draft,
                 canSend: canSend,
                 onSend: onSend,
                 onListen: onListen,
-                onOpenOwner: onOpenOwner
+                onOpenOwner: onOpenOwner,
+                onSelectPlace: onSelectPlace
             )
         }
     }
@@ -91,11 +103,14 @@ private struct FamilyBody: View {
     var statusLine: String?
     var turns: [MatterTurn]
     var routines: [MatterRoutine]
+    var places: [MatterPlace]
+    var activePlaceID: String?
     var draft: Binding<String>
     var canSend: Bool
     var onSend: () -> Void
     var onListen: () -> Void
     var onOpenOwner: () -> Void
+    var onSelectPlace: (String) -> Void
 
     @Environment(\.matterPalette) private var palette
     @FocusState private var composing: Bool
@@ -117,6 +132,8 @@ private struct FamilyBody: View {
                     .padding(.horizontal, 28)
                     .padding(.top, 4)
             }
+            MatterPlaceStrip(places: places, surface: .home, activeID: activePlaceID, onSelect: onSelectPlace)
+                .padding(.top, visiblePlaces(places, surface: .home).isEmpty ? 0 : 12)
             conversation
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {

@@ -1,3 +1,14 @@
+# CURSOR → CLAUDE · 2026-10-27 · Family visual handoff
+
+**Status:** `READY_FOR_CLAUDE_REVIEW`
+**Task:** MATTER-PRESENCE-001
+
+Your SwiftUI app remains the primary implementation. PR #22 stays open and unmerged. I did not add another phone gateway, another app target, or any NAS, media, or account backend. Matter Core and the approval gates were not touched.
+
+`ios/MatterKit` now has seats, a home/work visual split, and a title-only shelf. `visiblePlaces` keeps work-only people out of the family chat. `MatterKeptShelf` shows titles and the word Private, with no picture and no storage path. The integration steps are `ios/MatterKit/INTEGRATION.md`.
+
+Previews still use fixture names, not the real family. Xcode is not on this machine, so nothing was compiled or run in the simulator.
+
 # CURSOR → CLAUDE · 2026-10-27 · The Wick
 
 **Status:** `READY_FOR_CLAUDE_REVIEW`

@@ -5,6 +5,7 @@ private struct FamilyPreviewHost: View {
     var presence: MatterPresenceState
     var turns: [MatterTurn]
     var routines: [MatterRoutine]
+    var places: [MatterPlace] = []
     @State private var draft = ""
 
     var body: some View {
@@ -14,6 +15,8 @@ private struct FamilyPreviewHost: View {
             statusLine: "Layout fixture. Not a live session.",
             turns: turns,
             routines: routines,
+            places: places,
+            activePlaceID: places.first?.id,
             draft: $draft,
             canSend: presence != .offline,
             onSend: {},
@@ -24,8 +27,14 @@ private struct FamilyPreviewHost: View {
     }
 }
 
+private let fixturePlaces = [
+    MatterPlace(id: "home-adult", name: "Adult", role: "Adult", agentTitle: "Fixture guide", scopes: [.home]),
+    MatterPlace(id: "home-child", name: "Child", role: "Child", scopes: [.home]),
+    MatterPlace(id: "work-only", name: "Work", role: "Work", scopes: [.work]),
+]
+
 #Preview("Family dark") {
-    FamilyPreviewHost(scheme: .dark, presence: .idle, turns: [], routines: [])
+    FamilyPreviewHost(scheme: .dark, presence: .idle, turns: [], routines: [], places: fixturePlaces)
 }
 
 #Preview("Family light") {
@@ -47,6 +56,24 @@ private struct FamilyPreviewHost: View {
 
 #Preview("Offline") {
     FamilyPreviewHost(scheme: .dark, presence: .offline, turns: [], routines: [])
+}
+
+#Preview("Kept shelf") {
+    MatterChrome {
+        MatterKeptShelf(items: [
+            MatterKeptItem(id: "p1", title: "Fixture note", scope: .home, isPrivate: true),
+            MatterKeptItem(id: "w1", title: "Fixture ledger", scope: .work, isPrivate: true),
+        ], surface: .home)
+        .padding(20)
+    }
+    .preferredColorScheme(.dark)
+}
+
+#Preview("Work room") {
+    MatterWorkRoom(places: fixturePlaces, kept: [
+        MatterKeptItem(id: "w1", title: "Fixture ledger", scope: .work, isPrivate: true),
+    ], onClose: {})
+    .preferredColorScheme(.dark)
 }
 
 #Preview("Owner dark") {

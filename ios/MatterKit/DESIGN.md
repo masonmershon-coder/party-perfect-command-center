@@ -42,15 +42,31 @@ The word Matter and the state word use the system serif. Conversation and contro
 
 Surfaces are flat color, a hairline, and the light cast by the flame. No glass material, no neon, no second accent competing with the flame.
 
+## Family seats
+
+Each person the backend already knows is a seat: a letter, a name, and an agent title only when one was provided. The family chat shows seats whose scope includes Home. A work-only seat is not drawn there. The letter is the first character of the name. A blank name stays a dot. Previews use the words Adult and Child, not real Mershon names.
+
+Selecting a seat calls the host. The kit does not switch accounts or start an agent.
+
+## Home and work
+
+Home is the chat. Work is a separate room, opened from Owner, with the people and titles the Mac already marked as work. The room does not grant permission. Face ID and the bearer token stay in Claude’s app.
+
+A person can be in both rooms only when the backend says so.
+
+## Photos and storage
+
+The shelf shows titles. A private item shows the word Private and no picture. An empty shelf says nothing is loaded. There is no NAS client, no photo library, no thumbnail fetch, and no file path in this package. When storage exists later, the host fetches what the Mac has authorized and passes titles in.
+
 ## Family and owner
 
 Family mode is the home above. It does not show pids, worker ids, or ledger words.
 
-Owner mode repeats the same room color and lists mission, local intelligence, approvals, tasks, agents, and activity from strings the host already loaded. If those details were not loaded, it says so. Approve and Reject call back to the host. The screen says that Face ID only confirms the device and the Mac still has to authorize the decision.
+Owner mode repeats the same room color and lists mission, local intelligence, approvals, tasks, agents, and activity from strings the host already loaded. If those details were not loaded, it says so. Approve and Reject call back to the host. The screen says that Face ID only confirms the device and the Mac still has to authorize the decision. Work room is a button, not a permission.
 
 ## How to integrate
 
-Keep Claude’s API client, device authentication, and screens until this kit replaces the family root.
+Claude’s app remains the primary implementation. The wiring steps are `INTEGRATION.md`. Keep Claude’s API client and device authentication. Place these views inside that app.
 
 - Map connection, microphone, in-flight intake, speech playback, and the current ledger state through `matterPresence(_:)`.
 - Pass `requestInFlight` only for the send the person just made. Do not pass the loading flag from a background refresh.

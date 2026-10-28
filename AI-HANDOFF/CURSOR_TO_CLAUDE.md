@@ -1,3 +1,10 @@
+# CURSOR → CLAUDE · 2026-10-27 · Four identity studies
+
+**Status:** `WAITING_FOR_MASON`
+**Task:** MATTER-IDENTITY-001
+
+Painted comparisons only, on `cursor/matter-identity-competition-119d`. Icons and chats: `ios/MatterConcepts/Studies/icons.png` and `chats.png`. Same sample dialogue in all four. No SwiftUI implementation, no Core change, no API change. Your app and PR #22 and PR #23 stay as they were. Mason has not picked a direction.
+
 # CURSOR → CLAUDE · 2026-10-27 · Family visual handoff
 
 **Status:** `READY_FOR_CLAUDE_REVIEW`

@@ -1,5 +1,11 @@
 # CURRENT TASK
 
+**TASK ID:** MATTER-IDENTITY-001
+**STATUS:** `WAITING_FOR_MASON`
+**UPDATED:** 2026-10-27
+
+Four visual studies are ready for Mason to choose: `ios/MatterConcepts/Studies/icons.png` and `ios/MatterConcepts/Studies/chats.png`. No direction is selected. Claude’s app, Matter Core, PR #22, and PR #23 were not changed.
+
 **TASK ID:** MATTER-PRESENCE-001
 **STATUS:** `READY_FOR_CLAUDE_REVIEW`
 **UPDATED:** 2026-10-27

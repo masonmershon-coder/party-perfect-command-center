@@ -1,0 +1,103 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+* { box-sizing: border-box; }
+html, body { margin: 0; background: #161616; color: #eee; }
+.board { display: flex; gap: 18px; padding: 18px; width: max-content; }
+.meta { width: 280px; }
+.meta h1 { font: 500 22px/1.2 Georgia, serif; margin: 0 0 6px; }
+.meta .emo { font: 14px/1.45 Helvetica, Arial, sans-serif; color: #c8c8c8; min-height: 64px; }
+.icon { width: 168px; height: 168px; margin: 12px 0; }
+.homes { display: flex; gap: 18px; align-items: flex-end; margin: 8px 0 16px; }
+.hs { width: 86px; text-align: center; }
+.hs .glyph { width: 62px; height: 62px; margin: 0 auto 6px; }
+.hs span { font: 11px/1 Helvetica, Arial, sans-serif; color: #ddd; }
+.swatch { display: flex; align-items: center; gap: 8px; font: 12px/1.4 ui-monospace, Menlo, monospace; margin: 3px 0; }
+.chip { width: 18px; height: 18px; border-radius: 3px; border: 1px solid rgba(255,255,255,.2); }
+.note { font: 12px/1.4 Helvetica, Arial, sans-serif; color: #bbb; margin-top: 8px; }
+.col { width: 390px; }
+.cap { font: 11px/1 Helvetica, Arial, sans-serif; letter-spacing: .14em; color: #9a9a9a; margin: 0 0 8px; }
+.phone { width: 390px; height: 844px; overflow: hidden; position: relative; display: flex; flex-direction: column; }
+.sample { font: 11px/1.3 Helvetica, Arial, sans-serif; letter-spacing: .04em; opacity: .8; }
+.compare { display: flex; gap: 28px; padding: 28px; width: max-content; align-items: flex-start; }
+.compare h2 { font: 500 16px/1.2 Helvetica, Arial, sans-serif; margin: 0 0 12px; letter-spacing: .08em; }
+.bigicon { width: 220px; height: 220px; }
+</style></head><body>
+      <div class="board">
+        <aside class="meta">
+          <h1>04 — The Archive</h1>
+          <div class="emo">A private family institution. Built to be read again in twenty years.</div>
+          <div class="icon"><svg viewBox="0 0 512 512" width="100%" height="100%">
+      <rect width="512" height="512" rx="114" fill="#0C0B09"/>
+      <circle cx="256" cy="256" r="158" fill="none" stroke="#C4A574" stroke-width="14"/>
+      <circle cx="256" cy="256" r="124" fill="none" stroke="#8C7355" stroke-width="3"/>
+      <path d="M166 292 L256 176 L346 292" fill="none" stroke="#C4A574" stroke-width="16" stroke-linejoin="round" stroke-linecap="round"/>
+      <path d="M176 334 H336" fill="none" stroke="#C4A574" stroke-width="16" stroke-linecap="round"/>
+    </svg></div>
+          <div class="homes">
+            <div class="hs"><div class="glyph"><svg viewBox="0 0 512 512" width="100%" height="100%">
+      <rect width="512" height="512" rx="114" fill="#0C0B09"/>
+      <circle cx="256" cy="256" r="158" fill="none" stroke="#C4A574" stroke-width="14"/>
+      <circle cx="256" cy="256" r="124" fill="none" stroke="#8C7355" stroke-width="3"/>
+      <path d="M166 292 L256 176 L346 292" fill="none" stroke="#C4A574" stroke-width="16" stroke-linejoin="round" stroke-linecap="round"/>
+      <path d="M176 334 H336" fill="none" stroke="#C4A574" stroke-width="16" stroke-linecap="round"/>
+    </svg></div><span>Matter</span></div>
+            <div class="hs"><div class="glyph"><svg viewBox="0 0 512 512" width="100%" height="100%">
+      <rect width="512" height="512" rx="114" fill="#0C0B09"/>
+      <circle cx="256" cy="256" r="158" fill="none" stroke="#6E5A3E" stroke-width="14"/>
+      <circle cx="256" cy="256" r="124" fill="none" stroke="#4A3E2E" stroke-width="3"/>
+      <path d="M166 292 L256 176 L346 292" fill="none" stroke="#6E5A3E" stroke-width="16" stroke-linejoin="round" stroke-linecap="round"/>
+      <path d="M176 334 H336" fill="none" stroke="#6E5A3E" stroke-width="16" stroke-linecap="round"/>
+    </svg></div><span>Offline</span></div>
+          </div>
+          <div class="swatch"><i class="chip" style="background:#0C0B09"></i>#0C0B09 Ground</div><div class="swatch"><i class="chip" style="background:#1A1612"></i>#1A1612 Plate</div><div class="swatch"><i class="chip" style="background:#E7DCC8"></i>#E7DCC8 Ivory</div><div class="swatch"><i class="chip" style="background:#C4A574"></i>#C4A574 Brass</div><div class="swatch"><i class="chip" style="background:#8C7355"></i>#8C7355 Bronze</div><div class="swatch"><i class="chip" style="background:#3A3128"></i>#3A3128 Rule</div>
+          <p class="note">Serif for names and replies. Small sans labels, letterspaced, for the plate.</p>
+          <p class="note">Almost still. The seal eases in opacity over eight seconds, or not at all if motion is reduced.</p>
+          <p class="note">A seal: a ring, a peak, and a base. No words on the icon. Bronze on black.</p>
+          <p class="note">Design study. Not the iOS simulator.</p>
+        </aside>
+        <div class="col"><div class="cap">CHAT</div><div class="phone" style="background:#0C0B09;color:#E7DCC8">
+          <div style="margin:14px;border:1px solid #8C7355;outline:1px solid #3A3128;outline-offset:4px;height:calc(100% - 28px);display:flex;flex-direction:column;padding:18px 16px">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <svg width="36" height="36" viewBox="0 0 64 64"><circle cx="32" cy="32" r="22" fill="none" stroke="#C4A574" stroke-width="1.6"/><path d="M18 38 L32 20 L46 38" fill="none" stroke="#C4A574" stroke-width="1.6"/><path d="M20 44 H44" stroke="#C4A574" stroke-width="1.6"/></svg>
+              <div style="font:12px Helvetica,Arial,sans-serif;letter-spacing:.16em;color:#C4A574">CORRESPONDENCE</div>
+            </div>
+            <div style="font:15px Georgia,serif;margin-top:16px">At rest</div>
+            <div class="sample" style="color:#8C7355;margin-top:4px">Sample dialogue. Not a live reply.</div>
+            <div style="margin-top:22px;font:18px/1.45 Georgia,serif">Is the porch light still on?</div>
+            <div style="height:1px;background:#8C7355;margin:16px 0"></div>
+            <div style="font:18px/1.5 Georgia,serif">Yes. It has been on since dusk. I can turn it off when you say so.</div>
+            <div style="margin-top:auto;display:flex;align-items:center;gap:8px;border-bottom:1px solid #C4A574;padding-bottom:8px;color:#E7DCC8">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4"/></svg><span style="flex:1;font:16px Helvetica,Arial,sans-serif;color:#8C7355">Write to Matter</span><span>↗</span>
+            </div>
+          </div>
+        </div></div><div class="col"><div class="cap">FAMILY</div><div class="phone" style="background:#0C0B09;color:#E7DCC8">
+          <div style="margin:14px;border:1px solid #8C7355;outline:1px solid #3A3128;outline-offset:4px;height:calc(100% - 28px);display:flex;flex-direction:column;padding:18px 16px">
+            <div style="font:12px Helvetica,Arial,sans-serif;letter-spacing:.18em;color:#C4A574">REGISTER</div>
+            <div class="sample" style="color:#8C7355;margin:8px 0 12px">Fictional sample household. Not the Mershon family.</div>
+            <div style="padding:10px 0;border-bottom:1px solid #3A3128">
+              <div style="font:18px Georgia,serif">Mara Ellison</div>
+              <div style="font:12px Helvetica,Arial,sans-serif;letter-spacing:.12em;color:#C4A574;margin-top:3px">HARBOR · HOUSEHOLD</div>
+            </div><div style="padding:10px 0;border-bottom:1px solid #3A3128">
+              <div style="font:18px Georgia,serif">Caleb Orth</div>
+              <div style="font:12px Helvetica,Arial,sans-serif;letter-spacing:.12em;color:#C4A574;margin-top:3px">FIELD · HOUSEHOLD</div>
+            </div><div style="padding:10px 0;border-bottom:1px solid #3A3128">
+              <div style="font:18px Georgia,serif">June Pell</div>
+              <div style="font:12px Helvetica,Arial,sans-serif;letter-spacing:.12em;color:#C4A574;margin-top:3px">CLERK · HOUSEHOLD</div>
+            </div><div style="padding:10px 0;border-bottom:1px solid #3A3128">
+              <div style="font:18px Georgia,serif">N. Calder</div>
+              <div style="font:12px Helvetica,Arial,sans-serif;letter-spacing:.12em;color:#C4A574;margin-top:3px">LEDGER · PRACTICE</div>
+            </div>
+          </div>
+        </div></div><div class="col"><div class="cap">OWNER</div><div class="phone" style="background:#0C0B09;color:#E7DCC8">
+      <div style="margin:14px;border:1px solid #8C7355;outline:1px solid #3A3128;outline-offset:4px;height:calc(100% - 28px);display:flex;flex-direction:column;padding:18px 16px">
+        <div style="font:12px Helvetica,Arial,sans-serif;letter-spacing:.18em;color:#C4A574">RECORD OF CONDITION</div>
+        <div class="sample" style="color:#C4A574;margin:8px 0 12px">Sample data. Not a live supervisor.</div>
+        <div style="display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid #3A3128;font:15px Georgia,serif">
+          <span>Core</span><span style="color:#C4A574;font:13px Helvetica,Arial,sans-serif">Not live</span></div><div style="display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid #3A3128;font:15px Georgia,serif">
+          <span>Local mind</span><span style="color:#C4A574;font:13px Helvetica,Arial,sans-serif">Not observed</span></div><div style="display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid #3A3128;font:15px Georgia,serif">
+          <span>Devices</span><span style="color:#C4A574;font:13px Helvetica,Arial,sans-serif">Two sample names</span></div><div style="display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid #3A3128;font:15px Georgia,serif">
+          <span>Waiting</span><span style="color:#C4A574;font:13px Helvetica,Arial,sans-serif">One sample</span></div><div style="display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid #3A3128;font:15px Georgia,serif">
+          <span>Agents</span><span style="color:#C4A574;font:13px Helvetica,Arial,sans-serif">Names only</span></div>
+      </div>
+    </div></div>
+      </div>
+    </body></html>

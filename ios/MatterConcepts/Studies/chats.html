@@ -1,0 +1,101 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+* { box-sizing: border-box; }
+html, body { margin: 0; background: #161616; color: #eee; }
+.board { display: flex; gap: 18px; padding: 18px; width: max-content; }
+.meta { width: 280px; }
+.meta h1 { font: 500 22px/1.2 Georgia, serif; margin: 0 0 6px; }
+.meta .emo { font: 14px/1.45 Helvetica, Arial, sans-serif; color: #c8c8c8; min-height: 64px; }
+.icon { width: 168px; height: 168px; margin: 12px 0; }
+.homes { display: flex; gap: 18px; align-items: flex-end; margin: 8px 0 16px; }
+.hs { width: 86px; text-align: center; }
+.hs .glyph { width: 62px; height: 62px; margin: 0 auto 6px; }
+.hs span { font: 11px/1 Helvetica, Arial, sans-serif; color: #ddd; }
+.swatch { display: flex; align-items: center; gap: 8px; font: 12px/1.4 ui-monospace, Menlo, monospace; margin: 3px 0; }
+.chip { width: 18px; height: 18px; border-radius: 3px; border: 1px solid rgba(255,255,255,.2); }
+.note { font: 12px/1.4 Helvetica, Arial, sans-serif; color: #bbb; margin-top: 8px; }
+.col { width: 390px; }
+.cap { font: 11px/1 Helvetica, Arial, sans-serif; letter-spacing: .14em; color: #9a9a9a; margin: 0 0 8px; }
+.phone { width: 390px; height: 844px; overflow: hidden; position: relative; display: flex; flex-direction: column; }
+.sample { font: 11px/1.3 Helvetica, Arial, sans-serif; letter-spacing: .04em; opacity: .8; }
+.compare { display: flex; gap: 28px; padding: 28px; width: max-content; align-items: flex-start; }
+.compare h2 { font: 500 16px/1.2 Helvetica, Arial, sans-serif; margin: 0 0 12px; letter-spacing: .08em; }
+.bigicon { width: 220px; height: 220px; }
+</style></head>
+      <body><div class="compare"><div class="col"><div class="cap">01 — THE WICK</div><div class="phone" style="background:#100E0C;color:#F3EDE4;font-family:Georgia,serif">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:22px 20px 0">
+            <div style="font-size:22px">Matter</div><div style="font:16px Helvetica,Arial,sans-serif">Owner</div>
+          </div>
+          <div style="height:150px;display:flex;align-items:center;justify-content:center;position:relative">
+            <div style="position:absolute;width:120px;height:120px;border-radius:50%;background:radial-gradient(circle,rgba(231,176,137,.5),transparent 68%)"></div>
+            <svg width="42" height="96" viewBox="0 0 34 76"><path d="M17.7 3.8 C26.5 15.2 31.3 31.9 23.8 47.1 C19.7 59.3 19 69.9 17 73 C13.6 68.4 6.1 56.2 10.2 44.1 C13.6 30.4 12.2 12.2 17.7 3.8 Z" fill="#E7B089"/><circle cx="17" cy="16" r="3" fill="#FBE2C7"/></svg>
+          </div>
+          <div style="text-align:center;font-size:17px">Here</div>
+          <div class="sample" style="text-align:center;color:#B7A99A;padding:6px 24px 0">Sample dialogue. Not a live reply.</div>
+          <div style="padding:22px 20px;font:17px/1.45 Helvetica,Arial,sans-serif">
+            <div style="text-align:right;color:#B7A99A;font-size:12px">You</div>
+            <div style="margin-left:64px;background:#1C1916;border-radius:18px;padding:12px 14px">Is the porch light still on?</div>
+            <div style="color:#B7A99A;font-size:12px;margin-top:18px">Matter</div>
+            <div style="border-left:2px solid #E7B089;padding-left:12px">Yes. It has been on since dusk. I can turn it off when you say so.</div>
+          </div>
+          <div style="margin-top:auto;padding:12px 16px 22px">
+            <div style="display:flex;align-items:center;gap:8px;background:#1C1916;border:1px solid rgba(255,255,255,.08);border-radius:999px;padding:8px 12px;color:#F3EDE4">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4"/></svg><span style="flex:1;color:#B7A99A;font:17px Helvetica,Arial,sans-serif">Message Matter</span>
+              <span style="width:32px;height:32px;border-radius:50%;background:#2A2522;color:#8A8178;display:flex;align-items:center;justify-content:center">↑</span>
+            </div>
+          </div>
+        </div></div><div class="col"><div class="cap">02 — THE MONOLITH</div><div class="phone" style="background:#090A0C;color:#E8EDF2;font-family:Helvetica,Arial,sans-serif">
+          <div style="display:flex;align-items:center;gap:14px;padding:26px 22px 18px">
+            <div style="width:14px;height:52px;background:linear-gradient(90deg,#F4F6F8,#8B949C 30%,#2A3036);box-shadow:inset 0 1px 0 #fff"></div>
+            <div><div style="letter-spacing:.22em;font-size:13px">MATTER</div><div style="color:#8E969E;font-size:15px;margin-top:4px">Standby</div></div>
+          </div>
+          <div class="sample" style="color:#8E969E;padding:0 22px 8px">Sample dialogue. Not a live reply.</div>
+          <div style="border-top:1px solid rgba(255,255,255,.14);margin:8px 22px 0;padding:16px 0">
+            <div style="color:#8E969E;font-size:12px;letter-spacing:.14em">YOU</div>
+            <div style="font-size:18px;margin-top:6px">Is the porch light still on?</div>
+          </div>
+          <div style="border-top:1px solid rgba(255,255,255,.14);margin:0 22px;padding:16px 0">
+            <div style="color:#8E969E;font-size:12px;letter-spacing:.14em">MATTER</div>
+            <div style="font-size:18px;margin-top:6px;max-width:320px">Yes. It has been on since dusk. I can turn it off when you say so.</div>
+          </div>
+          <div style="margin-top:auto;padding:16px 18px 22px">
+            <div style="display:flex;align-items:center;gap:10px;background:#141618;border:1px solid rgba(255,255,255,.16);padding:10px 12px">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4"/></svg><span style="flex:1;color:#8E969E;font-size:17px">Speak or write</span>
+              <span style="width:36px;height:36px;border:1px solid #C5CBD1;display:flex;align-items:center;justify-content:center">↑</span>
+            </div>
+          </div>
+        </div></div><div class="col"><div class="cap">03 — THE SIGNAL</div><div class="phone" style="background:#05070A;color:#E7EEF2;font-family:Helvetica,Arial,sans-serif">
+          <div style="padding:22px 20px 0;display:flex;justify-content:space-between;align-items:baseline">
+            <div style="letter-spacing:.18em;font-size:14px">MATTER</div><div style="color:#7EB4CC;font-size:14px">Quiet</div>
+          </div>
+          <div style="padding:10px 16px 0"><svg width="100%" height="54" viewBox="0 0 360 54" preserveAspectRatio="none"><path d="M0 36 C 40 36, 60 8, 100 8 C 140 8, 160 48, 210 28 C 250 12, 280 40, 360 22" fill="none" stroke="#7EB4CC" stroke-width="1.6"/></svg></div>
+          <div class="sample" style="color:#8AA0AA;padding:8px 20px 0">Sample dialogue. Not a live reply.</div>
+          <div style="padding:20px">
+            <div style="display:flex;gap:10px;align-items:flex-start">
+              <div style="width:6px;height:6px;border-radius:50%;background:#7EB4CC;margin-top:8px"></div>
+              <div style="color:#8AA0AA;font-size:13px">You</div>
+            </div>
+            <div style="font-size:18px;padding:4px 0 16px 16px">Is the porch light still on?</div>
+            <div style="display:flex;gap:10px"><div style="width:6px;height:6px;border-radius:50%;background:#E7EEF2;margin-top:8px"></div><div style="color:#8AA0AA;font-size:13px">Matter</div></div>
+            <div style="font-size:18px;padding:4px 0 0 16px">Yes. It has been on since dusk. I can turn it off when you say so.</div>
+          </div>
+          <div style="margin-top:auto;padding:12px 16px 22px">
+            <div style="display:flex;align-items:center;gap:8px;border-bottom:1px solid #7EB4CC;padding:8px 0;color:#E7EEF2">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4"/></svg><span style="flex:1;color:#8AA0AA;font-size:17px">Speak into the link</span><span>↑</span>
+            </div>
+          </div>
+        </div></div><div class="col"><div class="cap">04 — THE ARCHIVE</div><div class="phone" style="background:#0C0B09;color:#E7DCC8">
+          <div style="margin:14px;border:1px solid #8C7355;outline:1px solid #3A3128;outline-offset:4px;height:calc(100% - 28px);display:flex;flex-direction:column;padding:18px 16px">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <svg width="36" height="36" viewBox="0 0 64 64"><circle cx="32" cy="32" r="22" fill="none" stroke="#C4A574" stroke-width="1.6"/><path d="M18 38 L32 20 L46 38" fill="none" stroke="#C4A574" stroke-width="1.6"/><path d="M20 44 H44" stroke="#C4A574" stroke-width="1.6"/></svg>
+              <div style="font:12px Helvetica,Arial,sans-serif;letter-spacing:.16em;color:#C4A574">CORRESPONDENCE</div>
+            </div>
+            <div style="font:15px Georgia,serif;margin-top:16px">At rest</div>
+            <div class="sample" style="color:#8C7355;margin-top:4px">Sample dialogue. Not a live reply.</div>
+            <div style="margin-top:22px;font:18px/1.45 Georgia,serif">Is the porch light still on?</div>
+            <div style="height:1px;background:#8C7355;margin:16px 0"></div>
+            <div style="font:18px/1.5 Georgia,serif">Yes. It has been on since dusk. I can turn it off when you say so.</div>
+            <div style="margin-top:auto;display:flex;align-items:center;gap:8px;border-bottom:1px solid #C4A574;padding-bottom:8px;color:#E7DCC8">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4"/></svg><span style="flex:1;font:16px Helvetica,Arial,sans-serif;color:#8C7355">Write to Matter</span><span>↗</span>
+            </div>
+          </div>
+        </div></div></div></body></html>

@@ -1,3 +1,25 @@
+# CURSOR → CLAUDE · 2026-10-27 · Family visual handoff
+
+**Status:** `READY_FOR_CLAUDE_REVIEW`
+**Task:** MATTER-PRESENCE-001
+
+Your SwiftUI app remains the primary implementation. PR #22 stays open and unmerged. I did not add another phone gateway, another app target, or any NAS, media, or account backend. Matter Core and the approval gates were not touched.
+
+`ios/MatterKit` now has seats, a home/work visual split, and a title-only shelf. `visiblePlaces` keeps work-only people out of the family chat. `MatterKeptShelf` shows titles and the word Private, with no picture and no storage path. The integration steps are `ios/MatterKit/INTEGRATION.md`.
+
+Previews still use fixture names, not the real family. Xcode is not on this machine, so nothing was compiled or run in the simulator.
+
+# CURSOR → CLAUDE · 2026-10-27 · The Wick
+
+**Status:** `READY_FOR_CLAUDE_REVIEW`
+**Task:** MATTER-PRESENCE-001
+
+`e041ad5` is still not on origin, so I did not edit your SwiftUI app. `ios/MatterKit` is a separate package: a banked-flame presence, a conversation-first family home, and an owner screen for mission, approvals, tasks, agents, and health. `matterPresence(_:)` turns real signals into Idle, Listening, Thinking, Speaking, Working, Waiting, or Offline. A refresh is not thinking. Queued work is not working. Speech is only while the phone is playing audio.
+
+Please drop this in front of your existing client when you want the new home. Keep your intake, approval journal, device authentication, and execution controls. Face ID stays the extra device check. The tabbed client on PR #22 was not switched over.
+
+Xcode is not installed here. The studies in `ios/MatterKit/Studies` are browser paintings, not simulator captures.
+
 # CURSOR → CLAUDE · 2026-10-27 · Mobile coordination, contract v3
 
 **Status:** `READY_FOR_CLAUDE_REVIEW`

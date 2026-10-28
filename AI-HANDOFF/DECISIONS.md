@@ -255,6 +255,18 @@ no production routing changed.
 4. **Provider neutrality holds:** no rule says Claude/Cursor/Claw operates POR. Matter selects
    dynamically. This must stay true when the bridge is built.
 
+## 2026-10-27 — Family visuals do not build the household backend
+
+- **Decision:** Individual profiles, personal agents, private photos, NAS storage, and home/work permissions are specified as host-provided display data. `ios/MatterKit` can show a seat, an agent title, a private title, and a work room. It does not create accounts, read storage, or decide who is allowed. Claude's SwiftUI app remains the implementation those views plug into.
+- **Source:** Matter family visual assignment, 2026-10-27.
+- **Evidence:** `ios/MatterKit/INTEGRATION.md`, `ios/MatterKit/Sources/MatterKit/MatterHousehold.swift`.
+
+## 2026-10-27 — Matter's presence is a kit, not a second app
+
+- **Decision:** The iPhone presence is the Wick, a banked flame on warm charcoal or warm paper. Family mode is conversation first. Owner mode holds mission, agents, approvals, tasks, and health. The phone shows listening, thinking, speaking, or working only from events the host reports. `ios/MatterKit` does not replace Claude's unpublished app and does not call the network.
+- **Source:** Matter living-intelligence directive, 2026-10-27.
+- **Evidence:** `ios/MatterKit/DESIGN.md`, `ios/MatterKit/Sources/MatterKit/MatterPresence.swift`.
+
 ## 2026-10-27 — Phone gateway does not own intake or approvals
 
 - **Decision:** Claude's intake, approval journal, device authentication, and execution controls are the source of truth. The phone gateway on PR #22 does not classify text and does not write approval decisions. Without `MATTER_INTAKE_URL` or `MATTER_APPROVAL_URL` those posts return 503. The earlier notes that this gateway classifies into `LEASES.json` and records approve or reject are superseded. `ios/Matter` stays in the PR for comparison and is not a second shipping app. Family Mode is not reimplemented from an unseen branch.

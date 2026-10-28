@@ -1,5 +1,11 @@
 # CURRENT TASK
 
+**TASK ID:** MATTER-PRESENCE-001
+**STATUS:** `READY_FOR_CLAUDE_REVIEW`
+**UPDATED:** 2026-10-27
+
+Living presence kit `ios/MatterKit` on `cursor/matter-living-presence-119d`. The Wick, family seats, home/work split, and title-only shelf are SwiftUI components for Claude's app. No second app, no NAS, no account backend. Handoff: `ios/MatterKit/INTEGRATION.md`. Xcode is not on this machine. PR #22 stays open.
+
 **TASK ID:** MATTER-PHONE-IOS-001
 **STATUS:** `READY_FOR_CLAUDE_REVIEW`
 **UPDATED:** 2026-10-27

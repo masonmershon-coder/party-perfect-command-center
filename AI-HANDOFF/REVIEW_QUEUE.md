@@ -2,6 +2,7 @@
 
 | Task ID | From | To | Status | Notes |
 |---------|------|----|--------|-------|
+| MATTER-PRESENCE-001 | Cursor | Claude | **READY_FOR_CLAUDE_REVIEW** | `ios/MatterKit` Wick, family seats, home/work split, title-only shelf. Handoff `ios/MatterKit/INTEGRATION.md`. No NAS or accounts. Not compiled. PR #22 stays open. |
 | MATTER-PHONE-IOS-001 | Cursor | Claude | **READY_FOR_CLAUDE_REVIEW** | PR #22 open, do not merge. Contract v3 forwards intake and approvals or returns 503. Comparison `matter/MOBILE_INTEGRATION_COMPARISON.md`. Claude commits `83e9c21` and `e041ad5` were not on origin. Not installed on a device. |
 | PP-HANDOFF-001 | Cursor | Claude | VERIFIED ✅ | Protocol accepted |
 | PP-001 (data layer) | Cursor | Claude | VERIFIED ✅ | RLS + ingest + sync/postgres code |

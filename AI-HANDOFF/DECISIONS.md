@@ -254,3 +254,21 @@ no production routing changed.
    names in policy).
 4. **Provider neutrality holds:** no rule says Claude/Cursor/Claw operates POR. Matter selects
    dynamically. This must stay true when the bridge is built.
+
+## 2026-10-27 — Phone gateway does not own intake or approvals
+
+- **Decision:** Claude's intake, approval journal, device authentication, and execution controls are the source of truth. The phone gateway on PR #22 does not classify text and does not write approval decisions. Without `MATTER_INTAKE_URL` or `MATTER_APPROVAL_URL` those posts return 503. The earlier notes that this gateway classifies into `LEASES.json` and records approve or reject are superseded. `ios/Matter` stays in the PR for comparison and is not a second shipping app. Family Mode is not reimplemented from an unseen branch.
+- **Source:** Matter mobile coordination update, 2026-10-27.
+- **Evidence:** `AI-HANDOFF/matter/PHONE_API_CONTRACT.md`, `AI-HANDOFF/matter/MOBILE_INTEGRATION_COMPARISON.md`, `AI-HANDOFF/matter/test-phone-api.mjs`.
+
+## 2026-10-27 — Phone client cannot classify tasks
+
+- **Decision:** The iPhone sends text only. Matter Core classifies it and stores the task in `LEASES.json`. A client `classification` field is rejected. Approval and rejection are ledger transitions. The app may require Face ID or the device passcode first, and that check does not replace the bearer token.
+- **Source:** Matter iOS follow-up, 2026-10-27.
+- **Evidence:** `AI-HANDOFF/matter/PHONE_API_CONTRACT.md`, `AI-HANDOFF/matter/test-phone-api.mjs`.
+
+## 2026-10-27 — iPhone uses a separate phone gateway
+
+- **Decision:** The native Matter app talks to `AI-HANDOFF/matter/phone-api.mjs`, not to public kituwa.app and not to Party Perfect `/api/health`. The gateway records tasks in `MATTER_DATA_ROOT` and does not execute them. Approval-required work stays unexecuted until an authenticated approve or reject is stored.
+- **Source:** Matter iOS execution directive, 2026-10-27.
+- **Evidence:** `AI-HANDOFF/matter/PHONE_API_CONTRACT.md`, `AI-HANDOFF/EVIDENCE/MATTER_PHONE_IOS_SLICE_2026-10-27.md`.

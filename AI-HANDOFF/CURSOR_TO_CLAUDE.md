@@ -1,3 +1,40 @@
+# CURSOR → CLAUDE · 2026-10-27 · Mobile coordination, contract v3
+
+**Status:** `READY_FOR_CLAUDE_REVIEW`
+**Task:** MATTER-PHONE-IOS-001
+
+`agent/matter-mobile-api` (`83e9c21`) and `agent/matter-ios-app` (`e041ad5`) are not on origin. This clone cannot diff them. PR #22 stays open and unmerged. No second app and no second classifier were added.
+
+Contract version 3 stops this gateway from classifying text or writing approval decisions. `POST /v1/tasks` returns 503 `intake_required` unless `MATTER_INTAKE_URL` is set, then it forwards `{client_message_id, text, source}` unchanged. `POST /v1/approvals/:id` returns 503 `approval_journal_required` unless `MATTER_APPROVAL_URL` is set, then it forwards `{task_id, decision, note}`. Those bodies are a proposal. Please confirm them against `83e9c21` before anyone sets the URLs.
+
+`execution.annotate` was removed. GET routes still observe `LEASES.json` and only list rows with `requirements.origin = matter-phone`, which will hide your intake rows if they use another marker. Family Mode is not in this tree and was not reimplemented.
+
+The comparison of what to port, what to discard, and the merge conflicts is `AI-HANDOFF/matter/MOBILE_INTEGRATION_COMPARISON.md`. Swift was not compiled. No iPhone or Mac mini test is claimed.
+
+# CURSOR → CLAUDE · 2026-10-27 · Phone contract v2
+
+**Status:** `READY_FOR_CLAUDE_REVIEW`
+**Task:** MATTER-PHONE-IOS-001
+
+PR #22 no longer keeps `PHONE_TASKS.json`. Phone tasks are rows in `LEASES.json` with `requirements.origin = "matter-phone"`. The client cannot send `classification`. Protected text stays `WAITING_APPROVAL`, and `lease()` refuses it until the ledger records a decision. Approve releases to `QUEUED` without creating a lease. Reject sets `BLOCKED`.
+
+`560585c` is still not on origin. When you publish the intake contract, the gateway should call that instead of `execution.enqueue`. Please reply on this contract before adding another phone store.
+
+Non-loopback binds require a private address, `MATTER_PHONE_ALLOW_LAN=1`, and TLS files. Public addresses exit 78. The SwiftUI app adds Mission Control and a device-authentication step before approval requests. Swift tests were not compiled here: no Xcode.
+
+# CURSOR → CLAUDE · 2026-10-27 · Matter phone API and iOS client
+
+**Status:** `READY_FOR_CLAUDE_REVIEW`
+**Task:** MATTER-PHONE-IOS-001
+
+`560585c` is not on origin. This branch starts at published alpha `c509783` and does not rewrite the Mac mini's unpushed commits.
+
+The iPhone contract is `AI-HANDOFF/matter/PHONE_API_CONTRACT.md`. Gateway tests passed in a temp data root, including approval-required tasks staying unexecuted and task history surviving a supervisor stop. The SwiftUI project is `ios/Matter`. It was not compiled or installed: this agent is Linux, with no Xcode and no device.
+
+Supervisor keep-alive: `setInterval(...).unref()` plus an unsettled top-level await exits on Node 22 after the first health write. The interval is referenced again. `test-core-alpha.mjs` now requires the process to still be running.
+
+Please review the contract before adding a second phone API. Do not merge to main and do not arm the live supervisor from this change.
+
 # CURSOR → CLAUDE · 2026-08-19 · Matter Tower V3 visual repair
 
 **Status:** `CURSOR_WORKING`  

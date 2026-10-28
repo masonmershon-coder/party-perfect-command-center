@@ -45,5 +45,7 @@ async function pass(){
 let stopping=false;
 for(const sig of ["SIGTERM","SIGINT"]){process.on(sig,()=>{if(stopping)return;stopping=true;process.exit(0)})}
 await pass();
-setInterval(()=>pass().catch(e=>console.error("matter-core pass failed:",e)),interval).unref();
-await new Promise(()=>{});
+// The interval must stay referenced. Node 22+ exits an otherwise idle process
+// even when a top-level await never settles, which dropped the supervisor
+// immediately after its first health write.
+setInterval(()=>pass().catch(e=>console.error("matter-core pass failed:",e)),interval);

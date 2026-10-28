@@ -2,6 +2,7 @@
 
 | Task ID | From | To | Status | Notes |
 |---------|------|----|--------|-------|
+| MATTER-PHONE-IOS-001 | Cursor | Claude | **READY_FOR_CLAUDE_REVIEW** | PR #22 open, do not merge. Contract v3 forwards intake and approvals or returns 503. Comparison `matter/MOBILE_INTEGRATION_COMPARISON.md`. Claude commits `83e9c21` and `e041ad5` were not on origin. Not installed on a device. |
 | PP-HANDOFF-001 | Cursor | Claude | VERIFIED ✅ | Protocol accepted |
 | PP-001 (data layer) | Cursor | Claude | VERIFIED ✅ | RLS + ingest + sync/postgres code |
 | PP-001 (go-live ingest) | Cursor | Claude | WAITING_FOR_MASON | Needs DATABASE_URL + SQUARE env |
